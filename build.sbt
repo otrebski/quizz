@@ -2,15 +2,29 @@
 // Projects
 // *****************************************************************************
 
+name := "quizz"
+version := "0.1"
+
 lazy val quizz =
   project
     .in(file("."))
-    .enablePlugins(AutomateHeaderPlugin)
+//    .enablePlugins(AutomateHeaderPlugin)
+    .enablePlugins(JavaAppPackaging)
+    .enablePlugins(DockerPlugin)
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
         library.scalaCheck % Test,
         library.scalaTest  % Test,
+        library.circeParser,
+        library.circeGeneric,
+        library.tapir,
+        library.tapirAkka,
+        library.tapirJson
+//        library.tapirHttp4s,
+//        library.tapirJson,
+//        library.bazelServer,
+//        library.bazelClient
       )
     )
 
@@ -23,9 +37,20 @@ lazy val library =
     object Version {
       val scalaCheck = "1.14.0"
       val scalaTest  = "3.0.6"
+      val circe = "0.11.1"
+      val tapir = "0.7.10"
+//      val bazel = "0.20.0"
     }
     val scalaCheck = "org.scalacheck" %% "scalacheck" % Version.scalaCheck
     val scalaTest  = "org.scalatest"  %% "scalatest"  % Version.scalaTest
+    val circeParser = "io.circe" %% "circe-parser" %  Version.circe
+    val circeGeneric =  "io.circe" %% "circe-generic" % Version.circe
+    val tapir = "com.softwaremill.tapir" %% "tapir-core" % Version.tapir
+    val tapirAkka = "com.softwaremill.tapir" %% "tapir-akka-http-server" % Version.tapir
+    val tapirJson = "com.softwaremill.tapir" %% "tapir-json-circe" % Version.tapir
+//    val bazelClient = "org.http4s"     %% "http4s-blaze-client" % Version.bazel
+//    val bazelServer = "org.http4s"     %% "http4s-blaze-server" % Version.bazel
+//    val tapirHttp4s = "com.softwaremill.tapir" %% "tapir-http4s-server" % Version.tapir
   }
 
 // *****************************************************************************
@@ -60,3 +85,8 @@ lazy val scalafmtSettings =
   Seq(
     scalafmtOnCompile := true,
   )
+
+
+mainClass := Some("quizz.web.WebApp")
+dockerEntrypoint := Seq("/opt/docker/bin/web-app")
+dockerExposedPorts := Seq(8080, 8080)

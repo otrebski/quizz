@@ -15,6 +15,7 @@
  */
 
 package quizz
+import cats.Show
 
 package object model {
 
@@ -24,8 +25,23 @@ package object model {
     def id: String
     def text: String
   }
-  case class SucessStep(id: String, text: String)                               extends QuizStep
+  case class SuccessStep(id: String, text: String)                              extends QuizStep
   case class FailureStep(id: String, text: String)                              extends QuizStep
   case class Question(id: String, text: String, answers: Map[String, QuizStep]) extends QuizStep
+
+  implicit val quizzShow: Show[Quizz] = Show.show { q =>
+    def stepToString(step: QuizStep, depth: Int = 0): String = {
+      val answers = step match {
+        case Question(_, _, a) => a.values.map(i => stepToString(i, depth + 1)).mkString("\n")
+        case _                 => ""
+      }
+      val indend = " " * depth
+      s"""$indend${step.id} [${step.text}]
+         |$answers""".stripMargin.replaceAll("\\s+$", "")
+
+    }
+
+    s"Quizz: ${q.id} [${q.name}]\n${stepToString(q.firstStep)}"
+  }
 
 }

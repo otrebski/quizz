@@ -1,0 +1,30 @@
+
+### List of quizzes
+GET http://localhost:8080/api/quiz/
+
+### Starting point of quizz q1
+
+GET http://localhost:8080/api/quiz/root/path/1
+
+### Quizz with answer electricity
+GET http://localhost:8080/api/quiz/q1/path/electricity
+
+### Quizz with answer electricity and checkLocal
+GET http://localhost:8080/api/quiz/q1/path/electricity;checkLocal
+
+### Quizz with answer electricity and checkLocal
+GET http://localhost:8080/api/quiz/q1/path/electricity;checkLocal;buildingFuses;noPower
+
+### Feedback
+POST http://localhost:8080/api/feedback
+Content-Type: application/json
+Accept: */*
+
+{
+  "comment": "Super",
+  "path": "a;b;c",
+  "quizzId": "q1",
+  "rate": "2"
+}
+
+###

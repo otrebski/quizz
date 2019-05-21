@@ -1,0 +1,14 @@
+version: "2.4"
+
+services:
+  quizz:
+    image: quizz:latest
+    volumes:
+      - '/tmp/mindmups/:/tmp/mindmups/' 
+    environment:
+      LOAD_FROM_DIR: "/tmp/mindmups/"
+
+  gui:
+    image: otrebski/quizz-gui:latest
+    ports:
+      - 8080:80

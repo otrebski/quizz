@@ -1,0 +1,21 @@
+.inputText {    
+    margin: 10px;
+    width: 90%;
+
+}
+.center {
+    margin: auto;    
+    /* border: 3px solid green; */
+    padding: 5px;
+    margin: 3px;
+    text-align: center;
+    /* display: bock; */
+    margin-left: auto;
+    margin-right: auto;
+    /* width: 90%; */
+  }
+
+  .emoji {
+      font-size: 60px
+  }
+

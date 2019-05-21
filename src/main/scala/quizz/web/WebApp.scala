@@ -16,17 +16,20 @@
 
 package quizz.web
 
+import java.io.File
+
 import scala.concurrent.{ ExecutionContextExecutor, Future }
 
+import com.typesafe.config.{ Config, ConfigFactory }
+import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.auto._
-import quizz.data.ExamplesData
-import quizz.engine.QuizzEngine
-import quizz.model.{ FailureStep, Question, SucessStep }
+import quizz.data.{ ExamplesData, Loader }
+import quizz.model.Quizz
 import tapir.json.circe._
 import tapir.server.akkahttp._
 import tapir.{ path, _ }
 
-object WebApp extends App {
+object WebApp extends App with LazyLogging {
 
   object Api {
     case class QuizzQuery(id: String, path: String)
@@ -36,7 +39,7 @@ object WebApp extends App {
                     question: String,
                     answers: List[Answer] = List.empty,
                     success: Option[Boolean] = None)
-    case class Answer(id: String, text: String, selected: Boolean = false)
+    case class Answer(id: String, text: String, selected: Option[Boolean] = None)
 
     case class QuizzInfo(id: String, title: String)
     case class Quizzes(quizzes: List[QuizzInfo])
@@ -48,6 +51,25 @@ object WebApp extends App {
   val stateCodec    = jsonBody[Api.QuizzState]
   val codecQuizInfo = jsonBody[Api.Quizzes]
   val codecFeedback = jsonBody[Api.Feedback]
+
+  private val config: Config         = ConfigFactory.load()
+  private val dirWithQuizzes: String = config.getString("quizz.loader.dir")
+  logger.info(s"""Loading from "$dirWithQuizzes" """)
+  val quizzesOrError: Either[String, Map[String, Quizz]] = if (dirWithQuizzes.nonEmpty) {
+    val list = Loader.fromFolder(new File(dirWithQuizzes))
+    list.map(errorOr => errorOr.map(q => q.id -> q).toMap)
+  } else {
+    Right(ExamplesData.quizzes)
+  }
+
+  val quizzes: Map[String, Quizz] = quizzesOrError match {
+    case Right(quizz) =>
+      logger.info(s"Quizz ${quizz.keys.mkString(", ")} loaded")
+      quizz
+    case Left(error) =>
+      logger.info(s"Can't read quizzes: $error")
+      sys.exit(1)
+  }
 
   val routeEndpoint = endpoint.get
     .in(
@@ -75,95 +97,30 @@ object WebApp extends App {
   import akka.http.scaladsl.Http
   import akka.stream.ActorMaterializer
 
-  def routeProvider3(request: Api.QuizzId): Future[Either[String, Api.QuizzState]] = {
-    val answers = ExamplesData.quiz.answers.map(kv => Api.Answer(kv._2.id, kv._1)).toList
-    val r = Right(
-      Api.QuizzState(
-        path = "",
-        currentStep =
-          Api.Step(id = ExamplesData.quiz.id, question = ExamplesData.quiz.text, answers = answers)
-      )
+  private def routeProvider3(request: Api.QuizzId) =
+    Future.successful(
+      Logic.calculateStateOnPathStart(quizzes.get(request.id).map(_.firstStep).get)
     )
-    Future.successful(r)
-  }
-
-  def routeProvider2(request: Api.QuizzQuery): Future[Either[String, Api.QuizzState]] = {
-    val path = request.path.split(";").toList.reverse
-    val history = QuizzEngine
-      .history(ExamplesData.quiz, path)
-      .map(
-        h =>
-          h.map {
-            case q: Question =>
-              val answers = q.answers.map { a =>
-                Api.Answer(a._2.id, a._2.text, path.contains(a._2.id))
-              }.toList
-              Api.Step(q.id, q.text, answers)
-            case f: FailureStep => Api.Step(f.id, f.text, success = Some(false))
-            case s: SucessStep  => Api.Step(s.id, s.text, success = Some(true))
-        }
-      )
-      .getOrElse(List.empty)
-
-    val x: Either[String, Api.QuizzState] = path match {
-      case head :: Nil if head == "" =>
-        val answers = ExamplesData.quiz.answers.map(kv => Api.Answer(kv._2.id, kv._1)).toList
-        Right(
-          Api.QuizzState(
-            path = "",
-            currentStep = Api.Step(id = ExamplesData.quiz.id,
-                                   question = ExamplesData.quiz.text,
-                                   answers = answers)
-          )
-        )
-
-      case head :: tail =>
-        val r: Either[String, QuizzEngine.SelectionResult] =
-          QuizzEngine.process(head, ExamplesData.quiz, tail)
-
-        r.map(_.current)
-          .map {
-            case q: Question =>
-              val currentStep = Api.Step(
-                id = q.id,
-                question = q.text,
-                answers = q.answers.map(kv => Api.Answer(kv._2.id, kv._1)).toList
-              )
-              Api.QuizzState(
-                path = request.path,
-                currentStep = currentStep
-              )
-            case f: FailureStep =>
-              Api
-                .QuizzState(path = request.path,
-                            currentStep =
-                              Api.Step(id = f.id, question = f.text, success = Some(false)))
-            case f: SucessStep =>
-              Api
-                .QuizzState(
-                  path = request.path,
-                  currentStep = Api.Step(id = f.id, question = f.text, success = Some(true))
-                )
-          }
-
-    }
-    Future.successful(x.map(_.copy(history = history)))
-
-  }
+  private def routeWithPathProvider(request: Api.QuizzQuery) =
+    Future.successful(Logic.calculateStateOnPath(request, quizzes))
 
   val quizListProvider: Unit => Future[Either[Unit, Api.Quizzes]] = _ => {
     Future.successful(
-      Right(Api.Quizzes(quizzes = ExamplesData.quizzes.map(q => Api.QuizzInfo(q.id, q.name))))
+      Right(
+        Api.Quizzes(
+          quizzes = quizzes.values.toList.map(q => Api.QuizzInfo(q.id, q.name))
+        )
+      )
     )
   }
 
   def feedbackProvider(feedback: Api.Feedback): Future[Either[Unit, String]] = {
-    println(s"Have feedback: $feedback")
+    logger.info(s"Have feedback: $feedback")
     Future.successful(Right("OK"))
   }
 
   import akka.http.scaladsl.server.Directives._
-  val route         = routeEndpoint.toRoute(routeProvider2)
+  val route         = routeEndpoint.toRoute(routeWithPathProvider)
   val routeStart    = routeEndpointStart.toRoute(routeProvider3)
   val routeList     = listQuizzes.toRoute(quizListProvider)
   val routeFeedback = feedback.toRoute(feedbackProvider)
@@ -175,6 +132,6 @@ object WebApp extends App {
   val bindingFuture =
     Http().bindAndHandle(route ~ routeStart ~ routeList ~ routeFeedback, "0.0.0.0", 8080)
 
-  println(s"Server is online")
+  logger.info(s"Server is online")
 
 }

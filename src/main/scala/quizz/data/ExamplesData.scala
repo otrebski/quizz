@@ -16,10 +16,14 @@
 
 package quizz.data
 
-import quizz.model.{ FailureStep, Question, Quizz, SucessStep }
+import scala.io.Source
+import cats.syntax.show._
+import com.typesafe.scalalogging.LazyLogging
+import mindmup.Parser
+import quizz.model.{ FailureStep, Question, Quizz, SuccessStep }
 import quizz.web.WebApp.Api.{ Answer, QuizzState, Step }
 
-object ExamplesData {
+object ExamplesData extends LazyLogging {
 
   val quiz = Question(
     "root",
@@ -33,8 +37,8 @@ object ExamplesData {
           Question(
             "whereIsOutage",
             "Does your neighborhood has power",
-            Map("yes" -> SucessStep("localOutage", "Check your fuses or pay you bills"),
-                "no"  -> SucessStep("totalOutage", "Probably outage, just wait"))
+            Map("yes" -> SuccessStep("localOutage", "Check your fuses or pay you bills"),
+                "no"  -> SuccessStep("totalOutage", "Probably outage, just wait"))
           ),
           "No power at some lights" ->
           Question(
@@ -44,7 +48,7 @@ object ExamplesData {
               "no" -> Question("localFusesDown",
                                "Turn them on. Is it solved?",
                                Map(
-                                 "yes" -> SucessStep("localFusesFixed", "Congrats"),
+                                 "yes" -> SuccessStep("localFusesFixed", "Congrats"),
                                  "no"  -> FailureStep("localFusesBroken", "Shit!")
                                )),
               "yes" -> Question(
@@ -56,7 +60,7 @@ object ExamplesData {
                     "buildingFusesBroken",
                     "Fix fuses outside",
                     Map(
-                      "Problem fixed"     -> SucessStep("buildingFusesFixed", "Congrats"),
+                      "Problem fixed"     -> SuccessStep("buildingFusesFixed", "Congrats"),
                       "Still not working" -> FailureStep("buildingFusesNotFixed", "Pay your bills"),
                     )
                   )
@@ -83,7 +87,7 @@ object ExamplesData {
             "phoneNoSignal",
             "Restart phone",
             Map(
-              "Working"     -> SucessStep("phoneWorkingAfterRestart", "Congrats!"),
+              "Working"     -> SuccessStep("phoneWorkingAfterRestart", "Congrats!"),
               "Not working" -> FailureStep("phoneNotWorkingAfterRestart", "Use other phone")
             )
           ),
@@ -95,8 +99,8 @@ object ExamplesData {
                 "internetHeavilyUsed",
                 "Turn off all redundant transfers. Is it working better now?",
                 Map(
-                  "yes" -> SucessStep("internetSolved", "Congrats"),
-                  "no"  -> SucessStep("internetNotSolved2", "Call your internet provider")
+                  "yes" -> SuccessStep("internetSolved", "Congrats"),
+                  "no"  -> SuccessStep("internetNotSolved2", "Call your internet provider")
                 )
               ),
               "no" -> FailureStep("internetNotSolved1", "Call your internet provider")
@@ -118,17 +122,23 @@ object ExamplesData {
         Step(
           "b",
           "I co dalej 1 ?",
-          List(Answer("", "jedziemy", selected = true), Answer("", "Stoimi"), Answer("", "Lezymy"))
+          List(Answer("", "jedziemy", selected = Some(true)),
+               Answer("", "Stoimi"),
+               Answer("", "Lezymy"))
         ),
         Step(
           "c",
           "I co dalej 2 ?",
-          List(Answer("", "jedziemy"), Answer("", "Stoimi", selected = true), Answer("", "Lezymy"))
+          List(Answer("", "jedziemy"),
+               Answer("", "Stoimi", selected = Some(true)),
+               Answer("", "Lezymy"))
         ),
         Step(
           "d",
           "I co dalej 3 ?",
-          List(Answer("", "jedziemy"), Answer("", "Stoimi"), Answer("", "Lezymy", selected = true))
+          List(Answer("", "jedziemy"),
+               Answer("", "Stoimi"),
+               Answer("", "Lezymy", selected = Some(true)))
         ),
       )
     )
@@ -144,9 +154,18 @@ object ExamplesData {
     )
   }
 
-  val quizzes = List(
+  private val exmpleSrouce = Source
+    .fromInputStream(this.getClass.getClassLoader.getResourceAsStream("quizz.mup.json"))
+    .mkString
+  private val errorOrQuizz = Parser.parseInput(exmpleSrouce).map(_.toQuizz)
+
+  logger.info(s"Loadded quizz: ${errorOrQuizz.map(_.show)}")
+  val quizzMindmup: Quizz = errorOrQuizz.toOption.get
+
+  val quizzes: Map[String, Quizz] = List(
     Quizz("q1", "Example quiz", quiz),
     Quizz("q2", "Another quiz", quiz),
-  )
+    quizzMindmup
+  ).map(q => q.id -> q).toMap
 
 }

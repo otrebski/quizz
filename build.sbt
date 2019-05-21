@@ -88,5 +88,5 @@ lazy val scalafmtSettings =
 
 
 mainClass := Some("quizz.web.WebApp")
-dockerEntrypoint := Seq("/opt/docker/bin/web-app")
+dockerEntrypoint := Seq("/opt/docker/bin/quizz")
 dockerExposedPorts := Seq(8080, 8080)

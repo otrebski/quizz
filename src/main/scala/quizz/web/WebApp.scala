@@ -24,6 +24,7 @@ import quizz.engine.QuizzEngine
 import quizz.model.{ FailureStep, Question, SuccessStep }
 import tapir.json.circe._
 import tapir.server.akkahttp._
+import cats.syntax.option._
 import tapir.{ path, _ }
 
 object WebApp extends App {
@@ -36,7 +37,7 @@ object WebApp extends App {
                     question: String,
                     answers: List[Answer] = List.empty,
                     success: Option[Boolean] = None)
-    case class Answer(id: String, text: String, selected: Boolean = false)
+    case class Answer(id: String, text: String, selected: Option[Boolean] = None)
 
     case class QuizzInfo(id: String, title: String)
     case class Quizzes(quizzes: List[QuizzInfo])
@@ -96,7 +97,7 @@ object WebApp extends App {
           h.map {
             case q: Question =>
               val answers = q.answers.map { a =>
-                Api.Answer(a._2.id, a._2.text, path.contains(a._2.id))
+                Api.Answer(a._2.id, a._2.text, path.contains(a._2.id).some)
               }.toList
               Api.Step(q.id, q.text, answers)
             case f: FailureStep => Api.Step(f.id, f.text, success = Some(false))

@@ -118,17 +118,17 @@ object ExamplesData {
         Step(
           "b",
           "I co dalej 1 ?",
-          List(Answer("", "jedziemy", selected = true), Answer("", "Stoimi"), Answer("", "Lezymy"))
+          List(Answer("", "jedziemy", selected = Some(true)), Answer("", "Stoimi"), Answer("", "Lezymy"))
         ),
         Step(
           "c",
           "I co dalej 2 ?",
-          List(Answer("", "jedziemy"), Answer("", "Stoimi", selected = true), Answer("", "Lezymy"))
+          List(Answer("", "jedziemy"), Answer("", "Stoimi", selected = Some(true)), Answer("", "Lezymy"))
         ),
         Step(
           "d",
           "I co dalej 3 ?",
-          List(Answer("", "jedziemy"), Answer("", "Stoimi"), Answer("", "Lezymy", selected = true))
+          List(Answer("", "jedziemy"), Answer("", "Stoimi"), Answer("", "Lezymy", selected = Some(true)))
         ),
       )
     )

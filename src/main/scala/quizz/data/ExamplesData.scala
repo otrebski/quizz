@@ -16,7 +16,7 @@
 
 package quizz.data
 
-import quizz.model.{ FailureStep, Question, Quizz, SucessStep }
+import quizz.model.{ FailureStep, Question, Quizz, SuccessStep }
 import quizz.web.WebApp.Api.{ Answer, QuizzState, Step }
 
 object ExamplesData {
@@ -33,8 +33,8 @@ object ExamplesData {
           Question(
             "whereIsOutage",
             "Does your neighborhood has power",
-            Map("yes" -> SucessStep("localOutage", "Check your fuses or pay you bills"),
-                "no"  -> SucessStep("totalOutage", "Probably outage, just wait"))
+            Map("yes" -> SuccessStep("localOutage", "Check your fuses or pay you bills"),
+                "no"  -> SuccessStep("totalOutage", "Probably outage, just wait"))
           ),
           "No power at some lights" ->
           Question(
@@ -44,7 +44,7 @@ object ExamplesData {
               "no" -> Question("localFusesDown",
                                "Turn them on. Is it solved?",
                                Map(
-                                 "yes" -> SucessStep("localFusesFixed", "Congrats"),
+                                 "yes" -> SuccessStep("localFusesFixed", "Congrats"),
                                  "no"  -> FailureStep("localFusesBroken", "Shit!")
                                )),
               "yes" -> Question(
@@ -56,7 +56,7 @@ object ExamplesData {
                     "buildingFusesBroken",
                     "Fix fuses outside",
                     Map(
-                      "Problem fixed"     -> SucessStep("buildingFusesFixed", "Congrats"),
+                      "Problem fixed"     -> SuccessStep("buildingFusesFixed", "Congrats"),
                       "Still not working" -> FailureStep("buildingFusesNotFixed", "Pay your bills"),
                     )
                   )
@@ -83,7 +83,7 @@ object ExamplesData {
             "phoneNoSignal",
             "Restart phone",
             Map(
-              "Working"     -> SucessStep("phoneWorkingAfterRestart", "Congrats!"),
+              "Working"     -> SuccessStep("phoneWorkingAfterRestart", "Congrats!"),
               "Not working" -> FailureStep("phoneNotWorkingAfterRestart", "Use other phone")
             )
           ),
@@ -95,8 +95,8 @@ object ExamplesData {
                 "internetHeavilyUsed",
                 "Turn off all redundant transfers. Is it working better now?",
                 Map(
-                  "yes" -> SucessStep("internetSolved", "Congrats"),
-                  "no"  -> SucessStep("internetNotSolved2", "Call your internet provider")
+                  "yes" -> SuccessStep("internetSolved", "Congrats"),
+                  "no"  -> SuccessStep("internetNotSolved2", "Call your internet provider")
                 )
               ),
               "no" -> FailureStep("internetNotSolved1", "Call your internet provider")

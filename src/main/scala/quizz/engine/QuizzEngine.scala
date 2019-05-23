@@ -16,7 +16,7 @@
 
 package quizz.engine
 
-import quizz.model.{ FailureStep, Question, QuizStep, SucessStep }
+import quizz.model.{ FailureStep, Question, QuizStep, SuccessStep }
 
 object QuizzEngine {
 
@@ -33,7 +33,7 @@ object QuizzEngine {
                 .map(step => next(step, tail).map(r => step :: r))
                 .getOrElse(Left("Error"))
             case f: FailureStep => Right(List(f))
-            case f: SucessStep  => Right(List(f))
+            case f: SuccessStep  => Right(List(f))
           }
         case Nil => Right(Nil)
       }
@@ -63,7 +63,7 @@ object QuizzEngine {
                 .find(_.id == answerId)
                 .map(s => Right(s))
                 .getOrElse(Left("Wrong selection"))
-            case s: SucessStep  => Right(s)
+            case s: SuccessStep  => Right(s)
             case f: FailureStep => Right(f)
           }
       }

@@ -21,7 +21,7 @@ import scala.concurrent.{ ExecutionContextExecutor, Future }
 import io.circe.generic.auto._
 import quizz.data.ExamplesData
 import quizz.engine.QuizzEngine
-import quizz.model.{ FailureStep, Question, SucessStep }
+import quizz.model.{ FailureStep, Question, SuccessStep }
 import tapir.json.circe._
 import tapir.server.akkahttp._
 import tapir.{ path, _ }
@@ -100,7 +100,7 @@ object WebApp extends App {
               }.toList
               Api.Step(q.id, q.text, answers)
             case f: FailureStep => Api.Step(f.id, f.text, success = Some(false))
-            case s: SucessStep  => Api.Step(s.id, s.text, success = Some(true))
+            case s: SuccessStep  => Api.Step(s.id, s.text, success = Some(true))
         }
       )
       .getOrElse(List.empty)
@@ -138,7 +138,7 @@ object WebApp extends App {
                 .QuizzState(path = request.path,
                             currentStep =
                               Api.Step(id = f.id, question = f.text, success = Some(false)))
-            case f: SucessStep =>
+            case f: SuccessStep =>
               Api
                 .QuizzState(
                   path = request.path,

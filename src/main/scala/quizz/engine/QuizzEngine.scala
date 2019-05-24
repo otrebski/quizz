@@ -33,7 +33,7 @@ object QuizzEngine {
                 .map(step => next(step, tail).map(r => step :: r))
                 .getOrElse(Left("Error"))
             case f: FailureStep => Right(List(f))
-            case f: SuccessStep  => Right(List(f))
+            case f: SuccessStep => Right(List(f))
           }
         case Nil => Right(Nil)
       }
@@ -63,7 +63,7 @@ object QuizzEngine {
                 .find(_.id == answerId)
                 .map(s => Right(s))
                 .getOrElse(Left("Wrong selection"))
-            case s: SuccessStep  => Right(s)
+            case s: SuccessStep => Right(s)
             case f: FailureStep => Right(f)
           }
       }

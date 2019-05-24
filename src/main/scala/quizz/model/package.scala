@@ -24,7 +24,7 @@ package object model {
     def id: String
     def text: String
   }
-  case class SuccessStep(id: String, text: String)                               extends QuizStep
+  case class SuccessStep(id: String, text: String)                              extends QuizStep
   case class FailureStep(id: String, text: String)                              extends QuizStep
   case class Question(id: String, text: String, answers: Map[String, QuizStep]) extends QuizStep
 

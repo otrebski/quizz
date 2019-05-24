@@ -10,6 +10,9 @@ GET http://localhost:8080/api/quiz/q1/path/
 GET http://localhost:8080/api/quiz/q1/path/electricity
 
 ### Quizz with answer electricity and checkLocal
+GET http://localhost:8080/api/quiz/q1/path/electricity;checkLocal
+
+### Quizz with answer electricity and checkLocal
 GET http://localhost:8080/api/quiz/q1/path/electricity;checkLocal;buildingFuses;noPower
 
 ### Feedback

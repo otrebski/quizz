@@ -37,7 +37,8 @@ object QuizzEngine {
           }
         case Nil => Right(Nil)
       }
-    next(quiz, selections.reverse)
+
+    next(quiz, selections.tail.reverse).map(quiz :: _)
   }
 
   def process(answerId: String,

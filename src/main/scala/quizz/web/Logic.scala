@@ -2,16 +2,15 @@ package quizz.web
 
 import quizz.data.ExamplesData
 import quizz.engine.QuizzEngine
-import quizz.model.{FailureStep, Question, SuccessStep}
+import quizz.model.{ FailureStep, Question, SuccessStep }
 import quizz.web.WebApp.Api
 import cats.syntax.option._
 import quizz.model
 
 object Logic {
   def calculateStateOnPath(request: Api.QuizzQuery): Either[String, Api.QuizzState] = {
-    val path = request.path
+    val path     = request.path
     val pathList = path.split(";").toList.reverse
-
     val newState: Either[String, Api.QuizzState] = pathList match {
       case head :: Nil if head == "" =>
         val answers = ExamplesData.quiz.answers.map(kv => Api.Answer(kv._2.id, kv._1)).toList
@@ -19,14 +18,13 @@ object Logic {
           Api.QuizzState(
             path = "",
             currentStep = Api.Step(id = ExamplesData.quiz.id,
-              question = ExamplesData.quiz.text,
-              answers = answers)
+                                   question = ExamplesData.quiz.text,
+                                   answers = answers)
           )
         )
 
       case head :: tail =>
-        val r: Either[String, QuizzEngine.SelectionResult] =
-          QuizzEngine.process(head, ExamplesData.quiz, tail)
+        val r: Either[String, QuizzEngine.SelectionResult] = QuizzEngine.process(head, ExamplesData.quiz, tail)
 
         r.map(_.current)
           .map {
@@ -43,8 +41,8 @@ object Logic {
             case f: FailureStep =>
               Api
                 .QuizzState(path = path,
-                  currentStep =
-                    Api.Step(id = f.id, question = f.text, success = Some(false)))
+                            currentStep =
+                              Api.Step(id = f.id, question = f.text, success = Some(false)))
             case f: SuccessStep =>
               Api
                 .QuizzState(
@@ -55,30 +53,28 @@ object Logic {
 
     }
 
-    val history: Either[String, List[Api.Step]] = QuizzEngine
-      .history(ExamplesData.quiz, pathList)
+    val valueSteps: Either[String, List[model.QuizStep]] = QuizzEngine.history(ExamplesData.quiz, pathList)
+    val history: Either[String, List[Api.Step]] = valueSteps
       .map(
         h =>
           h.map {
             case q: Question =>
-              println(s"Processing ${q.id}")
               val answers = q.answers.map { a =>
-                println(s"Path: $pathList")
-                println(s"${q.id} => ${pathList.contains(q.id)}")
-                Api.Answer(a._2.id, a._2.text, pathList.contains(q.id).some)
+                Api.Answer(a._2.id, a._1, pathList.contains(a._2.id).some)
               }.toList
               Api.Step(q.id, q.text, answers)
             case f: FailureStep => Api.Step(f.id, f.text, success = Some(false))
             case s: SuccessStep => Api.Step(s.id, s.text, success = Some(true))
-          }
+        }
       )
 
     val result: Either[String, Api.QuizzState] = for {
       state <- newState
-      h <- history
+      h     <- history
     } yield state.copy(history = h)
     result
   }
+
   def calculateStateOnPathStart(quiz: model.QuizStep): Either[String, Api.QuizzState] = {
     val r = quiz match {
       case q: Question =>
@@ -86,8 +82,7 @@ object Logic {
         Right(
           Api.QuizzState(
             path = "",
-            currentStep =
-              Api.Step(id = quiz.id, question = quiz.text, answers = answers)
+            currentStep = Api.Step(id = quiz.id, question = quiz.text, answers = answers)
           )
         )
       case _ => Left("Quiz have to starts question")

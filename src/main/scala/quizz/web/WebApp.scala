@@ -16,17 +16,13 @@
 
 package quizz.web
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 
-import cats.syntax.option._
 import io.circe.generic.auto._
 import quizz.data.ExamplesData
-import quizz.engine.QuizzEngine
-import quizz.model
-import quizz.model.{FailureStep, Question, SuccessStep}
 import tapir.json.circe._
 import tapir.server.akkahttp._
-import tapir.{path, _}
+import tapir.{ path, _ }
 
 object WebApp extends App {
 
@@ -77,9 +73,11 @@ object WebApp extends App {
   import akka.http.scaladsl.Http
   import akka.stream.ActorMaterializer
 
-  private def routeProvider3(request: Api.QuizzId) = Future.successful(Logic.calculateStateOnPathStart(ExamplesData.quiz))
+  private def routeProvider3(request: Api.QuizzId) =
+    Future.successful(Logic.calculateStateOnPathStart(ExamplesData.quiz))
 
-  private def routeWithPathProvider(request: Api.QuizzQuery) = Future.successful(Logic.calculateStateOnPath(request))
+  private def routeWithPathProvider(request: Api.QuizzQuery) =
+    Future.successful(Logic.calculateStateOnPath(request))
 
   val quizListProvider: Unit => Future[Either[Unit, Api.Quizzes]] = _ => {
     Future.successful(

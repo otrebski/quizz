@@ -5,6 +5,7 @@ import quizz.engine.QuizzEngine
 import quizz.model.{FailureStep, Question, SuccessStep}
 import quizz.web.WebApp.Api
 import cats.syntax.option._
+import quizz.model
 
 object Logic {
   def calculateStateOnPath(request: Api.QuizzQuery): Either[String, Api.QuizzState] = {
@@ -77,5 +78,20 @@ object Logic {
       h <- history
     } yield state.copy(history = h)
     result
+  }
+  def calculateStateOnPathStart(quiz: model.QuizStep): Either[String, Api.QuizzState] = {
+    val r = quiz match {
+      case q: Question =>
+        val answers = q.answers.map(kv => Api.Answer(kv._2.id, kv._1)).toList
+        Right(
+          Api.QuizzState(
+            path = "",
+            currentStep =
+              Api.Step(id = quiz.id, question = quiz.text, answers = answers)
+          )
+        )
+      case _ => Left("Quiz have to starts question")
+    }
+    r
   }
 }

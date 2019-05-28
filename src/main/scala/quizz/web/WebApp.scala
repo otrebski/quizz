@@ -74,14 +74,14 @@ object WebApp extends App {
   import akka.stream.ActorMaterializer
 
   private def routeProvider3(request: Api.QuizzId) =
-    Future.successful(Logic.calculateStateOnPathStart(ExamplesData.quiz))
+    Future.successful(Logic.calculateStateOnPathStart(ExamplesData.quizzes.get(request.id).map(_.firstStep).get))
 
   private def routeWithPathProvider(request: Api.QuizzQuery) =
     Future.successful(Logic.calculateStateOnPath(request))
 
   val quizListProvider: Unit => Future[Either[Unit, Api.Quizzes]] = _ => {
     Future.successful(
-      Right(Api.Quizzes(quizzes = ExamplesData.quizzes.map(q => Api.QuizzInfo(q.id, q.name))))
+      Right(Api.Quizzes(quizzes = ExamplesData.quizzes.values.toList.map(q => Api.QuizzInfo(q.id, q.name))))
     )
   }
 

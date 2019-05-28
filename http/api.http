@@ -4,7 +4,7 @@ GET http://localhost:8080/api/quiz/
 
 ### Starting point of quizz q1
 
-GET http://localhost:8080/api/quiz/q1/path/
+GET http://localhost:8080/api/quiz/root/path/1
 
 ### Quizz with answer electricity
 GET http://localhost:8080/api/quiz/q1/path/electricity

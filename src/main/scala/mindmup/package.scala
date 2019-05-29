@@ -1,5 +1,4 @@
-
-import quizz.model.{Question, QuizStep, Quizz, SuccessStep}
+import quizz.model.{ Question, QuizStep, Quizz, SuccessStep }
 
 package object mindmup {
 
@@ -11,7 +10,7 @@ package object mindmup {
   )
   case class Idea(
       title: String,
-      id: Int,
+      id: Int, //TODO change to string add decoder
       attr: Option[Attr] = None,
       ideas: Option[Map[String, Idea]] = None
   )
@@ -21,6 +20,7 @@ package object mindmup {
 
   implicit class MindmupOps(m: Mindmap) {
 
+    //TODO change to Either[String,Quizz]
     def toQuizz(): Quizz = {
       def toStep(idea: Idea): QuizStep = {
         val title                    = idea.title
@@ -32,9 +32,9 @@ package object mindmup {
           val stringToStep: Map[String, QuizStep] = ideas.map {
             case (k, v) =>
               val label = for {
-                attr <- v.attr
+                attr            <- v.attr
                 parentConnector <- attr.parentConnector
-                label <- parentConnector.label
+                label           <- parentConnector.label
               } yield label
               label.get -> toStep(v)
           }
@@ -44,7 +44,7 @@ package object mindmup {
       }
 
       val answers: Map[String, QuizStep] = m.ideas.map {
-        case (k, v) => "Start" -> toStep(v)
+        case (k, v) => m.title -> toStep(v)
       }
       Quizz(m.id, m.title, Question(m.id, m.title, answers))
     }

@@ -14,5 +14,4 @@ object Parser {
   def parseInput(json: String): Either[Error, Mindmap] =
     parse(json).flatMap(mindMupDecoder.decodeJson)
 
-
 }

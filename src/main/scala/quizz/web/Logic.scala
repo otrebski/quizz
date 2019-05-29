@@ -9,18 +9,21 @@ import quizz.model
 
 object Logic {
   def calculateStateOnPath(request: Api.QuizzQuery): Either[String, Api.QuizzState] = {
-    val path     = request.path
-    val pathList = path.split(";").toList.reverse
+    val path               = request.path
+    val pathList           = path.split(";").toList.reverse
     val quizz: model.Quizz = ExamplesData.quizzes(request.id)
     val newState: Either[String, Api.QuizzState] = pathList match {
       case head :: Nil if head == "" =>
-        val answers = quizz.firstStep.asInstanceOf[Question].answers.map(kv => Api.Answer(kv._2.id, kv._1)).toList
+        val answers = quizz.firstStep
+          .asInstanceOf[Question]
+          .answers
+          .map(kv => Api.Answer(kv._2.id, kv._1))
+          .toList
         Right(
           Api.QuizzState(
             path = "",
-            currentStep = Api.Step(id = quizz.firstStep.id,
-                                   question = quizz.firstStep.text,
-                                   answers = answers)
+            currentStep =
+              Api.Step(id = quizz.firstStep.id, question = quizz.firstStep.text, answers = answers)
           )
         )
 

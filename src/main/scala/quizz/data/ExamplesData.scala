@@ -18,6 +18,7 @@ package quizz.data
 
 import scala.io.Source
 
+import io.circe
 import mindmup.Parser
 import quizz.model.{ FailureStep, Question, Quizz, SuccessStep }
 import quizz.web.WebApp.Api.{ Answer, QuizzState, Step }
@@ -156,7 +157,10 @@ object ExamplesData {
   private val exmpleSrouce = Source
     .fromInputStream(this.getClass.getClassLoader.getResourceAsStream("quizz.mup.json"))
     .mkString
-  val quizzMindmup: Quizz = Parser.parseInput(exmpleSrouce).map(_.toQuizz()).toOption.get
+  private val errorOrQuizz: Either[circe.Error, Quizz] =
+    Parser.parseInput(exmpleSrouce).map(_.toQuizz())
+  println(errorOrQuizz)
+  val quizzMindmup: Quizz = errorOrQuizz.toOption.get
 
   val quizzes: Map[String, Quizz] = List(
     Quizz("q1", "Example quiz", quiz),

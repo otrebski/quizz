@@ -2,12 +2,13 @@ import React from 'react';
 import './App.css';
 import Quizz from "./components/Quizz"
 import Api from "./Api"
-import { BrowserRouter as Router, Route, Link } from "react-router-dom";
+import { BrowserRouter as Router, Route } from "react-router-dom";
+import Quizzes from "./components/Quizzes";
 
 
 function App() {
 
-  const Index = <div><h1>.</h1><h1><Link to="/quizz/root">Start</Link></h1></div>
+  const Index = <div><Quizzes loadAction={() => Api.getQuizes()}/></div>
 
   return (
     <div>
@@ -15,7 +16,7 @@ function App() {
         <div className="App">
           <Route path="/" exact render={() => Index} />
           <Route path="/quizz/:id" exact render={(query) => {
-            const match = query.match
+            const match = query.match;
             return <Quizz
               quizzId={match.params.id}
               path=""

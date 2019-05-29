@@ -5,11 +5,12 @@ import java.io.{File, FileFilter}
 import scala.io.Source
 
 import cats.syntax.either._
+import com.typesafe.scalalogging.LazyLogging
 import io.circe
 import mindmup.{Parser, V3IdString}
 import quizz.model.Quizz
 
-object Loader {
+object Loader extends LazyLogging {
 
   def fromFolder(folder: File): Either[String, List[Quizz]] = {
     val files = folder.listFiles(new FileFilter {
@@ -17,11 +18,10 @@ object Loader {
         pathname.isFile && pathname.getName.endsWith("mindmup.json")
     })
 
-    val a: Seq[Either[String, Quizz]] = files.map(fromFile).toList
-    a.foldLeft(List.empty[Quizz].asRight[String]) {
+    files.map(fromFile).foldLeft(List.empty[Quizz].asRight[String]) {
       case (Right(list), Right(quizz)) => Right(quizz :: list)
-      case (Left(error), _)            => Left(error)
-      case (_, Left(error))            => Left(error)
+      case (Left(error), _) => Left(error)
+      case (_, Left(error)) => Left(error)
     }
   }
 

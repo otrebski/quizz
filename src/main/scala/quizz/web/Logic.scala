@@ -3,16 +3,18 @@ package quizz.web
 import cats.syntax.option._
 import quizz.engine.QuizzEngine
 import quizz.model
-import quizz.model.{FailureStep, Question, Quizz, SuccessStep}
+import quizz.model.{ FailureStep, Question, Quizz, SuccessStep }
 import quizz.web.WebApp.Api
 
 object Logic {
 
-  def calculateStateOnPath(request: Api.QuizzQuery, quizz:Quizz): Either[String, Api.QuizzState] = {
-    val path               = request.path
-    val pathList           = path.split(";").toList.reverse
-//    val quizz: model.Quizz = quizz
-    val newState: Either[String, Api.QuizzState] = pathList match {
+  def calculateStateOnPath(request: Api.QuizzQuery,
+                           quizzes: Map[String, Quizz]): Either[String, Api.QuizzState] = {
+    val path       = request.path
+    val pathList   = path.split(";").toList.reverse
+    val maybeQuizz = quizzes.get(request.id).map(Right(_)).getOrElse(Left("Quizz not found"))
+
+    def newState(quizz: Quizz): Either[String, Api.QuizzState] = pathList match {
       case head :: Nil if head == "" =>
         val answers = quizz.firstStep
           .asInstanceOf[Question]
@@ -58,25 +60,28 @@ object Logic {
 
     }
 
-    val valueSteps: Either[String, List[model.QuizStep]] =
+    def valueSteps(quizz: Quizz): Either[String, List[model.QuizStep]] =
       QuizzEngine.history(quizz.firstStep, pathList)
-    val history: Either[String, List[Api.Step]] = valueSteps
-      .map(
-        h =>
-          h.map {
-            case q: Question =>
-              val answers = q.answers.map { a =>
-                Api.Answer(a._2.id, a._1, pathList.contains(a._2.id).some)
-              }.toList
-              Api.Step(q.id, q.text, answers)
-            case f: FailureStep => Api.Step(f.id, f.text, success = Some(false))
-            case s: SuccessStep => Api.Step(s.id, s.text, success = Some(true))
-        }
-      )
+
+    def history(quizz: Quizz): Either[String, List[Api.Step]] =
+      valueSteps(quizz)
+        .map(
+          h =>
+            h.map {
+              case q: Question =>
+                val answers = q.answers.map { a =>
+                  Api.Answer(a._2.id, a._1, pathList.contains(a._2.id).some)
+                }.toList
+                Api.Step(q.id, q.text, answers)
+              case f: FailureStep => Api.Step(f.id, f.text, success = Some(false))
+              case s: SuccessStep => Api.Step(s.id, s.text, success = Some(true))
+          }
+        )
 
     val result: Either[String, Api.QuizzState] = for {
-      state <- newState
-      h     <- history
+      quizz <- maybeQuizz
+      state <- newState(quizz)
+      h     <- history(quizz)
     } yield state.copy(history = h)
     result
   }

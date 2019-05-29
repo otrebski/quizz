@@ -18,16 +18,16 @@ package quizz.web
 
 import java.io.File
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.auto._
-import quizz.data.{ExamplesData, Loader}
+import quizz.data.{ ExamplesData, Loader }
 import quizz.model.Quizz
 import tapir.json.circe._
 import tapir.server.akkahttp._
-import tapir.{path, _}
+import tapir.{ path, _ }
 
 object WebApp extends App with LazyLogging {
 
@@ -52,10 +52,10 @@ object WebApp extends App with LazyLogging {
   val codecQuizInfo = jsonBody[Api.Quizzes]
   val codecFeedback = jsonBody[Api.Feedback]
 
-  private val config: Config = ConfigFactory.load()
+  private val config: Config         = ConfigFactory.load()
   private val dirWithQuizzes: String = config.getString("quizz.loader.dir")
   logger.info(s"""Loading from "$dirWithQuizzes" """)
-  val quizzesOrError: Either[String, Map[String, Quizz]] = if (dirWithQuizzes.nonEmpty){
+  val quizzesOrError: Either[String, Map[String, Quizz]] = if (dirWithQuizzes.nonEmpty) {
     val list = Loader.fromFolder(new File(dirWithQuizzes))
     list.map(errorOr => errorOr.map(q => q.id -> q).toMap)
   } else {
@@ -64,9 +64,9 @@ object WebApp extends App with LazyLogging {
 
   val quizzes: Map[String, Quizz] = quizzesOrError match {
     case Right(quizz) =>
-    logger.info(s"Quizz ${quizz.keys.mkString(", ")} loaded")
+      logger.info(s"Quizz ${quizz.keys.mkString(", ")} loaded")
       quizz
-    case Left(error ) =>
+    case Left(error) =>
       logger.info(s"Can't read quizzes: $error")
       sys.exit(1)
   }
@@ -98,18 +98,11 @@ object WebApp extends App with LazyLogging {
   import akka.stream.ActorMaterializer
 
   private def routeProvider3(request: Api.QuizzId) =
-{
-  logger.info(s"Request $request")
-  logger.info(s"Quizzes: ${quizzes.keys}")
-  Future.successful(
+    Future.successful(
       Logic.calculateStateOnPathStart(quizzes.get(request.id).map(_.firstStep).get)
     )
-}
   private def routeWithPathProvider(request: Api.QuizzQuery) =
-    {
-      logger.info(s"Route on path $request")
-      Future.successful(quizzes.get(request.id).map(Right(_)).getOrElse(Left("Not found")).flatMap(quizz => Logic.calculateStateOnPath(request,quizz)))
-    }
+    Future.successful(Logic.calculateStateOnPath(request, quizzes))
 
   val quizListProvider: Unit => Future[Either[Unit, Api.Quizzes]] = _ => {
     Future.successful(

@@ -7,8 +7,7 @@ class LogicTest extends FlatSpec with Matchers {
   val request: Api.QuizzQuery = Api.QuizzQuery("q1", "electricity")
 
   "Logic" should "calculate history" in {
-    val actual: Either[String, Api.QuizzState] =
-      Logic.calculateStateOnPath(request, ExamplesData.quizzes("q1"))
+    val actual: Either[String, Api.QuizzState] = Logic.calculateStateOnPath(request, ExamplesData.quizzes)
 
     actual match {
       case Right(r) =>

@@ -1,31 +1,71 @@
-import quizz.model.{ Question, QuizStep, Quizz, SuccessStep }
+import com.typesafe.scalalogging.LazyLogging
+import quizz.model.{Question, QuizStep, Quizz, SuccessStep}
 
-package object mindmup {
-
-  case class Mindmap(
-      id: String,
-      formatVersion: Int,
-      ideas: Map[String, Idea],
-      title: String
-  )
-  case class Idea(
-      title: String,
-      id: Int, //TODO change to string add decoder
-      attr: Option[Attr] = None,
-      ideas: Option[Map[String, Idea]] = None
-  )
+package object mindmup extends LazyLogging {
 
   case class Attr(parentConnector: Option[ParentConnector] = None)
   case class ParentConnector(label: Option[String] = None)
 
-  implicit class MindmupOps(m: Mindmap) {
+  object V3IdString {
+    case class Mindmap(
+        id: String,
+        formatVersion: Int,
+        ideas: Map[String, Idea],
+        title: String
+    )
+    case class Idea(
+        title: String,
+        id: String,
+        attr: Option[Attr] = None,
+        ideas: Option[Map[String, Idea]] = None
+    )
+  }
+
+  object V3IdInt {
+    case class Mindmap(
+        id: String,
+        formatVersion: Int,
+        ideas: Map[String, Idea],
+        title: String
+    )
+    case class Idea(
+        title: String,
+        id: Int,
+        attr: Option[Attr] = None,
+        ideas: Option[Map[String, Idea]] = None
+    )
+
+    implicit class MindmupIntOps(m: Mindmap) {
+
+      def ideaToV3String(idea: Idea): V3IdString.Idea =
+        V3IdString.Idea(
+          title = idea.title,
+          id = idea.id.toString,
+          attr = idea.attr,
+          ideas = idea.ideas.map(i => i.mapValues(ideaToV3String))
+        )
+
+      def toV3IdString: V3IdString.Mindmap =
+        V3IdString.Mindmap(
+          id = m.id,
+          formatVersion = m.formatVersion,
+          ideas = m.ideas.mapValues(ideaToV3String),
+          title = m.title
+        )
+
+    }
+
+  }
+
+  implicit class MindmupStringOps(m: V3IdString.Mindmap) {
 
     //TODO change to Either[String,Quizz]
-    def toQuizz(): Quizz = {
-      def toStep(idea: Idea): QuizStep = {
-        val title                    = idea.title
-        val id                       = idea.id
-        val ideas: Map[String, Idea] = idea.ideas.getOrElse(Map.empty[String, Idea])
+    def toQuizz: Quizz = {
+      def toStep(idea: V3IdString.Idea): QuizStep = {
+        val title = idea.title
+        val id    = idea.id
+        val ideas = idea.ideas.getOrElse(Map.empty[String, V3IdString.Idea])
+
         if (ideas.isEmpty) {
           SuccessStep(id.toString, title)
         } else {
@@ -36,7 +76,7 @@ package object mindmup {
                 parentConnector <- attr.parentConnector
                 label           <- parentConnector.label
               } yield label
-              label.get -> toStep(v)
+              label.getOrElse("?") -> toStep(v)
           }
           Question(id.toString, title, stringToStep)
 

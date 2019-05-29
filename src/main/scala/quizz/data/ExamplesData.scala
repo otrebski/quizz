@@ -17,13 +17,13 @@
 package quizz.data
 
 import scala.io.Source
-
-import io.circe
+import cats.syntax.show._
+import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
-import quizz.model.{ FailureStep, Question, Quizz, SuccessStep }
-import quizz.web.WebApp.Api.{ Answer, QuizzState, Step }
+import quizz.model.{FailureStep, Question, Quizz, SuccessStep}
+import quizz.web.WebApp.Api.{Answer, QuizzState, Step}
 
-object ExamplesData {
+object ExamplesData extends LazyLogging {
 
   val quiz = Question(
     "root",
@@ -157,9 +157,9 @@ object ExamplesData {
   private val exmpleSrouce = Source
     .fromInputStream(this.getClass.getClassLoader.getResourceAsStream("quizz.mup.json"))
     .mkString
-  private val errorOrQuizz: Either[circe.Error, Quizz] =
-    Parser.parseInput(exmpleSrouce).map(_.toQuizz())
-  println(errorOrQuizz)
+  private val errorOrQuizz = Parser.parseInput(exmpleSrouce).map(_.toQuizz)
+
+  logger.info(s"Loadded quizz: ${errorOrQuizz.map(_.show)}")
   val quizzMindmup: Quizz = errorOrQuizz.toOption.get
 
   val quizzes: Map[String, Quizz] = List(

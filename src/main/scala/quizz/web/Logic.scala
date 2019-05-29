@@ -1,17 +1,17 @@
 package quizz.web
 
-import quizz.data.ExamplesData
-import quizz.engine.QuizzEngine
-import quizz.model.{ FailureStep, Question, SuccessStep }
-import quizz.web.WebApp.Api
 import cats.syntax.option._
+import quizz.engine.QuizzEngine
 import quizz.model
+import quizz.model.{FailureStep, Question, Quizz, SuccessStep}
+import quizz.web.WebApp.Api
 
 object Logic {
-  def calculateStateOnPath(request: Api.QuizzQuery): Either[String, Api.QuizzState] = {
+
+  def calculateStateOnPath(request: Api.QuizzQuery, quizz:Quizz): Either[String, Api.QuizzState] = {
     val path               = request.path
     val pathList           = path.split(";").toList.reverse
-    val quizz: model.Quizz = ExamplesData.quizzes(request.id)
+//    val quizz: model.Quizz = quizz
     val newState: Either[String, Api.QuizzState] = pathList match {
       case head :: Nil if head == "" =>
         val answers = quizz.firstStep

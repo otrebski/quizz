@@ -1,14 +1,14 @@
 package quizz.web
 import org.scalatest._
-import quizz.model.Question
+import quizz.data.ExamplesData
 import quizz.web.WebApp.Api
 class LogicTest extends FlatSpec with Matchers {
 
-  val request: Api.QuizzQuery = Api.QuizzQuery("q1","electricity")
-
+  val request: Api.QuizzQuery = Api.QuizzQuery("q1", "electricity")
 
   "Logic" should "calculate history" in {
-    val actual: Either[String, Api.QuizzState] = Logic.calculateStateOnPath(request)
+    val actual: Either[String, Api.QuizzState] =
+      Logic.calculateStateOnPath(request, ExamplesData.quizzes("q1"))
 
     actual match {
       case Right(r) =>
@@ -18,8 +18,6 @@ class LogicTest extends FlatSpec with Matchers {
         r.history(1).id shouldBe "electricity"
       case Left(error) => fail(error)
     }
-
-
 
   }
 }

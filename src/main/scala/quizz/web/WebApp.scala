@@ -16,15 +16,20 @@
 
 package quizz.web
 
-import scala.concurrent.{ ExecutionContextExecutor, Future }
+import java.io.File
 
+import scala.concurrent.{ExecutionContextExecutor, Future}
+
+import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.auto._
-import quizz.data.ExamplesData
+import quizz.data.{ExamplesData, Loader}
+import quizz.model.Quizz
 import tapir.json.circe._
 import tapir.server.akkahttp._
-import tapir.{ path, _ }
+import tapir.{path, _}
 
-object WebApp extends App {
+object WebApp extends App with LazyLogging {
 
   object Api {
     case class QuizzQuery(id: String, path: String)
@@ -46,6 +51,25 @@ object WebApp extends App {
   val stateCodec    = jsonBody[Api.QuizzState]
   val codecQuizInfo = jsonBody[Api.Quizzes]
   val codecFeedback = jsonBody[Api.Feedback]
+
+  private val config: Config = ConfigFactory.load()
+  private val dirWithQuizzes: String = config.getString("quizz.loader.dir")
+  logger.info(s"""Loading from "$dirWithQuizzes" """)
+  val quizzesOrError: Either[String, Map[String, Quizz]] = if (dirWithQuizzes.nonEmpty){
+    val list = Loader.fromFolder(new File(dirWithQuizzes))
+    list.map(errorOr => errorOr.map(q => q.id -> q).toMap)
+  } else {
+    Right(ExamplesData.quizzes)
+  }
+
+  val quizzes: Map[String, Quizz] = quizzesOrError match {
+    case Right(quizz) =>
+    logger.info(s"Quizz ${quizz.keys.mkString(", ")} loaded")
+      quizz
+    case Left(error ) =>
+      logger.info(s"Can't read quizzes: $error")
+      sys.exit(1)
+  }
 
   val routeEndpoint = endpoint.get
     .in(
@@ -74,25 +98,31 @@ object WebApp extends App {
   import akka.stream.ActorMaterializer
 
   private def routeProvider3(request: Api.QuizzId) =
-    Future.successful(
-      Logic.calculateStateOnPathStart(ExamplesData.quizzes.get(request.id).map(_.firstStep).get)
+{
+  logger.info(s"Request $request")
+  logger.info(s"Quizzes: ${quizzes.keys}")
+  Future.successful(
+      Logic.calculateStateOnPathStart(quizzes.get(request.id).map(_.firstStep).get)
     )
-
+}
   private def routeWithPathProvider(request: Api.QuizzQuery) =
-    Future.successful(Logic.calculateStateOnPath(request))
+    {
+      logger.info(s"Route on path $request")
+      Future.successful(quizzes.get(request.id).map(Right(_)).getOrElse(Left("Not found")).flatMap(quizz => Logic.calculateStateOnPath(request,quizz)))
+    }
 
   val quizListProvider: Unit => Future[Either[Unit, Api.Quizzes]] = _ => {
     Future.successful(
       Right(
         Api.Quizzes(
-          quizzes = ExamplesData.quizzes.values.toList.map(q => Api.QuizzInfo(q.id, q.name))
+          quizzes = quizzes.values.toList.map(q => Api.QuizzInfo(q.id, q.name))
         )
       )
     )
   }
 
   def feedbackProvider(feedback: Api.Feedback): Future[Either[Unit, String]] = {
-    println(s"Have feedback: $feedback")
+    logger.info(s"Have feedback: $feedback")
     Future.successful(Right("OK"))
   }
 
@@ -109,6 +139,6 @@ object WebApp extends App {
   val bindingFuture =
     Http().bindAndHandle(route ~ routeStart ~ routeList ~ routeFeedback, "0.0.0.0", 8080)
 
-  println(s"Server is online")
+  logger.info(s"Server is online")
 
 }

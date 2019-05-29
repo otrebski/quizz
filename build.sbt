@@ -20,7 +20,9 @@ lazy val quizz =
         library.circeGeneric,
         library.tapir,
         library.tapirAkka,
-        library.tapirJson
+        library.tapirJson,
+        library.scalaLogging,
+        library.logback
 //        library.tapirHttp4s,
 //        library.tapirJson,
 //        library.bazelServer,
@@ -40,6 +42,8 @@ lazy val library =
       val circe = "0.11.1"
       val tapir = "0.7.10"
 //      val bazel = "0.20.0"
+      val scalaLogging = "3.9.2"
+      val logback = "1.2.3"
     }
     val scalaCheck = "org.scalacheck" %% "scalacheck" % Version.scalaCheck
     val scalaTest  = "org.scalatest"  %% "scalatest"  % Version.scalaTest
@@ -51,6 +55,8 @@ lazy val library =
 //    val bazelClient = "org.http4s"     %% "http4s-blaze-client" % Version.bazel
 //    val bazelServer = "org.http4s"     %% "http4s-blaze-server" % Version.bazel
 //    val tapirHttp4s = "com.softwaremill.tapir" %% "tapir-http4s-server" % Version.tapir
+    val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging
+    val logback = "ch.qos.logback" % "logback-classic" % Version.logback
   }
 
 // *****************************************************************************

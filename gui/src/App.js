@@ -2,8 +2,9 @@ import React from 'react';
 import './App.css';
 import Quizz from "./components/Quizz"
 import Api from "./Api"
-import { BrowserRouter as Router, Route } from "react-router-dom";
+import { BrowserRouter as Router, Route , Link} from "react-router-dom";
 import Quizzes from "./components/Quizzes";
+
 
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
   return (
     <div>
       <Router>
+        <h1><Link to={"/"}>Home</Link></h1>
         <div className="App">
           <Route path="/" exact render={() => Index} />
           <Route path="/quizz/:id" exact render={(query) => {

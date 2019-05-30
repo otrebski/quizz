@@ -2,7 +2,7 @@ FROM alpine
 
 RUN apk add npm
 RUN npm --version
-COPY . /workdir
+COPY ./gui/ /workdir
 WORKDIR /workdir
 RUN ls -la
 RUN npm install && npm run-script build

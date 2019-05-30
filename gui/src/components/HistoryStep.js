@@ -1,7 +1,6 @@
 import React from 'react';
 import ListGroup from 'react-bootstrap/ListGroup'
 import "./HistoryStep.css"
-import {Link} from "react-router-dom";
 
 class HistoryStep extends React.Component {
 
@@ -14,17 +13,19 @@ class HistoryStep extends React.Component {
         }
 
         const answers = this.props.answers.map(a => {
-            let variant= a.selected ? "light" : "success";
+                let variant = a.selected ? "success" : "light";
+                console.log(`${a.id} is selected: ${a.selected}, variant: ${variant}`);
 
-            return <ListGroup.Item
-                key={a.id}
-                // onClick={() => this.props.action(this.props.quizzId, a.id)}
-                action
-                variant={variant}
-            >
-            <Link to={`/quizz/${this.props.quizzId}/path/${a.id}`}>{a.text}</Link>
-            </ListGroup.Item>
-        }
+                return <ListGroup.Item
+                    key={a.id}
+                    // onClick={() => this.props.action(this.props.quizzId, a.id)}
+                    action
+                    variant={variant}
+                >
+                    {/*<Link to={`/quizz/${this.props.quizzId}/path/${a.id}`}>{a.text}</Link>*/}
+                    {a.text}
+                </ListGroup.Item>
+            }
         );
 
         return (

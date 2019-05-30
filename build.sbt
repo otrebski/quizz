@@ -8,9 +8,7 @@ version := "0.1"
 lazy val quizz =
   project
     .in(file("."))
-//    .enablePlugins(AutomateHeaderPlugin)
     .enablePlugins(JavaAppPackaging)
-    .enablePlugins(DockerPlugin)
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
@@ -92,7 +90,4 @@ lazy val scalafmtSettings =
     scalafmtOnCompile := true,
   )
 
-
 mainClass := Some("quizz.web.WebApp")
-dockerEntrypoint := Seq("/opt/docker/bin/quizz")
-dockerExposedPorts := Seq(8080, 8080)

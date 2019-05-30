@@ -1,13 +1,13 @@
 package quizz.data
 
-import java.io.{File, FileFilter}
+import java.io.{ File, FileFilter }
 
 import scala.io.Source
 
 import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
 import io.circe
-import mindmup.{Parser, V3IdString}
+import mindmup.{ Parser, V3IdString }
 import quizz.model.Quizz
 
 object Loader extends LazyLogging {
@@ -20,8 +20,8 @@ object Loader extends LazyLogging {
 
     files.map(fromFile).foldLeft(List.empty[Quizz].asRight[String]) {
       case (Right(list), Right(quizz)) => Right(quizz :: list)
-      case (Left(error), _) => Left(error)
-      case (_, Left(error)) => Left(error)
+      case (Left(error), _)            => Left(error)
+      case (_, Left(error))            => Left(error)
     }
   }
 
@@ -32,6 +32,7 @@ object Loader extends LazyLogging {
       val value: Either[circe.Error, V3IdString.Mindmap] = Parser.parseInput(content)
       value
         .map(_.toQuizz)
+        .map(_.copy(id = file.getName))
         .left
         .map(e => e.getMessage)
     } catch {

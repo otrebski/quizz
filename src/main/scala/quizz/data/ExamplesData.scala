@@ -20,8 +20,8 @@ import scala.io.Source
 import cats.syntax.show._
 import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
-import quizz.model.{FailureStep, Question, Quizz, SuccessStep}
-import quizz.web.WebApp.Api.{Answer, QuizzState, Step}
+import quizz.model.{ FailureStep, Question, Quizz, SuccessStep }
+import quizz.web.WebApp.Api.{ Answer, QuizzState, Step }
 
 object ExamplesData extends LazyLogging {
 

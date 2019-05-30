@@ -33,7 +33,7 @@ package object model {
     def stepToString(step: QuizStep, depth: Int = 0): String = {
       val answers = step match {
         case Question(_, _, a) => a.values.map(i => stepToString(i, depth + 1)).mkString("\n")
-        case _                       => ""
+        case _                 => ""
       }
       val indend = " " * depth
       s"""$indend${step.id} [${step.text}]

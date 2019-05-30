@@ -1,5 +1,5 @@
 import com.typesafe.scalalogging.LazyLogging
-import quizz.model.{Question, QuizStep, Quizz, SuccessStep}
+import quizz.model.{ Question, QuizStep, Quizz, SuccessStep }
 
 package object mindmup extends LazyLogging {
 

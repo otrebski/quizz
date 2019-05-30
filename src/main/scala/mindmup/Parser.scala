@@ -3,9 +3,9 @@ package mindmup
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.semiauto._
 import io.circe.parser._
-import io.circe.{Decoder, _}
+import io.circe.{ Decoder, _ }
 
-object Parser extends LazyLogging{
+object Parser extends LazyLogging {
 
   private implicit val pDecoder: Decoder[ParentConnector]    = deriveDecoder[ParentConnector]
   private implicit val attrDecoder: Decoder[Attr]            = deriveDecoder[Attr]

@@ -9,7 +9,7 @@ RUN npm install && npm run-script build
 RUN ls -la build
 
 FROM nginx
-COPY ./docker/default.conf /etc/nginx/conf.d/
+COPY ./gui/docker/default.conf /etc/nginx/conf.d/
 COPY --from=0 /workdir/build /usr/share/nginx/html
 
 

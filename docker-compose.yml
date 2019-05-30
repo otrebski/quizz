@@ -1,0 +1,12 @@
+version: "2.4"
+
+services:
+  quizz:
+    image: otrebski/quizz:latest
+    environment:
+      LOAD_FROM_DIR: ""
+
+  gui:
+    image: otrebski/quizz-gui:latest
+    ports:
+      - 8080:80

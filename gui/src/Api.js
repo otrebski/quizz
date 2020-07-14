@@ -25,7 +25,7 @@ const Api = {
             path: path
         };
         
-        return fetch("http://localhost:8080/api/feedback", {            
+        return fetch("/api/feedback", {
             headers: {                
                 'Content-Type': 'application/json'
             },

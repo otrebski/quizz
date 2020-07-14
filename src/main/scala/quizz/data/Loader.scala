@@ -15,7 +15,7 @@ object Loader extends LazyLogging {
   def fromFolder(folder: File): Either[String, List[Quizz]] = {
     val files = folder.listFiles(new FileFilter {
       override def accept(pathname: File): Boolean =
-        pathname.isFile && pathname.getName.endsWith("mindmup.json")
+        pathname.isFile && pathname.getName.endsWith("mup")
     })
 
     files.map(fromFile).foldLeft(List.empty[Quizz].asRight[String]) {

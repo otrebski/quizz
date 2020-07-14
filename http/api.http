@@ -21,10 +21,10 @@ Content-Type: application/json
 Accept: */*
 
 {
-  "comment": "Super",
-  "path": "a;b;c",
+  "comment": "ddddd",
+  "path": "a",
   "quizzId": "q1",
-  "rate": "2"
+  "rate": "-1"
 }
 
 ###

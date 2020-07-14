@@ -17,12 +17,13 @@ class Feedback extends React.Component {
     }
 
     sendFeedback = (rating) => {
-        console.log("Feedback send ")
+        console.log("Feedback send, rating: ", rating)
         this.setState({
-            send: true,            
+            send: true,
             feedbackRating: rating
         });
-        this.props.sendAction(this.state.feedbackRating, this.state.feedbackText)
+        console.log("Current state ", this.state)
+        this.props.sendAction(rating, this.state.feedbackText)
 
     }
 
@@ -35,15 +36,21 @@ class Feedback extends React.Component {
                     rows="5"
                     className="inputText"
                     placeholder="Put your comments here..."
-                    onChange={e => this.setState({ feedbackText: e.target.value })}
+                    onChange={e => {
+                        console.log("Setting state, feedback text: ", e.target.value)
+                        this.setState({feedbackText: e.target.value})
+                    }}
                 />
             </Form.Group>
             <ButtonToolbar className="center">
-                <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback( "+1")}><span role="img" aria-label=":)" className="emoji"> &#x1f600;</span> </Button>
+                <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("1")}><span
+                    role="img" aria-label=":)" className="emoji"> &#x1f600;</span> </Button>
                 <span>&nbsp;</span>
-                <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback( "0")}><span role="img" aria-label=":|" className="emoji"> &#x1f610; </span></Button>
+                <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("0")}><span
+                    role="img" aria-label=":|" className="emoji"> &#x1f610; </span></Button>
                 <span>&nbsp;</span>
-                <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("-1")}><span role="img" aria-label=":(" className="emoji"> &#x1f615;</span> </Button>
+                <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("-1")}><span
+                    role="img" aria-label=":(" className="emoji"> &#x1f615;</span> </Button>
             </ButtonToolbar>
         </Form>
 
@@ -51,10 +58,10 @@ class Feedback extends React.Component {
             component = <Alert variant="info">
                 <Alert.Heading>Thank you for your feedback</Alert.Heading>
                 Your feedback was:
-                <hr />
+                <hr/>
                 Rating: <em>{this.state.feedbackRating}</em>
-                <br />
-                Your comment: <br />
+                <br/>
+                Your comment: <br/>
                 <em>{this.state.feedbackText}</em>
             </Alert>
         }

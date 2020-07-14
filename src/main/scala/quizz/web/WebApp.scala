@@ -35,10 +35,12 @@ object WebApp extends App with LazyLogging {
     case class QuizzQuery(id: String, path: String)
     case class QuizzId(id: String)
     case class QuizzState(path: String, currentStep: Step, history: List[Step] = List.empty)
-    case class Step(id: String,
-                    question: String,
-                    answers: List[Answer] = List.empty,
-                    success: Option[Boolean] = None)
+    case class Step(
+        id: String,
+        question: String,
+        answers: List[Answer] = List.empty,
+        success: Option[Boolean] = None
+    )
     case class Answer(id: String, text: String, selected: Option[Boolean] = None)
 
     case class QuizzInfo(id: String, title: String)
@@ -58,9 +60,8 @@ object WebApp extends App with LazyLogging {
   val quizzesOrError: Either[String, Map[String, Quizz]] = if (dirWithQuizzes.nonEmpty) {
     val list = Loader.fromFolder(new File(dirWithQuizzes))
     list.map(errorOr => errorOr.map(q => q.id -> q).toMap)
-  } else {
+  } else
     Right(ExamplesData.quizzes)
-  }
 
   val quizzes: Map[String, Quizz] = quizzesOrError match {
     case Right(quizz) =>

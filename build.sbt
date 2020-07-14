@@ -3,7 +3,7 @@
 // *****************************************************************************
 
 name := "quizz"
-version := "0.1"
+version := "0.2"
 
 lazy val quizz =
   project
@@ -39,14 +39,14 @@ lazy val quizz =
 lazy val library =
   new {
     object Version {
-      val scalaCheck = "1.14.0"
-      val scalaTest  = "3.0.6"
-      val circe = "0.11.1"
-      val tapir = "0.7.10"
+      val scalaCheck = "1.14.1"
+      val scalaTest  = "3.2.0"
+      val circe = "0.12.3"
+      val tapir = "0.11.11"
 //      val bazel = "0.20.0"
       val scalaLogging = "3.9.2"
       val logback = "1.2.3"
-      val doobie = "0.7.0"
+      val doobie = "0.9.0"
     }
     val scalaCheck = "org.scalacheck" %% "scalacheck" % Version.scalaCheck
     val scalaTest  = "org.scalatest"  %% "scalatest"  % Version.scalaTest
@@ -76,7 +76,7 @@ lazy val settings =
 
 lazy val commonSettings =
   Seq(
-    scalaVersion := "2.12.8",
+    scalaVersion := "2.13.3",
     organization := "default",
     organizationName := "k.otrebski",
     startYear := Some(2019),
@@ -87,8 +87,6 @@ lazy val commonSettings =
       "-language:_",
       "-target:jvm-1.8",
       "-encoding", "UTF-8",
-      "-Ypartial-unification",
-      "-Ywarn-unused-import",
     ),
     Compile / unmanagedSourceDirectories := Seq((Compile / scalaSource).value),
     Test / unmanagedSourceDirectories := Seq((Test / scalaSource).value),

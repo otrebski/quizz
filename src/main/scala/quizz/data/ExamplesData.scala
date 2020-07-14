@@ -37,20 +37,24 @@ object ExamplesData extends LazyLogging {
           Question(
             "whereIsOutage",
             "Does your neighborhood has power",
-            Map("yes" -> SuccessStep("localOutage", "Check your fuses or pay you bills"),
-                "no"  -> SuccessStep("totalOutage", "Probably outage, just wait"))
+            Map(
+              "yes" -> SuccessStep("localOutage", "Check your fuses or pay you bills"),
+              "no"  -> SuccessStep("totalOutage", "Probably outage, just wait")
+            )
           ),
           "No power at some lights" ->
           Question(
             "checkLocal",
             "Are fuses ok in your apartment",
             Map(
-              "no" -> Question("localFusesDown",
-                               "Turn them on. Is it solved?",
-                               Map(
-                                 "yes" -> SuccessStep("localFusesFixed", "Congrats"),
-                                 "no"  -> FailureStep("localFusesBroken", "Shit!")
-                               )),
+              "no" -> Question(
+                "localFusesDown",
+                "Turn them on. Is it solved?",
+                Map(
+                  "yes" -> SuccessStep("localFusesFixed", "Congrats"),
+                  "no"  -> FailureStep("localFusesBroken", "Shit!")
+                )
+              ),
               "yes" -> Question(
                 "buildingFuses",
                 "Are fuses outside your apartment ok?",
@@ -61,7 +65,7 @@ object ExamplesData extends LazyLogging {
                     "Fix fuses outside",
                     Map(
                       "Problem fixed"     -> SuccessStep("buildingFusesFixed", "Congrats"),
-                      "Still not working" -> FailureStep("buildingFusesNotFixed", "Pay your bills"),
+                      "Still not working" -> FailureStep("buildingFusesNotFixed", "Pay your bills")
                     )
                   )
                 )
@@ -115,31 +119,39 @@ object ExamplesData extends LazyLogging {
 
     val exampleStateInProgress = QuizzState(
       path = "root",
-      currentStep = Step("a",
-                         "I co dalej?",
-                         List(Answer("", "jedziemy"), Answer("", "Stoimi"), Answer("", "Lezymy"))),
+      currentStep = Step(
+        "a",
+        "I co dalej?",
+        List(Answer("", "jedziemy"), Answer("", "Stoimi"), Answer("", "Lezymy"))
+      ),
       history = List(
         Step(
           "b",
           "I co dalej 1 ?",
-          List(Answer("", "jedziemy", selected = Some(true)),
-               Answer("", "Stoimi"),
-               Answer("", "Lezymy"))
+          List(
+            Answer("", "jedziemy", selected = Some(true)),
+            Answer("", "Stoimi"),
+            Answer("", "Lezymy")
+          )
         ),
         Step(
           "c",
           "I co dalej 2 ?",
-          List(Answer("", "jedziemy"),
-               Answer("", "Stoimi", selected = Some(true)),
-               Answer("", "Lezymy"))
+          List(
+            Answer("", "jedziemy"),
+            Answer("", "Stoimi", selected = Some(true)),
+            Answer("", "Lezymy")
+          )
         ),
         Step(
           "d",
           "I co dalej 3 ?",
-          List(Answer("", "jedziemy"),
-               Answer("", "Stoimi"),
-               Answer("", "Lezymy", selected = Some(true)))
-        ),
+          List(
+            Answer("", "jedziemy"),
+            Answer("", "Stoimi"),
+            Answer("", "Lezymy", selected = Some(true))
+          )
+        )
       )
     )
     val exampleStateFinalSuccess = QuizzState(

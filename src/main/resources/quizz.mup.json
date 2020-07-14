@@ -4,7 +4,7 @@
   "ideas": {
     "1": {
       "title": "What is your problem?",
-      "id": 1,
+      "id": "1",
       "attr": {
         "position": [
           -703,
@@ -15,7 +15,7 @@
       "ideas": {
         "1": {
           "title": "Have you paid your bills?",
-          "id": 3,
+          "id": "3",
           "attr": {
             "parentConnector": {
               "label": "No Power"
@@ -29,7 +29,7 @@
           "ideas": {
             "1": {
               "title": "This is ooutage",
-              "id": 8,
+              "id": "8",
               "attr": {
                 "style": {
                   "width": 142
@@ -46,7 +46,7 @@
             },
             "2": {
               "title": "Just pay",
-              "id": 9,
+              "id": "9",
               "attr": {
                 "style": {
                   "width": 154
@@ -65,7 +65,7 @@
         },
         "11": {
           "title": "No water",
-          "id": 4,
+          "id": "4",
           "attr": {
             "position": [
               375,
@@ -79,7 +79,7 @@
         },
         "21": {
           "title": "Are you in basement?",
-          "id": 7,
+          "id": "7",
           "attr": {
             "parentConnector": {
               "label": "Phone is down"
@@ -93,7 +93,7 @@
           "ideas": {
             "1": {
               "title": "Go outside. Do you have a signal?",
-              "id": 11,
+              "id": "11",
               "attr": {
                 "position": [
                   258,
@@ -107,7 +107,7 @@
               "ideas": {
                 "1": {
                   "title": "This is outage",
-                  "id": 14,
+                  "id": "14",
                   "attr": {
                     "position": [
                       259,
@@ -121,7 +121,7 @@
                 },
                 "2": {
                   "title": "Congrats",
-                  "id": 15,
+                  "id": "15",
                   "attr": {
                     "position": [
                       293,
@@ -137,7 +137,7 @@
             },
             "2": {
               "title": "This is outage",
-              "id": 12,
+              "id": "12",
               "attr": {
                 "position": [
                   326,

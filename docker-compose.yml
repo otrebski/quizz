@@ -2,7 +2,7 @@ version: "2.4"
 
 services:
   quizz:
-    image: quizz:latest
+    image: quizz:0.1
     volumes:
       - '/tmp/mindmups/:/tmp/mindmups/' 
     environment:

@@ -37,9 +37,7 @@ object Loader extends LazyLogging {
         .map(e => e.getMessage)
     } catch {
       case e: Exception => Left(e.getMessage)
-    } finally {
-      source.close()
-    }
+    } finally source.close()
 
   }
 }

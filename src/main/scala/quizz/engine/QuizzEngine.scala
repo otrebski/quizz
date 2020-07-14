@@ -41,9 +41,11 @@ object QuizzEngine {
     next(quiz, selections.tail.reverse).map(quiz :: _)
   }
 
-  def process(answerId: String,
-              quiz: QuizStep,
-              selections: List[String]): Either[String, SelectionResult] = {
+  def process(
+      answerId: String,
+      quiz: QuizStep,
+      selections: List[String]
+  ): Either[String, SelectionResult] = {
     def select(path: List[String], tree: QuizStep): Either[String, QuizStep] =
       path.headOption match {
         case Some(c) =>

@@ -49,10 +49,9 @@ package object mindmup extends LazyLogging {
         V3IdString.Mindmap(
           id = m.id,
           formatVersion = m.formatVersion,
-          ideas = m.ideas.mapValues(ideaToV3String),
+          ideas = m.ideas.view.mapValues(ideaToV3String).toMap,
           title = m.title
         )
-
     }
 
   }
@@ -66,9 +65,9 @@ package object mindmup extends LazyLogging {
         val id    = idea.id
         val ideas = idea.ideas.getOrElse(Map.empty[String, V3IdString.Idea])
 
-        if (ideas.isEmpty) {
+        if (ideas.isEmpty)
           SuccessStep(id.toString, title)
-        } else {
+        else {
           val stringToStep: Map[String, QuizStep] = ideas.map {
             case (k, v) =>
               val label = for {

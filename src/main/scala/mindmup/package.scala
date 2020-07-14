@@ -32,7 +32,7 @@ package object mindmup extends LazyLogging {
         title: String,
         id: Int,
         attr: Option[Attr] = None,
-        ideas: Option[Map[String, Idea]] = None
+        ideas: Option[Map[String, V3IdString.Idea]] = None
     )
 
     implicit class MindmupIntOps(m: Mindmap) {
@@ -42,7 +42,7 @@ package object mindmup extends LazyLogging {
           title = idea.title,
           id = idea.id.toString,
           attr = idea.attr,
-          ideas = idea.ideas.map(i => i.mapValues(ideaToV3String))
+          ideas = idea.ideas
         )
 
       def toV3IdString: V3IdString.Mindmap =

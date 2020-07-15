@@ -16,15 +16,17 @@ class Step extends React.Component {
             <ListGroup.Item
                 key={a.id}
                 onClick={() => this.props.action(this.props.quizzId, a.id)}
-                action                
+                action
             >{a.text}
             </ListGroup.Item>
         )
         return (
             <div>
-                <Card style={{ width: '20rem' }} className="step">
-                    <Card.Body>
-                        <Card.Title>{this.props.question}</Card.Title>
+                <Card border="info" style={{ width: '20rem' }} className="step">
+                    <Card.Body >
+                        <Card.Title>{this.props.question.split('\n').map((item, i) => {
+                            return <p key={i}>{item}</p>;
+                        })}</Card.Title>
                         <ListGroup>
                             {answers2}
                         </ListGroup>

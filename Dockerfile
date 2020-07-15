@@ -11,5 +11,5 @@ RUN ls -la /
 RUN ls -la
 RUN tar xzvf /quizz-0.1.tgz
 RUN ls -la
-ENTRYPOINT ["quizz-0.1/bin/quizz"]
+ENTRYPOINT ["quizz-0.2/bin/quizz"]
 CMD []

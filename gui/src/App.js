@@ -13,7 +13,7 @@ function App() {
 
   return (
     <div>
-      <Router>
+      <Router forceRefresh={true} >
         <h1><Link to={"/"}>Home</Link></h1>
         <div className="App">
           <Route path="/" exact render={() => Index} />

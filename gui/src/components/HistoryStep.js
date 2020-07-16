@@ -14,7 +14,7 @@ class HistoryStep extends React.Component {
 
         const answers = this.props.answers.map(a => {
                 let variant = a.selected ? "success" : "light";
-                console.log(`${a.id} is selected: ${a.selected}, variant: ${variant}`);
+                // console.log(`${a.id} is selected: ${a.selected}, variant: ${variant}`);
 
                 return <ListGroup.Item
                     key={a.id}

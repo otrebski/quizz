@@ -71,11 +71,15 @@ class Quiz extends React.Component {
                     .then(e => this.setState({quizzState: e}))
             };
 
+            this.state.quizzState.history.forEach(h => console.log("History step", h))
             const history = this.state.quizzState.history.map(h =>
+
                 <div key={"history_" + h.id}>
                     <HistoryStep
                         quizzId={this.props.quizzId}
                         answers={h.answers}
+                        id = {h.id}
+                        path = {h.path}
                         question={h.question}
                         success={h.success}
                         action={(a, b) => alert("Not supported yet")}/>
@@ -84,13 +88,12 @@ class Quiz extends React.Component {
             );
             const isThisLastStep = this.state.quizzState.currentStep.answers.length === 0;
             let currentTitle = isThisLastStep ? "Solution" : "Question:";
-
             const lastStep = <div>
                 <h2>{currentTitle}</h2>
                 <Step
                     question={this.state.quizzState.currentStep.question}
                     answers={this.state.quizzState.currentStep.answers}
-                    path={this.props.path}
+                    path={this.state.quizzState.path}
                     quizzId={this.props.quizzId}
                     action={selectFun}
                 /></div>;

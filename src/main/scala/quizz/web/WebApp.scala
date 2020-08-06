@@ -18,16 +18,16 @@ package quizz.web
 
 import java.io.File
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
-import com.typesafe.config.{Config, ConfigFactory}
+import scala.concurrent.{ ExecutionContextExecutor, Future }
+import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.auto._
-import quizz.data.{ExamplesData, Loader}
+import quizz.data.{ ExamplesData, Loader }
 import quizz.model.Quizz
 import quizz.web.WebApp.Api.FeedbackResponse
 import tapir.json.circe._
 import tapir.server.akkahttp._
-import tapir.{path, _}
+import tapir.{ path, _ }
 
 object WebApp extends App with LazyLogging {
 
@@ -37,14 +37,22 @@ object WebApp extends App with LazyLogging {
 
     case class QuizzId(id: String)
 
-    case class QuizzState(path: String, currentStep: Step, history: List[Step] = List.empty)
+    case class QuizzState(path: String, currentStep: Step, history: List[HistoryStep] = List.empty)
 
     case class Step(
-                     id: String,
-                     question: String,
-                     answers: List[Answer] = List.empty,
-                     success: Option[Boolean] = None
-                   )
+        id: String,
+        question: String,
+        answers: List[Answer] = List.empty,
+        success: Option[Boolean] = None
+    )
+
+    case class HistoryStep(
+        id: String,
+        question: String,
+        answers: List[Answer] = List.empty,
+        path: List[String] = List.empty,
+        success: Option[Boolean] = None
+    )
 
     case class Answer(id: String, text: String, selected: Option[Boolean] = None)
 
@@ -58,13 +66,12 @@ object WebApp extends App with LazyLogging {
 
   }
 
-  val stateCodec = jsonBody[Api.QuizzState]
-  val codecQuizInfo = jsonBody[Api.Quizzes]
-  val codecFeedback = jsonBody[Api.Feedback]
+  val stateCodec            = jsonBody[Api.QuizzState]
+  val codecQuizInfo         = jsonBody[Api.Quizzes]
+  val codecFeedback         = jsonBody[Api.Feedback]
   val codecFeedbackResponse = jsonBody[Api.FeedbackResponse]
 
-
-  private val config: Config = ConfigFactory.load()
+  private val config: Config         = ConfigFactory.load()
   private val dirWithQuizzes: String = config.getString("quizz.loader.dir")
   logger.info(s"""Loading from "$dirWithQuizzes" """)
   val quizzesOrError: Either[String, Map[String, Quizz]] = if (dirWithQuizzes.nonEmpty) {
@@ -108,13 +115,19 @@ object WebApp extends App with LazyLogging {
   import akka.http.scaladsl.Http
   import akka.stream.ActorMaterializer
 
-  private def routeProvider3(request: Api.QuizzId) =
-    Future.successful(
-      Logic.calculateStateOnPathStart(quizzes.get(request.id).map(_.firstStep).get)
-    )
+  private def routeProvider3(request: Api.QuizzId): Future[Either[String, Api.QuizzState]] =
+    Future.successful {
+      val step = for {
+        quizz <- quizzes.get(request.id)
+        step = quizz.firstStep
+      } yield step
+      Logic.calculateStateOnPathStart(step.get)
+    }
 
-  private def routeWithPathProvider(request: Api.QuizzQuery) =
-    Future.successful(Logic.calculateStateOnPath(request, quizzes))
+  private def routeWithPathProvider(request: Api.QuizzQuery) = {
+    val value = Logic.calculateStateOnPath(request, quizzes)
+    Future.successful(value)
+  }
 
   val quizListProvider: Unit => Future[Either[Unit, Api.Quizzes]] = _ => {
     Future.successful(
@@ -133,13 +146,13 @@ object WebApp extends App with LazyLogging {
 
   import akka.http.scaladsl.server.Directives._
 
-  val route = routeEndpoint.toRoute(routeWithPathProvider)
-  val routeStart = routeEndpointStart.toRoute(routeProvider3)
-  val routeList = listQuizzes.toRoute(quizListProvider)
+  val route         = routeEndpoint.toRoute(routeWithPathProvider)
+  val routeStart    = routeEndpointStart.toRoute(routeProvider3)
+  val routeList     = listQuizzes.toRoute(quizListProvider)
   val routeFeedback = feedback.toRoute(feedbackProvider)
 
-  implicit val system: ActorSystem = ActorSystem("my-system")
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  implicit val system: ActorSystem                        = ActorSystem("my-system")
+  implicit val materializer: ActorMaterializer            = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
   val bindingFuture =

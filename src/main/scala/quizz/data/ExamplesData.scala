@@ -21,7 +21,7 @@ import cats.syntax.show._
 import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
 import quizz.model.{ FailureStep, Question, Quizz, SuccessStep }
-import quizz.web.WebApp.Api.{ Answer, QuizzState, Step }
+import quizz.web.WebApp.Api.{ Answer, HistoryStep, QuizzState, Step }
 
 object ExamplesData extends LazyLogging {
 
@@ -125,7 +125,7 @@ object ExamplesData extends LazyLogging {
         List(Answer("", "jedziemy"), Answer("", "Stoimi"), Answer("", "Lezymy"))
       ),
       history = List(
-        Step(
+        HistoryStep(
           "b",
           "I co dalej 1 ?",
           List(
@@ -134,7 +134,7 @@ object ExamplesData extends LazyLogging {
             Answer("", "Lezymy")
           )
         ),
-        Step(
+        HistoryStep(
           "c",
           "I co dalej 2 ?",
           List(
@@ -143,7 +143,7 @@ object ExamplesData extends LazyLogging {
             Answer("", "Lezymy")
           )
         ),
-        Step(
+        HistoryStep(
           "d",
           "I co dalej 3 ?",
           List(

@@ -4,7 +4,7 @@ GET http://localhost:8080/api/quiz/
 
 ### Starting point of quizz q1
 
-GET http://localhost:8080/api/quiz/root/path/root;1
+GET http://localhost:8080/api/quiz/testowy/path/root;1
 
 ### Quizz with answer electricity
 GET http://localhost:8080/api/quiz/q1/path/root;electricity
@@ -27,4 +27,82 @@ Accept: */*
   "rate": "-1"
 }
 
-###
+### Add
+PUT http://localhost:8080/api/quizz/testowy
+Content-Type: application/json
+Accept: application/json
+
+{
+  "formatVersion": 3,
+  "id": "root",
+  "ideas": {
+    "1": {
+      "title": "Starting point",
+      "id": 1,
+      "ideas": {
+        "1": {
+          "title": "Step 1",
+          "id": "2.5dff82e0db5911eaa61dadd3f94d4398",
+          "ideas": {
+            "1": {
+              "title": "Step 1.1",
+              "id": "4.5dff82e0db5911eaa61dadd3f94d4398",
+              "attr": {
+                "parentConnector": {
+                  "label": "A1"
+                }
+              }
+            },
+            "2": {
+              "title": "Step 1.2",
+              "id": "5.5dff82e0db5911eaa61dadd3f94d4398",
+              "attr": {
+                "parentConnector": {
+                  "label": "A2"
+                }
+              }
+            }
+          },
+          "attr": {
+            "parentConnector": {
+              "label": "A1"
+            }
+          }
+        },
+        "11": {
+          "title": "Step 2",
+          "id": "3.5dff82e0db5911eaa61dadd3f94d4398",
+          "ideas": {
+            "1": {
+              "title": "Step 2.1",
+              "id": "6.5dff82e0db5911eaa61dadd3f94d4398",
+              "attr": {
+                "parentConnector": {
+                  "label": "A1"
+                }
+              }
+            },
+            "2": {
+              "title": "Step 2.2",
+              "id": "7.5dff82e0db5911eaa61dadd3f94d4398",
+              "attr": {
+                "parentConnector": {
+                  "label": "A2"
+                }
+              }
+            }
+          },
+          "attr": {
+            "parentConnector": {
+              "label": "A2"
+            }
+          }
+        }
+      }
+    }
+  },
+  "attr": {
+    "theme": "topdownStandard"
+  },
+  "title": "Starting point"
+}

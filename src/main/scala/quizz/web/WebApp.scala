@@ -25,11 +25,12 @@ import cats.implicits._
 import scala.concurrent.{ ExecutionContextExecutor, Future }
 import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
+import io.circe
 import io.circe.generic.auto._
+import mindmup.Parser
 import quizz.data.{ ExamplesData, Loader }
-import quizz.model
 import quizz.model.Quizz
-import quizz.web.WebApp.Api.{ FeedbackResponse, Quizzes }
+import quizz.web.WebApp.Api.{ AddQuizzResponse, FeedbackResponse, Quizzes }
 import tapir.json.circe._
 import tapir.server.akkahttp._
 import tapir.{ path, _ }
@@ -69,6 +70,10 @@ object WebApp extends IOApp with LazyLogging {
 
     case class FeedbackResponse(status: String)
 
+    case class AddQuizz(name: String, mindmupSource: String)
+
+    case class AddQuizzResponse(status: String)
+
   }
 
   val stateCodec            = jsonBody[Api.QuizzState]
@@ -96,6 +101,14 @@ object WebApp extends IOApp with LazyLogging {
   val listQuizzes = endpoint.get
     .in("api" / "quiz")
     .out(jsonBody[Api.Quizzes])
+
+  val addQuizz = endpoint.put
+    .in("api" / "quizz" / path[String](name = "id").description("Id of quizz to add/replace"))
+    .in(stringBody("UTF-8"))
+    .mapIn(idAndContent => Api.AddQuizz(idAndContent._1, idAndContent._2))(a =>
+      (a.name, a.mindmupSource)
+    )
+    .out(jsonBody[Api.AddQuizzResponse])
 
   val feedback = endpoint.post
     .in("api" / "feedback")
@@ -143,6 +156,22 @@ object WebApp extends IOApp with LazyLogging {
     } yield quizzesInfo).unsafeToFuture()
   }
 
+  def addQuizzProvider(
+      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
+  )(request: Api.AddQuizz) = {
+    import mindmup._
+    val newQuizzOrError: Either[circe.Error, Quizz] =
+      Parser.parseInput(request.mindmupSource).map(_.toQuizz)
+    newQuizzOrError match {
+      case Left(error) => Future.failed(new Exception(error.toString))
+      case Right(quizz) =>
+        val io: IO[Either[String, Map[String, Quizz]]] =
+          quizzes.getAndUpdate(old => old.map(_.updated(request.name, quizz)))
+        io.map(_ => AddQuizzResponse("Added").asRight)
+          .unsafeToFuture()
+    }
+  }
+
   def feedbackProvider(feedback: Api.Feedback): Future[Either[Unit, FeedbackResponse]] = {
     logger.info(s"Have feedback: $feedback")
     Future.successful(Right(FeedbackResponse("OK")))
@@ -161,10 +190,11 @@ object WebApp extends IOApp with LazyLogging {
         val routeStart                                          = routeEndpointStart.toRoute(routeWithoutPathProvider(quizzes))
         val routeList                                           = listQuizzes.toRoute(quizListProvider(quizzes))
         val routeFeedback                                       = feedback.toRoute(feedbackProvider)
+        val add                                                 = addQuizz.toRoute(addQuizzProvider(quizzes))
         implicit val system: ActorSystem                        = ActorSystem("my-system")
         implicit val materializer: ActorMaterializer            = ActorMaterializer()
         implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-        Http().bindAndHandle(route ~ routeStart ~ routeList ~ routeFeedback, "0.0.0.0", port)
+        Http().bindAndHandle(route ~ routeStart ~ routeList ~ routeFeedback ~ add, "0.0.0.0", port)
       }
 
     def loadQuizzes(): IO[Either[String, Map[String, Quizz]]] =

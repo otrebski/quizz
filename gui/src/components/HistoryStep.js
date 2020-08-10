@@ -29,10 +29,12 @@ class HistoryStep extends React.Component {
                 </ListGroup.Item>
             }
         );
-
+        const text = this.props.question.split('\n').map((item, i) => {
+            return <p key={i}>{item}</p>;
+        })
         return (
             <div className="historyStep">
-                <h3>{this.props.question}</h3>
+                <h3>{text}</h3>
                 <div>
                     Answers:
                     {answers}

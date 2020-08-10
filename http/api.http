@@ -4,16 +4,16 @@ GET http://localhost:8080/api/quiz/
 
 ### Starting point of quizz q1
 
-GET http://localhost:8080/api/quiz/root/path/1
+GET http://localhost:8080/api/quiz/root/path/root;1
 
 ### Quizz with answer electricity
-GET http://localhost:8080/api/quiz/q1/path/electricity
+GET http://localhost:8080/api/quiz/q1/path/root;electricity
 
 ### Quizz with answer electricity and checkLocal
-GET http://localhost:8080/api/quiz/q1/path/electricity;checkLocal
+GET http://localhost:8080/api/quiz/q1/path/root;electricity;checkLocal
 
 ### Quizz with answer electricity and checkLocal
-GET http://localhost:8080/api/quiz/q1/path/electricity;checkLocal;buildingFuses;noPower
+GET http://localhost:8080/api/quiz/q1/path/root;electricity;checkLocal;buildingFuses;noPower
 
 ### Feedback
 POST http://localhost:8080/api/feedback

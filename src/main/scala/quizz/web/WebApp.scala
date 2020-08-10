@@ -70,7 +70,7 @@ object WebApp extends IOApp with LazyLogging {
 
     case class FeedbackResponse(status: String)
 
-    case class AddQuizz(name: String, mindmupSource: String)
+    case class AddQuizz(id: String, mindmupSource: String)
 
     case class AddQuizzResponse(status: String)
 
@@ -106,7 +106,7 @@ object WebApp extends IOApp with LazyLogging {
     .in("api" / "quizz" / path[String](name = "id").description("Id of quizz to add/replace"))
     .in(stringBody("UTF-8"))
     .mapIn(idAndContent => Api.AddQuizz(idAndContent._1, idAndContent._2))(a =>
-      (a.name, a.mindmupSource)
+      (a.id, a.mindmupSource)
     )
     .out(jsonBody[Api.AddQuizzResponse])
 
@@ -161,12 +161,14 @@ object WebApp extends IOApp with LazyLogging {
   )(request: Api.AddQuizz) = {
     import mindmup._
     val newQuizzOrError: Either[circe.Error, Quizz] =
-      Parser.parseInput(request.mindmupSource).map(_.toQuizz)
+      Parser.parseInput(request.mindmupSource).map(_.toQuizz.copy(id = request.id))
+
     newQuizzOrError match {
       case Left(error) => Future.failed(new Exception(error.toString))
       case Right(quizz) =>
+//        logger.info(s"Adding quizz $quizz")
         val io: IO[Either[String, Map[String, Quizz]]] =
-          quizzes.getAndUpdate(old => old.map(_.updated(request.name, quizz)))
+          quizzes.getAndUpdate(old => old.map(_.updated(request.id, quizz)))
         io.map(_ => AddQuizzResponse("Added").asRight)
           .unsafeToFuture()
     }

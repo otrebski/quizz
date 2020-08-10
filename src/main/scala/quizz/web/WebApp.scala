@@ -115,7 +115,7 @@ object WebApp extends App with LazyLogging {
   import akka.http.scaladsl.Http
   import akka.stream.ActorMaterializer
 
-  private def routeProvider3(request: Api.QuizzId): Future[Either[String, Api.QuizzState]] =
+  private def routeWithoutPathProvider(request: Api.QuizzId): Future[Either[String, Api.QuizzState]] =
     Future.successful {
       val step = for {
         quizz <- quizzes.get(request.id)
@@ -147,7 +147,7 @@ object WebApp extends App with LazyLogging {
   import akka.http.scaladsl.server.Directives._
 
   val route         = routeEndpoint.toRoute(routeWithPathProvider)
-  val routeStart    = routeEndpointStart.toRoute(routeProvider3)
+  val routeStart    = routeEndpointStart.toRoute(routeWithoutPathProvider)
   val routeList     = listQuizzes.toRoute(quizListProvider)
   val routeFeedback = feedback.toRoute(feedbackProvider)
 

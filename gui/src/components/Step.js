@@ -21,7 +21,7 @@ class Step extends React.Component {
         )
         return (
             <div>
-                <Card border="info" style={{width: '20rem'}} className="step">
+                <Card border="info" style={{width: '90%'}} className="step">
                     <Card.Body>
                         <Card.Title>{this.props.question.split('\n').map((item, i) => {
                             return <p key={i}>{item}</p>;

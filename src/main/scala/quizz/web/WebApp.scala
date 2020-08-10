@@ -18,18 +18,22 @@ package quizz.web
 
 import java.io.File
 
-import scala.concurrent.{ ExecutionContextExecutor, Future }
-import com.typesafe.config.{ Config, ConfigFactory }
+import cats.effect.concurrent.Ref
+import cats.effect.{ExitCode, IO, IOApp}
+import cats.implicits._
+
+import scala.concurrent.{ExecutionContextExecutor, Future}
+import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.auto._
-import quizz.data.{ ExamplesData, Loader }
+import quizz.data.{ExamplesData, Loader}
 import quizz.model.Quizz
 import quizz.web.WebApp.Api.FeedbackResponse
 import tapir.json.circe._
 import tapir.server.akkahttp._
-import tapir.{ path, _ }
+import tapir.{path, _}
 
-object WebApp extends App with LazyLogging {
+object WebApp extends IOApp with LazyLogging {
 
   object Api {
 
@@ -74,20 +78,8 @@ object WebApp extends App with LazyLogging {
   private val config: Config         = ConfigFactory.load()
   private val dirWithQuizzes: String = config.getString("quizz.loader.dir")
   logger.info(s"""Loading from "$dirWithQuizzes" """)
-  val quizzesOrError: Either[String, Map[String, Quizz]] = if (dirWithQuizzes.nonEmpty) {
-    val list = Loader.fromFolder(new File(dirWithQuizzes))
-    list.map(errorOr => errorOr.map(q => q.id -> q).toMap)
-  } else
-    Right(ExamplesData.quizzes)
 
-  val quizzes: Map[String, Quizz] = quizzesOrError match {
-    case Right(quizz) =>
-      logger.info(s"Quizz ${quizz.keys.mkString(", ")} loaded")
-      quizz
-    case Left(error) =>
-      logger.info(s"Can't read quizzes: $error")
-      sys.exit(1)
-  }
+
 
   val routeEndpoint = endpoint.get
     .in(
@@ -115,7 +107,7 @@ object WebApp extends App with LazyLogging {
   import akka.http.scaladsl.Http
   import akka.stream.ActorMaterializer
 
-  private def routeWithoutPathProvider(request: Api.QuizzId): Future[Either[String, Api.QuizzState]] =
+  private def routeWithoutPathProvider(quizzes: Map[String, Quizz])(request: Api.QuizzId): Future[Either[String, Api.QuizzState]] =
     Future.successful {
       val step = for {
         quizz <- quizzes.get(request.id)
@@ -124,12 +116,12 @@ object WebApp extends App with LazyLogging {
       Logic.calculateStateOnPathStart(step.get)
     }
 
-  private def routeWithPathProvider(request: Api.QuizzQuery) = {
+  private def routeWithPathProvider(quizzes: Map[String, Quizz])(request: Api.QuizzQuery) = {
     val value = Logic.calculateStateOnPath(request, quizzes)
     Future.successful(value)
   }
 
-  val quizListProvider: Unit => Future[Either[Unit, Api.Quizzes]] = _ => {
+  def quizListProvider(quizzes: Map[String, Quizz]): Unit => Future[Either[Unit, Api.Quizzes]] = _ => {
     Future.successful(
       Right(
         Api.Quizzes(
@@ -144,20 +136,44 @@ object WebApp extends App with LazyLogging {
     Future.successful(Right(FeedbackResponse("OK")))
   }
 
-  import akka.http.scaladsl.server.Directives._
 
-  val route         = routeEndpoint.toRoute(routeWithPathProvider)
-  val routeStart    = routeEndpointStart.toRoute(routeWithoutPathProvider)
-  val routeList     = listQuizzes.toRoute(quizListProvider)
-  val routeFeedback = feedback.toRoute(feedbackProvider)
+  override def run(args: List[String]): IO[ExitCode] = {
+    import akka.http.scaladsl.server.Directives._
 
-  implicit val system: ActorSystem                        = ActorSystem("my-system")
-  implicit val materializer: ActorMaterializer            = ActorMaterializer()
-  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+    val quizzesOrError = //Ref.of[IO, Either[String, Map[String,Quizz]]]("Quizzes not yet loaded".asLeft[Map[String,Quizz]])
 
-  val bindingFuture =
-    Http().bindAndHandle(route ~ routeStart ~ routeList ~ routeFeedback, "0.0.0.0", 8080)
+    if (dirWithQuizzes.nonEmpty) {
+      val list = Loader.fromFolder(new File(dirWithQuizzes))
+      list.map(errorOr => errorOr.map(q => q.id -> q).toMap)
+    } else
+      Right(ExamplesData.quizzes)
 
-  logger.info(s"Server is online")
+    val quizzes: Map[String, Quizz] = quizzesOrError match {
+      case Right(quizz) =>
+        logger.info(s"Quizz ${quizz.keys.mkString(", ")} loaded")
+        quizz
+      case Left(error) =>
+        logger.info(s"Can't read quizzes: $error")
+        sys.exit(1)
+    }
 
+    val route         = routeEndpoint.toRoute(routeWithPathProvider(quizzes))
+    val routeStart    = routeEndpointStart.toRoute(routeWithoutPathProvider(quizzes))
+    val routeList     = listQuizzes.toRoute(quizListProvider(quizzes))
+    val routeFeedback = feedback.toRoute(feedbackProvider)
+
+    implicit val system: ActorSystem                        = ActorSystem("my-system")
+    implicit val materializer: ActorMaterializer            = ActorMaterializer()
+    implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+
+    val port = 8080
+    val bindingFuture =
+      IO(Http().bindAndHandle(route ~ routeStart ~ routeList ~ routeFeedback, "0.0.0.0", port))
+
+    logger.info(s"Server is online on port $port")
+    for {
+      _ <- bindingFuture
+    } yield ExitCode.Success
+//    bindingFuture.map(_ => ExitCode.Success)
+  }
 }

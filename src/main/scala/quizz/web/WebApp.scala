@@ -118,13 +118,6 @@ object WebApp extends IOApp with LazyLogging {
     } yield step
 
     a.unsafeToFuture()
-//    Future.successful {
-//      val step = for {
-//        quizz <- quizzes.get(request.id)
-//        step = quizz.firstStep
-//      } yield step
-//      Logic.calculateStateOnPathStart(step.get)
-//    }
   }
 
   private def routeWithPathProvider(
@@ -158,22 +151,6 @@ object WebApp extends IOApp with LazyLogging {
   override def run(args: List[String]): IO[ExitCode] = {
     import akka.http.scaladsl.server.Directives._
 
-//    val quizzesOrError = //Ref.of[IO, Either[String, Map[String,Quizz]]]("Quizzes not yet loaded".asLeft[Map[String,Quizz]])
-//      if (dirWithQuizzes.nonEmpty) {
-//        val list = Loader.fromFolder(new File(dirWithQuizzes))
-//        list.map(errorOr => errorOr.map(q => q.id -> q).toMap)
-//      } else
-//        Right(ExamplesData.quizzes)
-
-//    val quizzes: Map[String, Quizz] = quizzesOrError match {
-//      case Right(quizz) =>
-//        logger.info(s"Quizz ${quizz.keys.mkString(", ")} loaded")
-//        quizz
-//      case Left(error) =>
-//        logger.info(s"Can't read quizzes: $error")
-//        sys.exit(1)
-//    }
-
     val port = 8080
 
     def bindingFuture(
@@ -192,13 +169,11 @@ object WebApp extends IOApp with LazyLogging {
 
     def loadQuizzes(): IO[Either[String, Map[String, Quizz]]] =
       IO {
-        val q = if (dirWithQuizzes.nonEmpty) {
+        if (dirWithQuizzes.nonEmpty) {
           val list = Loader.fromFolder(new File(dirWithQuizzes))
           list.map(errorOr => errorOr.map(q => q.id -> q).toMap)
         } else
           Right(ExamplesData.quizzes)
-
-        q
       }
 
     logger.info(s"Server is online on port $port")
@@ -207,9 +182,7 @@ object WebApp extends IOApp with LazyLogging {
         Ref.of[IO, Either[String, Map[String, Quizz]]]("Not yet loaded".asLeft[Map[String, Quizz]])
       quizzesOrError <- loadQuizzes()
       _              <- quizzesRef.set(quizzesOrError)
-//      _ <- quizzesRef.Se
-      _ <- bindingFuture(quizzesRef)
+      _              <- bindingFuture(quizzesRef)
     } yield ExitCode.Success
-//    bindingFuture.map(_ => ExitCode.Success)
   }
 }

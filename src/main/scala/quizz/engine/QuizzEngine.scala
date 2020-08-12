@@ -38,11 +38,10 @@ object QuizzEngine {
         case Nil => Right(Nil)
       }
 
-    if (selections.reverse.headOption.exists(_ == quiz.id)) {
+    if (selections.reverse.headOption.contains(quiz.id))
       next(quiz, selections.dropRight(1).tail.reverse).map(quiz :: _)
-    } else {
+    else
       Left("Wrong path, not starting with first node selection")
-    }
   }
 
   def process(
@@ -74,12 +73,11 @@ object QuizzEngine {
             case f: FailureStep => Right(f)
           }
       }
-    if (selections.reverse.headOption.exists(_ == quiz.id)) {
+    if (selections.reverse.headOption.contains(quiz.id)) {
       val value: Either[String, QuizStep] = select(selections.reverse.drop(1), quiz)
       value.map(step => SelectionResult(step, answerId :: selections))
-    } else {
+    } else
       Left("Wrong path, not starting with first node selection")
-    }
   }
 
 }

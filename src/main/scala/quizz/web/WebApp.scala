@@ -164,7 +164,7 @@ object WebApp extends IOApp with LazyLogging {
       Parser.parseInput(request.mindmupSource).map(_.toQuizz.copy(id = request.id))
 
     newQuizzOrError match {
-      case Left(error) => Future.failed(new Exception(error.toString))
+      case Left(error)  => Future.failed(new Exception(error.toString))
       case Right(quizz) =>
 //        logger.info(s"Adding quizz $quizz")
         val io: IO[Either[String, Map[String, Quizz]]] =

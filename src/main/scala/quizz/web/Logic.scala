@@ -34,7 +34,8 @@ object Logic {
           )
 
         case head :: tail =>
-          val r: Either[String, QuizzEngine.SelectionResult] = QuizzEngine.process(head, quizz.firstStep, tail)
+          val r: Either[String, QuizzEngine.SelectionResult] =
+            QuizzEngine.process(head, quizz.firstStep, tail)
 
           r.map(_.current)
             .map {
@@ -70,21 +71,22 @@ object Logic {
     def history(quizz: Quizz): Either[String, List[Api.HistoryStep]] =
       valueSteps(quizz)
         .map(h =>
-          h.foldLeft(List.empty[Api.HistoryStep]) { ( list, step) =>
-            val path = list.map(_.id).reverse
-            val hStep = step match {
-              case Question(id, text, answers) =>
-                val historyAnswers = answers.map { a =>
-                  Api.Answer(a._2.id, a._1, pathList.contains(a._2.id).some)
-                }.toList
-                HistoryStep(id, text, historyAnswers, path)
-              case f: FailureStep =>
-                Api.HistoryStep(f.id, f.text, success = Some(false), path = path)
-              case s: SuccessStep =>
-                Api.HistoryStep(s.id, s.text, success = Some(true), path = path)
+          h.foldLeft(List.empty[Api.HistoryStep]) { (list, step) =>
+              val path = list.map(_.id).reverse
+              val hStep = step match {
+                case Question(id, text, answers) =>
+                  val historyAnswers = answers.map { a =>
+                    Api.Answer(a._2.id, a._1, pathList.contains(a._2.id).some)
+                  }.toList
+                  HistoryStep(id, text, historyAnswers, path)
+                case f: FailureStep =>
+                  Api.HistoryStep(f.id, f.text, success = Some(false), path = path)
+                case s: SuccessStep =>
+                  Api.HistoryStep(s.id, s.text, success = Some(true), path = path)
+              }
+              hStep :: list
             }
-            hStep :: list
-          }.reverse
+            .reverse
         )
 
     val result: Either[String, Api.QuizzState] = for {

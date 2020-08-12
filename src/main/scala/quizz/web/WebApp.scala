@@ -18,18 +18,24 @@ package quizz.web
 
 import java.io.File
 
+import cats.effect.concurrent.Ref
+import cats.effect.{ ExitCode, IO, IOApp }
+import cats.implicits._
+
 import scala.concurrent.{ ExecutionContextExecutor, Future }
 import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
+import io.circe
 import io.circe.generic.auto._
+import mindmup.Parser
 import quizz.data.{ ExamplesData, Loader }
 import quizz.model.Quizz
-import quizz.web.WebApp.Api.FeedbackResponse
+import quizz.web.WebApp.Api.{ AddQuizzResponse, FeedbackResponse, Quizzes }
 import tapir.json.circe._
 import tapir.server.akkahttp._
 import tapir.{ path, _ }
 
-object WebApp extends App with LazyLogging {
+object WebApp extends IOApp with LazyLogging {
 
   object Api {
 
@@ -64,6 +70,10 @@ object WebApp extends App with LazyLogging {
 
     case class FeedbackResponse(status: String)
 
+    case class AddQuizz(id: String, mindmupSource: String)
+
+    case class AddQuizzResponse(status: String)
+
   }
 
   val stateCodec            = jsonBody[Api.QuizzState]
@@ -74,20 +84,6 @@ object WebApp extends App with LazyLogging {
   private val config: Config         = ConfigFactory.load()
   private val dirWithQuizzes: String = config.getString("quizz.loader.dir")
   logger.info(s"""Loading from "$dirWithQuizzes" """)
-  val quizzesOrError: Either[String, Map[String, Quizz]] = if (dirWithQuizzes.nonEmpty) {
-    val list = Loader.fromFolder(new File(dirWithQuizzes))
-    list.map(errorOr => errorOr.map(q => q.id -> q).toMap)
-  } else
-    Right(ExamplesData.quizzes)
-
-  val quizzes: Map[String, Quizz] = quizzesOrError match {
-    case Right(quizz) =>
-      logger.info(s"Quizz ${quizz.keys.mkString(", ")} loaded")
-      quizz
-    case Left(error) =>
-      logger.info(s"Can't read quizzes: $error")
-      sys.exit(1)
-  }
 
   val routeEndpoint = endpoint.get
     .in(
@@ -106,6 +102,14 @@ object WebApp extends App with LazyLogging {
     .in("api" / "quiz")
     .out(jsonBody[Api.Quizzes])
 
+  val addQuizz = endpoint.put
+    .in("api" / "quizz" / path[String](name = "id").description("Id of quizz to add/replace"))
+    .in(stringBody("UTF-8"))
+    .mapIn(idAndContent => Api.AddQuizz(idAndContent._1, idAndContent._2))(a =>
+      (a.id, a.mindmupSource)
+    )
+    .out(jsonBody[Api.AddQuizzResponse])
+
   val feedback = endpoint.post
     .in("api" / "feedback")
     .in(jsonBody[Api.Feedback].description("Feedback from user"))
@@ -115,28 +119,59 @@ object WebApp extends App with LazyLogging {
   import akka.http.scaladsl.Http
   import akka.stream.ActorMaterializer
 
-  private def routeProvider3(request: Api.QuizzId): Future[Either[String, Api.QuizzState]] =
-    Future.successful {
-      val step = for {
-        quizz <- quizzes.get(request.id)
-        step = quizz.firstStep
-      } yield step
-      Logic.calculateStateOnPathStart(step.get)
-    }
+  private def routeWithoutPathProvider(
+      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
+  )(request: Api.QuizzId): Future[Either[String, Api.QuizzState]] = {
+    val a: IO[Either[String, Api.QuizzState]] = for {
+      quizzesMap <- quizzes.get
+      quizz = quizzesMap.flatMap(q =>
+        q.get(request.id).map(_.asRight[String]).getOrElse("Not found".asLeft[Quizz])
+      )
+      step = quizz.flatMap(q => Logic.calculateStateOnPathStart(q.firstStep))
+    } yield step
 
-  private def routeWithPathProvider(request: Api.QuizzQuery) = {
-    val value = Logic.calculateStateOnPath(request, quizzes)
-    Future.successful(value)
+    a.unsafeToFuture()
   }
 
-  val quizListProvider: Unit => Future[Either[Unit, Api.Quizzes]] = _ => {
-    Future.successful(
-      Right(
-        Api.Quizzes(
-          quizzes = quizzes.values.toList.map(q => Api.QuizzInfo(q.id, q.name))
-        )
-      )
-    )
+  private def routeWithPathProvider(
+      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
+  )(request: Api.QuizzQuery) = {
+    val r: IO[Either[String, Api.QuizzState]] = for {
+      q <- quizzes.get
+      result = q.flatMap(quizzes => Logic.calculateStateOnPath(request, quizzes))
+    } yield result
+    r.unsafeToFuture()
+  }
+
+  def quizListProvider(
+      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
+  ): Unit => Future[Either[Unit, Api.Quizzes]] = { _ =>
+    (for {
+      quizzesOrError <- quizzes.get
+      quizzesInfo =
+        quizzesOrError
+          .map(q => q.values.toList.map(q1 => Api.QuizzInfo(q1.id, q1.name)))
+          .map(Api.Quizzes)
+          .leftMap(_ => ())
+    } yield quizzesInfo).unsafeToFuture()
+  }
+
+  def addQuizzProvider(
+      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
+  )(request: Api.AddQuizz) = {
+    import mindmup._
+    val newQuizzOrError: Either[circe.Error, Quizz] =
+      Parser.parseInput(request.mindmupSource).map(_.toQuizz.copy(id = request.id))
+
+    newQuizzOrError match {
+      case Left(error)  => Future.failed(new Exception(error.toString))
+      case Right(quizz) =>
+//        logger.info(s"Adding quizz $quizz")
+        val io: IO[Either[String, Map[String, Quizz]]] =
+          quizzes.getAndUpdate(old => old.map(_.updated(request.id, quizz)))
+        io.map(_ => AddQuizzResponse("Added").asRight)
+          .unsafeToFuture()
+    }
   }
 
   def feedbackProvider(feedback: Api.Feedback): Future[Either[Unit, FeedbackResponse]] = {
@@ -144,20 +179,42 @@ object WebApp extends App with LazyLogging {
     Future.successful(Right(FeedbackResponse("OK")))
   }
 
-  import akka.http.scaladsl.server.Directives._
+  override def run(args: List[String]): IO[ExitCode] = {
+    import akka.http.scaladsl.server.Directives._
 
-  val route         = routeEndpoint.toRoute(routeWithPathProvider)
-  val routeStart    = routeEndpointStart.toRoute(routeProvider3)
-  val routeList     = listQuizzes.toRoute(quizListProvider)
-  val routeFeedback = feedback.toRoute(feedbackProvider)
+    val port = 8080
 
-  implicit val system: ActorSystem                        = ActorSystem("my-system")
-  implicit val materializer: ActorMaterializer            = ActorMaterializer()
-  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+    def bindingFuture(
+        quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
+    ): IO[Future[Http.ServerBinding]] =
+      IO {
+        val route                                               = routeEndpoint.toRoute(routeWithPathProvider(quizzes))
+        val routeStart                                          = routeEndpointStart.toRoute(routeWithoutPathProvider(quizzes))
+        val routeList                                           = listQuizzes.toRoute(quizListProvider(quizzes))
+        val routeFeedback                                       = feedback.toRoute(feedbackProvider)
+        val add                                                 = addQuizz.toRoute(addQuizzProvider(quizzes))
+        implicit val system: ActorSystem                        = ActorSystem("my-system")
+        implicit val materializer: ActorMaterializer            = ActorMaterializer()
+        implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+        Http().bindAndHandle(route ~ routeStart ~ routeList ~ routeFeedback ~ add, "0.0.0.0", port)
+      }
 
-  val bindingFuture =
-    Http().bindAndHandle(route ~ routeStart ~ routeList ~ routeFeedback, "0.0.0.0", 8080)
+    def loadQuizzes(): IO[Either[String, Map[String, Quizz]]] =
+      IO {
+        if (dirWithQuizzes.nonEmpty) {
+          val list = Loader.fromFolder(new File(dirWithQuizzes))
+          list.map(errorOr => errorOr.map(q => q.id -> q).toMap)
+        } else
+          Right(ExamplesData.quizzes)
+      }
 
-  logger.info(s"Server is online")
-
+    logger.info(s"Server is online on port $port")
+    for {
+      quizzesRef <-
+        Ref.of[IO, Either[String, Map[String, Quizz]]]("Not yet loaded".asLeft[Map[String, Quizz]])
+      quizzesOrError <- loadQuizzes()
+      _              <- quizzesRef.set(quizzesOrError)
+      _              <- bindingFuture(quizzesRef)
+    } yield ExitCode.Success
+  }
 }

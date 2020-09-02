@@ -18,15 +18,14 @@ class HistoryStep extends React.Component {
                 let path = Array.from(this.props.path);
                 path.push(this.props.id);
                 path.push(a.id);
-                return <ListGroup.Item
+                return <Link to={`/quizz/${this.props.quizzId}/path/${path.join(";")}`}>
+                <ListGroup.Item
                     key={a.id}
-                    // onClick={() => this.props.action(this.props.quizzId, a.id)}
                     action
                     variant={variant}
-                >
-                    <Link to={`/quizz/${this.props.quizzId}/path/${path.join(";")}`}>{a.text}</Link>
-
+                >{a.text}
                 </ListGroup.Item>
+                </Link>
             }
         );
         const text = this.props.question.split('\n').map((item, i) => {

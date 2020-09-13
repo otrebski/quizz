@@ -7,6 +7,8 @@ services:
       - '/tmp/mindmups/:/tmp/mindmups/' 
     environment:
       LOAD_FROM_DIR: "/tmp/mindmups/"
+      USE_SLACK: "false"
+      SLACK_TOKEN: ""
 
   gui:
     image: otrebski/quizz-gui:latest

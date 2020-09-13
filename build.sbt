@@ -19,6 +19,7 @@ lazy val quizz =
         library.tapir,
         library.tapirAkka,
         library.tapirJson,
+        library.sttpClient,
         library.scalaLogging,
         library.logback,
         library.doobieCore,
@@ -47,6 +48,7 @@ lazy val library =
       val scalaLogging = "3.9.2"
       val logback = "1.2.3"
       val doobie = "0.9.0"
+      val sttp = "2.2.8"
     }
     val scalaCheck = "org.scalacheck" %% "scalacheck" % Version.scalaCheck
     val scalaTest  = "org.scalatest"  %% "scalatest"  % Version.scalaTest
@@ -59,6 +61,7 @@ lazy val library =
 //    val bazelServer = "org.http4s"     %% "http4s-blaze-server" % Version.bazel
 //    val tapirHttp4s = "com.softwaremill.tapir" %% "tapir-http4s-server" % Version.tapir
     val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging
+    val sttpClient = "com.softwaremill.sttp.client" %% "core" % Version.sttp
     val logback = "ch.qos.logback" % "logback-classic" % Version.logback
     val doobieCore = "org.tpolecat" %% "doobie-core"      % Version.doobie
     val doobiePostgres = "org.tpolecat" %% "doobie-postgres"      % Version.doobie

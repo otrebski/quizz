@@ -173,17 +173,29 @@ object WebApp extends IOApp with LazyLogging {
     }
   }
 
-  def feedbackProvider(feedback: Api.Feedback): Future[Either[Unit, FeedbackResponse]] = {
+  def feedbackProvider(
+      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
+  )(feedback: Api.Feedback): Future[Either[Unit, FeedbackResponse]] = {
     val log      = new LogFeedbackSender[IO]
     val useSlack = config.getBoolean("feedback.slack.use")
+    val request  = Api.QuizzQuery(feedback.quizzId, feedback.path)
+    val quizzState: IO[Either[String, Api.QuizzState]] = for {
+      q <- quizzes.get
+      result = q.flatMap(quizzes => Logic.calculateStateOnPath(request, quizzes))
+    } yield result
 
-    val p = if (useSlack) {
-      val slack = new SlackFeedbackSender[IO](config.getString("feedback.slack.token"))
-      log.send(feedback).flatMap(_ => slack.send(feedback))
-    } else
-      log.send(feedback)
+    val p = quizzState.flatMap {
+      case Right(quizzState) =>
+        if (useSlack) {
+          val slack = new SlackFeedbackSender[IO](config.getString("feedback.slack.token"))
+          log.send(feedback, quizzState).flatMap(_ => slack.send(feedback, quizzState))
+        } else
+          log.send(feedback, quizzState)
+      case Left(error) => IO.raiseError(new Exception(s"Can't process feedback: $error"))
+    }
+
     implicit val ec: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
-    p.unsafeToFuture().map(_ => Right(FeedbackResponse("OK")))
+    p.unsafeToFuture().map { _ => Right(FeedbackResponse("OK")) }
   }
 
   override def run(args: List[String]): IO[ExitCode] = {
@@ -198,7 +210,7 @@ object WebApp extends IOApp with LazyLogging {
         val route                                               = routeEndpoint.toRoute(routeWithPathProvider(quizzes))
         val routeStart                                          = routeEndpointStart.toRoute(routeWithoutPathProvider(quizzes))
         val routeList                                           = listQuizzes.toRoute(quizListProvider(quizzes))
-        val routeFeedback                                       = feedback.toRoute(feedbackProvider)
+        val routeFeedback                                       = feedback.toRoute(feedbackProvider(quizzes))
         val add                                                 = addQuizz.toRoute(addQuizzProvider(quizzes))
         implicit val system: ActorSystem                        = ActorSystem("my-system")
         implicit val materializer: ActorMaterializer            = ActorMaterializer()

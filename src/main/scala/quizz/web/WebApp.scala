@@ -27,8 +27,8 @@ import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
 import io.circe
 import io.circe.generic.auto._
-import mindmup.Parser
 import quizz.data.{ ExamplesData, Loader }
+import quizz.feedback.{ LogFeedbackSender, SlackFeedbackSender }
 import quizz.model.Quizz
 import quizz.web.WebApp.Api.{ AddQuizzResponse, FeedbackResponse, Quizzes }
 import tapir.json.circe._
@@ -164,9 +164,8 @@ object WebApp extends IOApp with LazyLogging {
       Parser.parseInput(request.mindmupSource).map(_.toQuizz.copy(id = request.id))
 
     newQuizzOrError match {
-      case Left(error)  => Future.failed(new Exception(error.toString))
+      case Left(error) => Future.failed(new Exception(error.toString))
       case Right(quizz) =>
-//        logger.info(s"Adding quizz $quizz")
         val io: IO[Either[String, Map[String, Quizz]]] =
           quizzes.getAndUpdate(old => old.map(_.updated(request.id, quizz)))
         io.map(_ => AddQuizzResponse("Added").asRight)
@@ -174,9 +173,29 @@ object WebApp extends IOApp with LazyLogging {
     }
   }
 
-  def feedbackProvider(feedback: Api.Feedback): Future[Either[Unit, FeedbackResponse]] = {
-    logger.info(s"Have feedback: $feedback")
-    Future.successful(Right(FeedbackResponse("OK")))
+  def feedbackProvider(
+      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
+  )(feedback: Api.Feedback): Future[Either[Unit, FeedbackResponse]] = {
+    val log      = new LogFeedbackSender[IO]
+    val useSlack = config.getBoolean("feedback.slack.use")
+    val request  = Api.QuizzQuery(feedback.quizzId, feedback.path)
+    val quizzState: IO[Either[String, Api.QuizzState]] = for {
+      q <- quizzes.get
+      result = q.flatMap(quizzes => Logic.calculateStateOnPath(request, quizzes))
+    } yield result
+
+    val p = quizzState.flatMap {
+      case Right(quizzState) =>
+        if (useSlack) {
+          val slack = new SlackFeedbackSender[IO](config.getString("feedback.slack.token"))
+          log.send(feedback, quizzState).flatMap(_ => slack.send(feedback, quizzState))
+        } else
+          log.send(feedback, quizzState)
+      case Left(error) => IO.raiseError(new Exception(s"Can't process feedback: $error"))
+    }
+
+    implicit val ec: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
+    p.unsafeToFuture().map { _ => Right(FeedbackResponse("OK")) }
   }
 
   override def run(args: List[String]): IO[ExitCode] = {
@@ -191,7 +210,7 @@ object WebApp extends IOApp with LazyLogging {
         val route                                               = routeEndpoint.toRoute(routeWithPathProvider(quizzes))
         val routeStart                                          = routeEndpointStart.toRoute(routeWithoutPathProvider(quizzes))
         val routeList                                           = listQuizzes.toRoute(quizListProvider(quizzes))
-        val routeFeedback                                       = feedback.toRoute(feedbackProvider)
+        val routeFeedback                                       = feedback.toRoute(feedbackProvider(quizzes))
         val add                                                 = addQuizz.toRoute(addQuizzProvider(quizzes))
         implicit val system: ActorSystem                        = ActorSystem("my-system")
         implicit val materializer: ActorMaterializer            = ActorMaterializer()

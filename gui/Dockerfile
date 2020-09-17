@@ -4,9 +4,7 @@ RUN apk add npm
 RUN npm --version
 COPY ./gui/ /workdir
 WORKDIR /workdir
-RUN ls -la
 RUN npm install && npm run-script build
-RUN ls -la build
 
 FROM nginx
 COPY ./gui/docker/default.conf /etc/nginx/conf.d/

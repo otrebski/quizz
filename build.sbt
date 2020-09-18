@@ -51,6 +51,7 @@ lazy val library =
       val logback      = "1.2.3"
       val doobie       = "0.9.0"
       val sttp         = "2.2.8"
+      val sttpTapirJsonCirce = "0.16.16"
     }
     val scalaCheck   = "org.scalacheck"         %% "scalacheck"             % Version.scalaCheck
     val scalaTest    = "org.scalatest"          %% "scalatest"              % Version.scalaTest
@@ -65,7 +66,7 @@ lazy val library =
     val scalaLogging    = "com.typesafe.scala-logging"   %% "scala-logging"    % Version.scalaLogging
     val sttpClient      = "com.softwaremill.sttp.client" %% "core"             % Version.sttp
     val sttpClientCirce = "com.softwaremill.sttp.client" %% "circe"            % Version.sttp
-    val tapirJsonCirce  = "com.softwaremill.sttp.tapir"  %% "tapir-json-circe" % Version.tapir
+    val tapirJsonCirce  = "com.softwaremill.sttp.tapir"  %% "tapir-json-circe" % Version.sttpTapirJsonCirce
 
     val logback         = "ch.qos.logback" % "logback-classic"  % Version.logback
     val doobieCore      = "org.tpolecat"  %% "doobie-core"      % Version.doobie

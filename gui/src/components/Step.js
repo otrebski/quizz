@@ -27,9 +27,11 @@ class Step extends React.Component {
             <div>
                 <Card border="info" style={{width: '90%'}} className="step">
                     <Card.Body>
-                        <Card.Title><ReactMarkdown
-                        source={this.props.question.replaceAll('\n','\n\n')}
-                        skipHtml={true} /></Card.Title>
+                        <Card.Title>
+                            <ReactMarkdown
+                               source={this.props.question.replaceAll('\n','\n\n')}
+                                skipHtml={true} />
+                        </Card.Title>
                         <ListGroup>
                             {answers2}
                         </ListGroup>

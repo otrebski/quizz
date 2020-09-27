@@ -2,6 +2,7 @@ import React from 'react';
 import ListGroup from 'react-bootstrap/ListGroup'
 import {Link} from "react-router-dom";
 import "./HistoryStep.css"
+import ReactMarkdown from "react-markdown/with-html";
 
 class HistoryStep extends React.Component {
 
@@ -29,12 +30,14 @@ class HistoryStep extends React.Component {
                 </Link>
             }
         );
-        const text = this.props.question.split('\n').map((item, i) => {
-            return <p key={i}>{item}</p>;
-        })
+
         return (
             <div className="historyStep">
-                <h3>{text}</h3>
+                <h3>
+                   <ReactMarkdown
+                       source={this.props.question.replaceAll('\n','\n\n')}
+                       skipHtml={true} />
+                </h3>
                 <div>
                     Answers:
                     {answers}

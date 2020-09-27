@@ -26,20 +26,23 @@ class Quiz extends React.Component {
 
     loadState = (quizzId, path) => {
         console.log("Loading state for quizz " + quizzId + " and path " + path);
-        this.props.selectAction(quizzId, path)
-            .then(e => {
-                this.feedbackAction = (rate, comment) => {
-                    this.props.feedbackSendAction(rate, comment, quizzId, path)
-                };
-                this.setState({
-                    quizzState: e,
-                    feedbackSendAction: this.feedbackAction,
-                    history: e.history,
-                    loading: false
-                });
-                console.log("State loaded: ", this.state)
-                return e;
-            })
+        console.log(`calling`, this.props)
+        let x = this.props.selectAction(quizzId, path)
+        console.log("Action result", x)
+        x.then(e => {
+            console.log("State loaded")
+            this.feedbackAction = (rate, comment) => {
+                this.props.feedbackSendAction(rate, comment, quizzId, path)
+            };
+            this.setState({
+                quizzState: e,
+                feedbackSendAction: this.feedbackAction,
+                history: e.history,
+                loading: false
+            });
+            console.log("State loaded: ", this.state)
+            return e;
+        }).catch(e => console.log("ERROR!", e))
     };
 
     scrollToBottom = () => {
@@ -78,8 +81,8 @@ class Quiz extends React.Component {
                     <HistoryStep
                         quizzId={this.props.quizzId}
                         answers={h.answers}
-                        id = {h.id}
-                        path = {h.path}
+                        id={h.id}
+                        path={h.path}
                         question={h.question}
                         success={h.success}
                         action={(a, b) => alert("Not supported yet")}/>

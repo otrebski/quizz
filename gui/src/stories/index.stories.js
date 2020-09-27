@@ -167,6 +167,9 @@ const quizzStateFinish = JSON.parse(`{
   }`)
 
 
+const multiline = `
+This is a **question** with *markdown*.
+Can you see [image](https://image.flaticon.com/icons/png/128/2938/2938229.png) with cat ![Cat](https://image.flaticon.com/icons/png/128/2938/2938229.png)?`
 storiesOf('Welcome!', module).add('to Storybook', () => <Welcome showApp={linkTo('Button')} />);
 
 storiesOf('Components', module)
@@ -174,7 +177,8 @@ storiesOf('Components', module)
         <MemoryRouter initialEntries={['/']}>{story()}</MemoryRouter>
     ))
 
-  .add("Step", () => <Step question="How do you feel today?" action={(a) => console.log("Selected ", a)} answers={answers}></Step>)
+ .add("Step", () => <Step question="How do you feel today?" action={(a) => console.log("Selected ", a)} answers={answers}></Step>)
+ .add("Step with markdown", () => <Step question={multiline} action={(a) => console.log("Selected ", a)} answers={answers}></Step>)
  .add("Step success", () => <Step question="How do you feel today?" action={(a) => console.log("Selected ", a)} success={true} answers={[]}></Step>)
  .add("Step failure", () => <Step question="How do you feel today?" action={(a) => console.log("Selected ", a)} success={false} answers={[]}></Step>)
  .add("HistoryStep", () => <HistoryStep

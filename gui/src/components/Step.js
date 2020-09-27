@@ -3,6 +3,7 @@ import Card from 'react-bootstrap/Card'
 import ListGroup from 'react-bootstrap/ListGroup'
 import "./Step.css"
 import {Link} from "react-router-dom";
+import ReactMarkdown from "react-markdown/with-html";
 
 class Step extends React.Component {
 
@@ -21,13 +22,16 @@ class Step extends React.Component {
             </ListGroup.Item>
                 </Link>
         )
+
         return (
             <div>
                 <Card border="info" style={{width: '90%'}} className="step">
                     <Card.Body>
-                        <Card.Title>{this.props.question.split('\n').map((item, i) => {
-                            return <p key={i}>{item}</p>;
-                        })}</Card.Title>
+                        <Card.Title>
+                            <ReactMarkdown
+                               source={this.props.question.replaceAll('\n','\n\n')}
+                                skipHtml={true} />
+                        </Card.Title>
                         <ListGroup>
                             {answers2}
                         </ListGroup>

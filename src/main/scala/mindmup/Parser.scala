@@ -21,8 +21,16 @@ object Parser extends LazyLogging {
     val r: Either[Error, V3IdString.Mindmap] = parsedJson.flatMap(mindMupDecoder.decodeJson)
     r match {
       case Left(e) =>
-        logger.debug(s"Error $e, will do fallback")
-        parsedJson.flatMap(mindMupDecoderInt.decodeJson).map(_.toV3IdString)
+        logger.info(s"Parsing was not successful due to ${e.getMessage}, will try different parser")
+        parsedJson.flatMap(mindMupDecoderInt.decodeJson).map(_.toV3IdString) match {
+          case Left(_) =>
+            logger.info(
+              s"""Parsing again was not successful due to ${e.getMessage}, will try to replace all INT "id" with String type"""
+            )
+            val fixedJson = json.replaceAll("\"id\":\\s*(\\d+)", "\"id\": \"$1\"")
+            parse(fixedJson).flatMap(mindMupDecoder.decodeJson)
+          case Right(value) => Right(value)
+        }
       case Right(s) => Right(s)
     }
 

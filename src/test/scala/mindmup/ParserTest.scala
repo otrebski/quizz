@@ -1,17 +1,17 @@
 package mindmup
 
-import scala.io.Source
+import cats.syntax.either._
 import cats.syntax.option._
 import io.circe
+import mindmup.V3IdString.{Idea, Mindmap}
 import org.scalatest.flatspec.AnyFlatSpec
-import V3IdString.Mindmap
-import V3IdString.Idea
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.EitherValues._
+
+import scala.io.Source
 
 class ParserTest extends AnyFlatSpec with Matchers {
 
-  val validMindmap = Mindmap(
+  val validMindmap: Mindmap = Mindmap(
     id = "root",
     title = "root node",
     formatVersion = 3,
@@ -65,15 +65,19 @@ class ParserTest extends AnyFlatSpec with Matchers {
   )
 
   "Parser" should "parse valid file with id's as string" in {
-    val file = Source
-      .fromInputStream(
-        this.getClass.getClassLoader.getResourceAsStream("mindmup/valid_mindmup_id_String.json")
-      )
-      .mkString
+    val file = Source.fromResource("mindmup/valid_mindmup_id_String.json").mkString
 
     val value: Either[circe.Error, Mindmap] = Parser.parseInput(file)
     value should be(Symbol("right"))
-    value.right.value shouldBe validMindmap
+    value shouldBe validMindmap.asRight
+  }
+
+  "Parser" should "parse valid file with id's as int and string" in {
+    val file: String = Source.fromResource("mindmup/valid_mindmup_id_Int_and_String.json").mkString
+
+    val value: Either[circe.Error, Mindmap] = Parser.parseInput(file)
+    value should be(Symbol("right"))
+    value shouldBe validMindmap.asRight
   }
 
 }

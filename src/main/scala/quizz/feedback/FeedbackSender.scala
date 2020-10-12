@@ -128,7 +128,7 @@ class FeedbackDBSender(dbConfig: DatabaseConfig)(implicit clock: Clock[IO])
 
     import doobie.implicits._
     for {
-      now <- clock.monotonic(scala.concurrent.duration.MILLISECONDS)
+      now <- clock.realTime(scala.concurrent.duration.MILLISECONDS)
       fb = Feedback(
         id = 0,
         timestamp = new Date(now),

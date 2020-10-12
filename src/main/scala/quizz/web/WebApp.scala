@@ -19,22 +19,22 @@ package quizz.web
 import java.io.File
 
 import cats.effect.concurrent.Ref
-import cats.effect.{ ExitCode, IO, IOApp }
+import cats.effect.{Clock, ExitCode, IO, IOApp}
 import cats.implicits._
 
-import scala.concurrent.{ ExecutionContextExecutor, Future }
-import com.typesafe.config.{ Config, ConfigFactory }
+import scala.concurrent.{ExecutionContextExecutor, Future}
+import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
 import io.circe
 import io.circe.generic.auto._
-import quizz.data.{ ExamplesData, Loader }
+import quizz.data.{ExamplesData, Loader}
 import quizz.db.DatabaseInitializer
-import quizz.feedback.{ FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender }
+import quizz.feedback.{FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender}
 import quizz.model.Quizz
-import quizz.web.WebApp.Api.{ AddQuizzResponse, FeedbackResponse, Quizzes }
+import quizz.web.WebApp.Api.{AddQuizzResponse, FeedbackResponse, Quizzes}
 import tapir.json.circe._
 import tapir.server.akkahttp._
-import tapir.{ path, _ }
+import tapir.{path, _}
 
 object WebApp extends IOApp with LazyLogging {
 
@@ -79,16 +79,16 @@ object WebApp extends IOApp with LazyLogging {
 
   }
 
-  val stateCodec            = jsonBody[Api.QuizzState]
-  val codecQuizInfo         = jsonBody[Api.Quizzes]
-  val codecFeedback         = jsonBody[Api.FeedbackSend]
-  val codecFeedbackResponse = jsonBody[Api.FeedbackResponse]
+  private val stateCodec            = jsonBody[Api.QuizzState]
+  private val codecQuizInfo         = jsonBody[Api.Quizzes]
+  private val codecFeedback         = jsonBody[Api.FeedbackSend]
+  private val codecFeedbackResponse = jsonBody[Api.FeedbackResponse]
 
   private val config: Config         = ConfigFactory.load()
   private val dirWithQuizzes: String = config.getString("quizz.loader.dir")
   logger.info(s"""Loading from "$dirWithQuizzes" """)
 
-  val routeEndpoint = endpoint.get
+  private val routeEndpoint = endpoint.get
     .in(
       ("api" / "quiz" / path[String]("id") / "path" / path[String]("quizPath"))
         .mapTo(Api.QuizzQuery)
@@ -96,16 +96,16 @@ object WebApp extends IOApp with LazyLogging {
     .errorOut(stringBody)
     .out(jsonBody[Api.QuizzState])
 
-  val routeEndpointStart = endpoint.get
+  private val routeEndpointStart = endpoint.get
     .in(("api" / "quiz" / path[String]("id") / "path").mapTo(Api.QuizzId))
     .errorOut(stringBody)
     .out(jsonBody[Api.QuizzState])
 
-  val listQuizzes = endpoint.get
+  private val listQuizzes = endpoint.get
     .in("api" / "quiz")
     .out(jsonBody[Api.Quizzes])
 
-  val addQuizz = endpoint.put
+  private val addQuizz = endpoint.put
     .in("api" / "quizz" / path[String](name = "id").description("Id of quizz to add/replace"))
     .in(stringBody("UTF-8"))
     .mapIn(idAndContent => Api.AddQuizz(idAndContent._1, idAndContent._2))(a =>
@@ -113,12 +113,12 @@ object WebApp extends IOApp with LazyLogging {
     )
     .out(jsonBody[Api.AddQuizzResponse])
 
-  val feedback = endpoint.post
+  private val feedback = endpoint.post
     .in("api" / "feedback")
     .in(jsonBody[Api.FeedbackSend].description("Feedback from user"))
     .out(jsonBody[Api.FeedbackResponse])
 
-  val validateEndpoint = endpoint.post
+  private val validateEndpoint = endpoint.post
     .in("api" / "quizz" / "validate" / "mindmup")
     .in(stringBody("UTF-8"))
     .out(jsonBody[Api.ValidationResult])
@@ -166,7 +166,7 @@ object WebApp extends IOApp with LazyLogging {
 
   def addQuizzProvider(
       quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
-  )(request: Api.AddQuizz) = {
+  )(request: Api.AddQuizz): Future[Either[Nothing, AddQuizzResponse]] = {
     import mindmup._
     val newQuizzOrError: Either[circe.Error, Quizz] =
       Parser.parseInput(request.mindmupSource).map(_.toQuizz.copy(id = request.id))
@@ -223,9 +223,10 @@ object WebApp extends IOApp with LazyLogging {
       else none[FeedbackSender[IO]]
 
     val databaseFeedbackSender: Option[FeedbackDBSender] = {
-      if (config.getBoolean("database.use"))
-        new FeedbackDBSender(quizz.db.databaseConfig(config)).some
-      else
+      if (config.getBoolean("database.use")) {
+        val a: Clock[IO] = implicitly[Clock[IO]]
+        new FeedbackDBSender(quizz.db.databaseConfig(config))(a).some
+      } else
         None
     }
     val feedbackSenders = List(logSender, feedbackSlack, databaseFeedbackSender).flatten

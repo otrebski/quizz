@@ -74,6 +74,8 @@ object WebApp extends IOApp with LazyLogging {
 
     case class AddQuizzResponse(status: String)
 
+    case class ValidationResult(valid: Boolean, errors: List[String])
+
   }
 
   val stateCodec            = jsonBody[Api.QuizzState]
@@ -114,6 +116,11 @@ object WebApp extends IOApp with LazyLogging {
     .in("api" / "feedback")
     .in(jsonBody[Api.Feedback].description("Feedback from user"))
     .out(jsonBody[Api.FeedbackResponse])
+
+  val validateEndpoint = endpoint.post
+    .in("api" / "quizz" / "validate" / "mindmup")
+    .in(stringBody("UTF-8"))
+    .out(jsonBody[Api.ValidationResult])
 
   import akka.actor.ActorSystem
   import akka.http.scaladsl.Http
@@ -195,7 +202,15 @@ object WebApp extends IOApp with LazyLogging {
     }
 
     implicit val ec: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
-    p.unsafeToFuture().map { _ => Right(FeedbackResponse("OK")) }
+    p.unsafeToFuture().map(_ => Right(FeedbackResponse("OK")))
+  }
+
+  val validateProvider: String => Future[Either[Unit, Api.ValidationResult]] = { s =>
+    val result = mindmup.Parser.parseInput(s) match {
+      case Left(error) => Api.ValidationResult(valid = false, List(error.getMessage))
+      case Right(_)    => Api.ValidationResult(valid = true, List.empty[String])
+    }
+    Future.successful(Right(result))
   }
 
   override def run(args: List[String]): IO[ExitCode] = {
@@ -212,10 +227,15 @@ object WebApp extends IOApp with LazyLogging {
         val routeList                                           = listQuizzes.toRoute(quizListProvider(quizzes))
         val routeFeedback                                       = feedback.toRoute(feedbackProvider(quizzes))
         val add                                                 = addQuizz.toRoute(addQuizzProvider(quizzes))
+        val validateRoute                                       = validateEndpoint.toRoute(validateProvider)
         implicit val system: ActorSystem                        = ActorSystem("my-system")
         implicit val materializer: ActorMaterializer            = ActorMaterializer()
         implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-        Http().bindAndHandle(route ~ routeStart ~ routeList ~ routeFeedback ~ add, "0.0.0.0", port)
+        Http().bindAndHandle(
+          route ~ routeStart ~ routeList ~ routeFeedback ~ add ~ validateRoute,
+          "0.0.0.0",
+          port
+        )
       }
 
     def loadQuizzes(): IO[Either[String, Map[String, Quizz]]] =

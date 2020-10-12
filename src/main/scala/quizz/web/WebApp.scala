@@ -19,21 +19,22 @@ package quizz.web
 import java.io.File
 
 import cats.effect.concurrent.Ref
-import cats.effect.{ ExitCode, IO, IOApp }
+import cats.effect.{Clock, ExitCode, IO, IOApp}
 import cats.implicits._
 
-import scala.concurrent.{ ExecutionContextExecutor, Future }
-import com.typesafe.config.{ Config, ConfigFactory }
+import scala.concurrent.{ExecutionContextExecutor, Future}
+import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
 import io.circe
 import io.circe.generic.auto._
-import quizz.data.{ ExamplesData, Loader }
-import quizz.feedback.{ LogFeedbackSender, SlackFeedbackSender }
+import quizz.data.{ExamplesData, Loader}
+import quizz.db.DatabaseInitializer
+import quizz.feedback.{FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender}
 import quizz.model.Quizz
-import quizz.web.WebApp.Api.{ AddQuizzResponse, FeedbackResponse, Quizzes }
+import quizz.web.WebApp.Api.{AddQuizzResponse, FeedbackResponse, Quizzes}
 import tapir.json.circe._
 import tapir.server.akkahttp._
-import tapir.{ path, _ }
+import tapir.{path, _}
 
 object WebApp extends IOApp with LazyLogging {
 
@@ -66,7 +67,7 @@ object WebApp extends IOApp with LazyLogging {
 
     case class Quizzes(quizzes: List[QuizzInfo])
 
-    case class Feedback(quizzId: String, path: String, rate: Int, comment: String)
+    case class FeedbackSend(quizzId: String, path: String, rate: Int, comment: String)
 
     case class FeedbackResponse(status: String)
 
@@ -78,16 +79,16 @@ object WebApp extends IOApp with LazyLogging {
 
   }
 
-  val stateCodec            = jsonBody[Api.QuizzState]
-  val codecQuizInfo         = jsonBody[Api.Quizzes]
-  val codecFeedback         = jsonBody[Api.Feedback]
-  val codecFeedbackResponse = jsonBody[Api.FeedbackResponse]
+  private val stateCodec            = jsonBody[Api.QuizzState]
+  private val codecQuizInfo         = jsonBody[Api.Quizzes]
+  private val codecFeedback         = jsonBody[Api.FeedbackSend]
+  private val codecFeedbackResponse = jsonBody[Api.FeedbackResponse]
 
   private val config: Config         = ConfigFactory.load()
   private val dirWithQuizzes: String = config.getString("quizz.loader.dir")
   logger.info(s"""Loading from "$dirWithQuizzes" """)
 
-  val routeEndpoint = endpoint.get
+  private val routeEndpoint = endpoint.get
     .in(
       ("api" / "quiz" / path[String]("id") / "path" / path[String]("quizPath"))
         .mapTo(Api.QuizzQuery)
@@ -95,16 +96,16 @@ object WebApp extends IOApp with LazyLogging {
     .errorOut(stringBody)
     .out(jsonBody[Api.QuizzState])
 
-  val routeEndpointStart = endpoint.get
+  private val routeEndpointStart = endpoint.get
     .in(("api" / "quiz" / path[String]("id") / "path").mapTo(Api.QuizzId))
     .errorOut(stringBody)
     .out(jsonBody[Api.QuizzState])
 
-  val listQuizzes = endpoint.get
+  private val listQuizzes = endpoint.get
     .in("api" / "quiz")
     .out(jsonBody[Api.Quizzes])
 
-  val addQuizz = endpoint.put
+  private val addQuizz = endpoint.put
     .in("api" / "quizz" / path[String](name = "id").description("Id of quizz to add/replace"))
     .in(stringBody("UTF-8"))
     .mapIn(idAndContent => Api.AddQuizz(idAndContent._1, idAndContent._2))(a =>
@@ -112,12 +113,12 @@ object WebApp extends IOApp with LazyLogging {
     )
     .out(jsonBody[Api.AddQuizzResponse])
 
-  val feedback = endpoint.post
+  private val feedback = endpoint.post
     .in("api" / "feedback")
-    .in(jsonBody[Api.Feedback].description("Feedback from user"))
+    .in(jsonBody[Api.FeedbackSend].description("Feedback from user"))
     .out(jsonBody[Api.FeedbackResponse])
 
-  val validateEndpoint = endpoint.post
+  private val validateEndpoint = endpoint.post
     .in("api" / "quizz" / "validate" / "mindmup")
     .in(stringBody("UTF-8"))
     .out(jsonBody[Api.ValidationResult])
@@ -165,7 +166,7 @@ object WebApp extends IOApp with LazyLogging {
 
   def addQuizzProvider(
       quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
-  )(request: Api.AddQuizz) = {
+  )(request: Api.AddQuizz): Future[Either[Nothing, AddQuizzResponse]] = {
     import mindmup._
     val newQuizzOrError: Either[circe.Error, Quizz] =
       Parser.parseInput(request.mindmupSource).map(_.toQuizz.copy(id = request.id))
@@ -181,11 +182,13 @@ object WebApp extends IOApp with LazyLogging {
   }
 
   def feedbackProvider(
-      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
-  )(feedback: Api.Feedback): Future[Either[Unit, FeedbackResponse]] = {
-    val log      = new LogFeedbackSender[IO]
-    val useSlack = config.getBoolean("feedback.slack.use")
-    val request  = Api.QuizzQuery(feedback.quizzId, feedback.path)
+      quizzes: Ref[IO, Either[String, Map[String, Quizz]]],
+      feedbackSenders: List[FeedbackSender[IO]]
+  )(feedback: Api.FeedbackSend): Future[Either[Unit, FeedbackResponse]] = {
+    //    val log      = new LogFeedbackSender[IO]
+    //    val useSlack = config.getBoolean("feedback.slack.use")
+    //    val useDb = config.getBoolean("database.use")
+    val request = Api.QuizzQuery(feedback.quizzId, feedback.path)
     val quizzState: IO[Either[String, Api.QuizzState]] = for {
       q <- quizzes.get
       result = q.flatMap(quizzes => Logic.calculateStateOnPath(request, quizzes))
@@ -193,11 +196,9 @@ object WebApp extends IOApp with LazyLogging {
 
     val p = quizzState.flatMap {
       case Right(quizzState) =>
-        if (useSlack) {
-          val slack = new SlackFeedbackSender[IO](config.getString("feedback.slack.token"))
-          log.send(feedback, quizzState).flatMap(_ => slack.send(feedback, quizzState))
-        } else
-          log.send(feedback, quizzState)
+        feedbackSenders
+          .traverse(_.send(feedback, quizzState))
+
       case Left(error) => IO.raiseError(new Exception(s"Can't process feedback: $error"))
     }
 
@@ -214,8 +215,23 @@ object WebApp extends IOApp with LazyLogging {
   }
 
   override def run(args: List[String]): IO[ExitCode] = {
-    import akka.http.scaladsl.server.Directives._
 
+    val logSender = new LogFeedbackSender[IO].some
+    val feedbackSlack =
+      if (config.getBoolean("feedback.slack.use"))
+        Some(new SlackFeedbackSender[IO](config.getString("feedback.slack.token")))
+      else none[FeedbackSender[IO]]
+
+    val databaseFeedbackSender: Option[FeedbackDBSender] = {
+      if (config.getBoolean("database.use")) {
+        val a: Clock[IO] = implicitly[Clock[IO]]
+        new FeedbackDBSender(quizz.db.databaseConfig(config))(a).some
+      } else
+        None
+    }
+    val feedbackSenders = List(logSender, feedbackSlack, databaseFeedbackSender).flatten
+
+    import akka.http.scaladsl.server.Directives._
     val port = 8080
 
     def bindingFuture(
@@ -225,7 +241,7 @@ object WebApp extends IOApp with LazyLogging {
         val route                                               = routeEndpoint.toRoute(routeWithPathProvider(quizzes))
         val routeStart                                          = routeEndpointStart.toRoute(routeWithoutPathProvider(quizzes))
         val routeList                                           = listQuizzes.toRoute(quizListProvider(quizzes))
-        val routeFeedback                                       = feedback.toRoute(feedbackProvider(quizzes))
+        val routeFeedback                                       = feedback.toRoute(feedbackProvider(quizzes, feedbackSenders))
         val add                                                 = addQuizz.toRoute(addQuizzProvider(quizzes))
         val validateRoute                                       = validateEndpoint.toRoute(validateProvider)
         implicit val system: ActorSystem                        = ActorSystem("my-system")
@@ -247,8 +263,15 @@ object WebApp extends IOApp with LazyLogging {
           Right(ExamplesData.quizzes)
       }
 
+    val initDb =
+      if (config.getBoolean("database.use"))
+        DatabaseInitializer.initDatabase(quizz.db.databaseConfig(config))
+      else
+        IO.unit
+
     logger.info(s"Server is online on port $port")
     for {
+      _ <- initDb
       quizzesRef <-
         Ref.of[IO, Either[String, Map[String, Quizz]]]("Not yet loaded".asLeft[Map[String, Quizz]])
       quizzesOrError <- loadQuizzes()

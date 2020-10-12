@@ -1,40 +1,48 @@
 package quizz.feedback
 
-import cats.effect.Sync
+import cats.effect.{ Clock, IO, Sync }
 import cats.syntax.option._
 import com.typesafe.scalalogging.LazyLogging
-import quizz.web.WebApp.Api.{ Feedback, QuizzState }
+import doobie.quill.DoobieContext
+import io.getquill.Literal
+import quizz.db.{ DatabaseConfig, Feedback }
+import quizz.web.WebApp.Api.{ FeedbackSend, QuizzState }
 
 import scala.language.higherKinds
 
 trait FeedbackSender[F[_]] {
 
-  def send(feedback: Feedback, quizzState: QuizzState): F[Unit]
+  def send(feedback: FeedbackSend, quizzState: QuizzState): F[Unit]
 }
 
 class LogFeedbackSender[F[_]: Sync] extends FeedbackSender[F] with LazyLogging {
-  override def send(feedback: Feedback, quizzState: QuizzState): F[Unit] =
+  override def send(feedback: FeedbackSend, quizzState: QuizzState): F[Unit] =
     Sync[F].delay(logger.info(s"Have feedback: $feedback for $quizzState"))
 }
 
 object SlackFeedbackSender {
+
   case class SlackMessage(blocks: List[Block])
+
   case class Block(text: Text, `type`: String = "section", block_id: Option[String] = None)
+
   case class Text(text: String, `type`: String = "mrkdwn")
 
-  private def feedbackIcon(feedback: Feedback): String =
+  private def feedbackIcon(feedback: FeedbackSend): String =
     feedback.rate match {
       case a if a > 0  => ":+1:"
       case a if a < 0  => ":-1:"
       case a if a == 0 => ":point_right:"
     }
 
-  def convertFeedback(feedback: Feedback, quizzState: QuizzState): SlackMessage = {
+  def convertFeedback(feedback: FeedbackSend, quizzState: QuizzState): SlackMessage = {
     val history: List[Block] = quizzState.history.foldRight(List.empty[Block]) {
       (historyStep, list) =>
         val answers = historyStep.answers
           .map(answer =>
-            s" - ${answer.selected.map(if (_) ":ballot_box_with_check:" else ":black_square_button:").getOrElse(":black_square_button:")} ${answer.text}"
+            s" - ${answer.selected
+              .map(if (_) ":ballot_box_with_check:" else ":black_square_button:")
+              .getOrElse(":black_square_button:")} ${answer.text}"
           )
           .mkString("\n")
         Block(
@@ -73,18 +81,13 @@ object SlackFeedbackSender {
 
 class SlackFeedbackSender[F[_]: Sync](token: String) extends FeedbackSender[F] {
 
-  override def send(feedback: Feedback, quizzState: QuizzState): F[Unit] =
+  override def send(feedback: FeedbackSend, quizzState: QuizzState): F[Unit] =
     Sync[F].delay {
       import sttp.client.circe._
 
       val url: String = s"https://hooks.slack.com/services/$token"
       import sttp.client._
       val uri = uri"$url"
-      val rate = feedback.rate match {
-        case a if a > 0  => ":+1:"
-        case a if a < 0  => ":-1:"
-        case a if a == 0 => ":point_right:"
-      }
 
       val message = SlackFeedbackSender.convertFeedback(feedback, quizzState)
       import io.circe.generic.auto._
@@ -95,7 +98,53 @@ class SlackFeedbackSender[F[_]: Sync](token: String) extends FeedbackSender[F] {
         .body(message)
 
       implicit val backend: SttpBackend[Identity, Nothing, NothingT] = HttpURLConnectionBackend()
-      val response: Identity[Response[Either[String, String]]]       = myRequest.send()
-      response
+      myRequest.send()
     }
+}
+
+class FeedbackDBSender(dbConfig: DatabaseConfig)(implicit clock: Clock[IO])
+    extends FeedbackSender[IO] {
+
+  import cats.effect._
+  import doobie._
+
+  val trivial = LogHandler(e => Console.println("*** " + e))
+  val dc      = new DoobieContext.Postgres(Literal) // Literal naming scheme
+
+  import dc._
+
+  private implicit val cs: ContextShift[IO] =
+    IO.contextShift(scala.concurrent.ExecutionContext.global)
+
+  private val xa = Transactor.fromDriverManager[IO](
+    driver = "org.postgresql.Driver",
+    url = s"jdbc:postgresql://${dbConfig.host}:${dbConfig.port}/${dbConfig.database}",
+    user = dbConfig.user,
+    pass = dbConfig.password
+  )
+
+  override def send(feedback: FeedbackSend, quizzState: QuizzState): IO[Unit] = {
+    import java.util.Date
+
+    import doobie.implicits._
+    for {
+      now <- clock.realTime(scala.concurrent.duration.MILLISECONDS)
+      fb = Feedback(
+        id = 0,
+        timestamp = new Date(now),
+        quizzId = feedback.quizzId,
+        path = feedback.path,
+        comment = feedback.comment,
+        rate = feedback.rate
+      )
+      _ <- addFeedbackToDb(fb).transact(xa)
+    } yield ()
+  }
+
+  protected def addFeedbackToDb(feedback: Feedback): doobie.ConnectionIO[Index] = {
+    val q1 = quote {
+      query[Feedback].insert(lift(feedback)).returningGenerated(_.id)
+    }
+    run(q1)
+  }
 }

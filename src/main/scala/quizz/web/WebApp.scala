@@ -28,7 +28,8 @@ import com.typesafe.scalalogging.LazyLogging
 import io.circe
 import io.circe.generic.auto._
 import quizz.data.{ ExamplesData, Loader }
-import quizz.feedback.{ LogFeedbackSender, SlackFeedbackSender }
+import quizz.db.DatabaseInitializer
+import quizz.feedback.{ FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender }
 import quizz.model.Quizz
 import quizz.web.WebApp.Api.{ AddQuizzResponse, FeedbackResponse, Quizzes }
 import tapir.json.circe._
@@ -66,7 +67,7 @@ object WebApp extends IOApp with LazyLogging {
 
     case class Quizzes(quizzes: List[QuizzInfo])
 
-    case class Feedback(quizzId: String, path: String, rate: Int, comment: String)
+    case class FeedbackSend(quizzId: String, path: String, rate: Int, comment: String)
 
     case class FeedbackResponse(status: String)
 
@@ -80,7 +81,7 @@ object WebApp extends IOApp with LazyLogging {
 
   val stateCodec            = jsonBody[Api.QuizzState]
   val codecQuizInfo         = jsonBody[Api.Quizzes]
-  val codecFeedback         = jsonBody[Api.Feedback]
+  val codecFeedback         = jsonBody[Api.FeedbackSend]
   val codecFeedbackResponse = jsonBody[Api.FeedbackResponse]
 
   private val config: Config         = ConfigFactory.load()
@@ -114,7 +115,7 @@ object WebApp extends IOApp with LazyLogging {
 
   val feedback = endpoint.post
     .in("api" / "feedback")
-    .in(jsonBody[Api.Feedback].description("Feedback from user"))
+    .in(jsonBody[Api.FeedbackSend].description("Feedback from user"))
     .out(jsonBody[Api.FeedbackResponse])
 
   val validateEndpoint = endpoint.post
@@ -181,11 +182,13 @@ object WebApp extends IOApp with LazyLogging {
   }
 
   def feedbackProvider(
-      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
-  )(feedback: Api.Feedback): Future[Either[Unit, FeedbackResponse]] = {
-    val log      = new LogFeedbackSender[IO]
-    val useSlack = config.getBoolean("feedback.slack.use")
-    val request  = Api.QuizzQuery(feedback.quizzId, feedback.path)
+      quizzes: Ref[IO, Either[String, Map[String, Quizz]]],
+      feedbackSenders: List[FeedbackSender[IO]]
+  )(feedback: Api.FeedbackSend): Future[Either[Unit, FeedbackResponse]] = {
+    //    val log      = new LogFeedbackSender[IO]
+    //    val useSlack = config.getBoolean("feedback.slack.use")
+    //    val useDb = config.getBoolean("database.use")
+    val request = Api.QuizzQuery(feedback.quizzId, feedback.path)
     val quizzState: IO[Either[String, Api.QuizzState]] = for {
       q <- quizzes.get
       result = q.flatMap(quizzes => Logic.calculateStateOnPath(request, quizzes))
@@ -193,11 +196,9 @@ object WebApp extends IOApp with LazyLogging {
 
     val p = quizzState.flatMap {
       case Right(quizzState) =>
-        if (useSlack) {
-          val slack = new SlackFeedbackSender[IO](config.getString("feedback.slack.token"))
-          log.send(feedback, quizzState).flatMap(_ => slack.send(feedback, quizzState))
-        } else
-          log.send(feedback, quizzState)
+        feedbackSenders
+          .traverse(_.send(feedback, quizzState))
+
       case Left(error) => IO.raiseError(new Exception(s"Can't process feedback: $error"))
     }
 
@@ -214,8 +215,22 @@ object WebApp extends IOApp with LazyLogging {
   }
 
   override def run(args: List[String]): IO[ExitCode] = {
-    import akka.http.scaladsl.server.Directives._
 
+    val logSender = new LogFeedbackSender[IO].some
+    val feedbackSlack =
+      if (config.getBoolean("feedback.slack.use"))
+        Some(new SlackFeedbackSender[IO](config.getString("feedback.slack.token")))
+      else none[FeedbackSender[IO]]
+
+    val databaseFeedbackSender: Option[FeedbackDBSender] = {
+      if (config.getBoolean("database.use"))
+        new FeedbackDBSender(quizz.db.databaseConfig(config)).some
+      else
+        None
+    }
+    val feedbackSenders = List(logSender, feedbackSlack, databaseFeedbackSender).flatten
+
+    import akka.http.scaladsl.server.Directives._
     val port = 8080
 
     def bindingFuture(
@@ -225,7 +240,7 @@ object WebApp extends IOApp with LazyLogging {
         val route                                               = routeEndpoint.toRoute(routeWithPathProvider(quizzes))
         val routeStart                                          = routeEndpointStart.toRoute(routeWithoutPathProvider(quizzes))
         val routeList                                           = listQuizzes.toRoute(quizListProvider(quizzes))
-        val routeFeedback                                       = feedback.toRoute(feedbackProvider(quizzes))
+        val routeFeedback                                       = feedback.toRoute(feedbackProvider(quizzes, feedbackSenders))
         val add                                                 = addQuizz.toRoute(addQuizzProvider(quizzes))
         val validateRoute                                       = validateEndpoint.toRoute(validateProvider)
         implicit val system: ActorSystem                        = ActorSystem("my-system")
@@ -247,8 +262,15 @@ object WebApp extends IOApp with LazyLogging {
           Right(ExamplesData.quizzes)
       }
 
+    val initDb =
+      if (config.getBoolean("database.use"))
+        DatabaseInitializer.initDatabase(quizz.db.databaseConfig(config))
+      else
+        IO.unit
+
     logger.info(s"Server is online on port $port")
     for {
+      _ <- initDb
       quizzesRef <-
         Ref.of[IO, Either[String, Map[String, Quizz]]]("Not yet loaded".asLeft[Map[String, Quizz]])
       quizzesOrError <- loadQuizzes()

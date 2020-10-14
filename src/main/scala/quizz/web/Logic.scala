@@ -4,14 +4,13 @@ import cats.syntax.option._
 import quizz.engine.QuizzEngine
 import quizz.model
 import quizz.model.{ FailureStep, Question, Quizz, SuccessStep }
-import quizz.web.WebApp.Api
-import quizz.web.WebApp.Api.HistoryStep
+import quizz.web.Api.HistoryStep
 
 object Logic {
 
   def calculateStateOnPath(
       request: Api.QuizzQuery,
-      quizzes: Map[String, Quizz]
+      quizzes: Map[String, Quizz] //TODO replace map with single Quizz
   ): Either[String, Api.QuizzState] = {
     val path       = request.path
     val pathList   = path.split(";").toList.reverse

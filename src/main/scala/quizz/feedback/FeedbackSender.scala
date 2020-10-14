@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 import doobie.quill.DoobieContext
 import io.getquill.Literal
 import quizz.db.{ DatabaseConfig, Feedback }
-import quizz.web.WebApp.Api.{ FeedbackSend, QuizzState }
+import quizz.web.Api.{ FeedbackSend, QuizzState }
 
 import scala.language.higherKinds
 

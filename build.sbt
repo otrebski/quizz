@@ -27,11 +27,12 @@ lazy val quizz =
           library.doobieCore,
           library.doobiePostgres,
           library.doobieQuill,
-          library.doobieScalatest % Test
+          library.doobieScalatest % Test,
 //        library.tapirHttp4s,
 //        library.tapirJson,
 //        library.bazelServer,
 //        library.bazelClient
+          library.betterFiles
         )
     )
 
@@ -52,6 +53,7 @@ lazy val library =
       val doobie       = "0.9.0"
       val sttp         = "2.2.8"
       val sttpTapirJsonCirce = "0.16.16"
+      val betterFiles = "3.9.1"
     }
     val scalaCheck   = "org.scalacheck"         %% "scalacheck"             % Version.scalaCheck
     val scalaTest    = "org.scalatest"          %% "scalatest"              % Version.scalaTest
@@ -67,6 +69,7 @@ lazy val library =
     val sttpClient      = "com.softwaremill.sttp.client" %% "core"             % Version.sttp
     val sttpClientCirce = "com.softwaremill.sttp.client" %% "circe"            % Version.sttp
     val tapirJsonCirce  = "com.softwaremill.sttp.tapir"  %% "tapir-json-circe" % Version.sttpTapirJsonCirce
+    val betterFiles     = "com.github.pathikrit" %% "better-files" % Version.betterFiles
 
     val logback         = "ch.qos.logback" % "logback-classic"  % Version.logback
     val doobieCore      = "org.tpolecat"  %% "doobie-core"      % Version.doobie

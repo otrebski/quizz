@@ -16,203 +16,21 @@
 
 package quizz.web
 
-import java.io.File
-
-import cats.effect.concurrent.Ref
-import cats.effect.{Clock, ExitCode, IO, IOApp}
+import akka.http.scaladsl.Http
+import cats.effect.{ Clock, ExitCode, IO, IOApp }
 import cats.implicits._
-
-import scala.concurrent.{ExecutionContextExecutor, Future}
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
-import io.circe
-import io.circe.generic.auto._
-import quizz.data.{ExamplesData, Loader}
+import quizz.data.{ DbMindMupStore, FileMindmupStore, MemoryMindmupStore, MindmupStore }
 import quizz.db.DatabaseInitializer
-import quizz.feedback.{FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender}
-import quizz.model.Quizz
-import quizz.web.WebApp.Api.{AddQuizzResponse, FeedbackResponse, Quizzes}
-import tapir.json.circe._
+import quizz.feedback.{ FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender }
 import tapir.server.akkahttp._
-import tapir.{path, _}
+
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 
 object WebApp extends IOApp with LazyLogging {
 
-  object Api {
-
-    case class QuizzQuery(id: String, path: String)
-
-    case class QuizzId(id: String)
-
-    case class QuizzState(path: String, currentStep: Step, history: List[HistoryStep] = List.empty)
-
-    case class Step(
-        id: String,
-        question: String,
-        answers: List[Answer] = List.empty,
-        success: Option[Boolean] = None
-    )
-
-    case class HistoryStep(
-        id: String,
-        question: String,
-        answers: List[Answer] = List.empty,
-        path: List[String] = List.empty,
-        success: Option[Boolean] = None
-    )
-
-    case class Answer(id: String, text: String, selected: Option[Boolean] = None)
-
-    case class QuizzInfo(id: String, title: String)
-
-    case class Quizzes(quizzes: List[QuizzInfo])
-
-    case class FeedbackSend(quizzId: String, path: String, rate: Int, comment: String)
-
-    case class FeedbackResponse(status: String)
-
-    case class AddQuizz(id: String, mindmupSource: String)
-
-    case class AddQuizzResponse(status: String)
-
-    case class ValidationResult(valid: Boolean, errors: List[String])
-
-  }
-
-  private val stateCodec            = jsonBody[Api.QuizzState]
-  private val codecQuizInfo         = jsonBody[Api.Quizzes]
-  private val codecFeedback         = jsonBody[Api.FeedbackSend]
-  private val codecFeedbackResponse = jsonBody[Api.FeedbackResponse]
-
-  private val config: Config         = ConfigFactory.load()
-  private val dirWithQuizzes: String = config.getString("quizz.loader.dir")
-  logger.info(s"""Loading from "$dirWithQuizzes" """)
-
-  private val routeEndpoint = endpoint.get
-    .in(
-      ("api" / "quiz" / path[String]("id") / "path" / path[String]("quizPath"))
-        .mapTo(Api.QuizzQuery)
-    )
-    .errorOut(stringBody)
-    .out(jsonBody[Api.QuizzState])
-
-  private val routeEndpointStart = endpoint.get
-    .in(("api" / "quiz" / path[String]("id") / "path").mapTo(Api.QuizzId))
-    .errorOut(stringBody)
-    .out(jsonBody[Api.QuizzState])
-
-  private val listQuizzes = endpoint.get
-    .in("api" / "quiz")
-    .out(jsonBody[Api.Quizzes])
-
-  private val addQuizz = endpoint.put
-    .in("api" / "quizz" / path[String](name = "id").description("Id of quizz to add/replace"))
-    .in(stringBody("UTF-8"))
-    .mapIn(idAndContent => Api.AddQuizz(idAndContent._1, idAndContent._2))(a =>
-      (a.id, a.mindmupSource)
-    )
-    .out(jsonBody[Api.AddQuizzResponse])
-
-  private val feedback = endpoint.post
-    .in("api" / "feedback")
-    .in(jsonBody[Api.FeedbackSend].description("Feedback from user"))
-    .out(jsonBody[Api.FeedbackResponse])
-
-  private val validateEndpoint = endpoint.post
-    .in("api" / "quizz" / "validate" / "mindmup")
-    .in(stringBody("UTF-8"))
-    .out(jsonBody[Api.ValidationResult])
-
-  import akka.actor.ActorSystem
-  import akka.http.scaladsl.Http
-  import akka.stream.ActorMaterializer
-
-  private def routeWithoutPathProvider(
-      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
-  )(request: Api.QuizzId): Future[Either[String, Api.QuizzState]] = {
-    val a: IO[Either[String, Api.QuizzState]] = for {
-      quizzesMap <- quizzes.get
-      quizz = quizzesMap.flatMap(q =>
-        q.get(request.id).map(_.asRight[String]).getOrElse("Not found".asLeft[Quizz])
-      )
-      step = quizz.flatMap(q => Logic.calculateStateOnPathStart(q.firstStep))
-    } yield step
-
-    a.unsafeToFuture()
-  }
-
-  private def routeWithPathProvider(
-      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
-  )(request: Api.QuizzQuery) = {
-    val r: IO[Either[String, Api.QuizzState]] = for {
-      q <- quizzes.get
-      result = q.flatMap(quizzes => Logic.calculateStateOnPath(request, quizzes))
-    } yield result
-    r.unsafeToFuture()
-  }
-
-  def quizListProvider(
-      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
-  ): Unit => Future[Either[Unit, Api.Quizzes]] = { _ =>
-    (for {
-      quizzesOrError <- quizzes.get
-      quizzesInfo =
-        quizzesOrError
-          .map(q => q.values.toList.map(q1 => Api.QuizzInfo(q1.id, q1.name)))
-          .map(Api.Quizzes)
-          .leftMap(_ => ())
-    } yield quizzesInfo).unsafeToFuture()
-  }
-
-  def addQuizzProvider(
-      quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
-  )(request: Api.AddQuizz): Future[Either[Nothing, AddQuizzResponse]] = {
-    import mindmup._
-    val newQuizzOrError: Either[circe.Error, Quizz] =
-      Parser.parseInput(request.mindmupSource).map(_.toQuizz.copy(id = request.id))
-
-    newQuizzOrError match {
-      case Left(error) => Future.failed(new Exception(error.toString))
-      case Right(quizz) =>
-        val io: IO[Either[String, Map[String, Quizz]]] =
-          quizzes.getAndUpdate(old => old.map(_.updated(request.id, quizz)))
-        io.map(_ => AddQuizzResponse("Added").asRight)
-          .unsafeToFuture()
-    }
-  }
-
-  def feedbackProvider(
-      quizzes: Ref[IO, Either[String, Map[String, Quizz]]],
-      feedbackSenders: List[FeedbackSender[IO]]
-  )(feedback: Api.FeedbackSend): Future[Either[Unit, FeedbackResponse]] = {
-    //    val log      = new LogFeedbackSender[IO]
-    //    val useSlack = config.getBoolean("feedback.slack.use")
-    //    val useDb = config.getBoolean("database.use")
-    val request = Api.QuizzQuery(feedback.quizzId, feedback.path)
-    val quizzState: IO[Either[String, Api.QuizzState]] = for {
-      q <- quizzes.get
-      result = q.flatMap(quizzes => Logic.calculateStateOnPath(request, quizzes))
-    } yield result
-
-    val p = quizzState.flatMap {
-      case Right(quizzState) =>
-        feedbackSenders
-          .traverse(_.send(feedback, quizzState))
-
-      case Left(error) => IO.raiseError(new Exception(s"Can't process feedback: $error"))
-    }
-
-    implicit val ec: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
-    p.unsafeToFuture().map(_ => Right(FeedbackResponse("OK")))
-  }
-
-  val validateProvider: String => Future[Either[Unit, Api.ValidationResult]] = { s =>
-    val result = mindmup.Parser.parseInput(s) match {
-      case Left(error) => Api.ValidationResult(valid = false, List(error.getMessage))
-      case Right(_)    => Api.ValidationResult(valid = true, List.empty[String])
-    }
-    Future.successful(Right(result))
-  }
+  private val config: Config = ConfigFactory.load()
 
   override def run(args: List[String]): IO[ExitCode] = {
 
@@ -222,10 +40,11 @@ object WebApp extends IOApp with LazyLogging {
         Some(new SlackFeedbackSender[IO](config.getString("feedback.slack.token")))
       else none[FeedbackSender[IO]]
 
+    val databaseConfig = quizz.db.databaseConfig(config)
     val databaseFeedbackSender: Option[FeedbackDBSender] = {
-      if (config.getBoolean("database.use")) {
+      if (config.getBoolean("feedback.database.use")) {
         val a: Clock[IO] = implicitly[Clock[IO]]
-        new FeedbackDBSender(quizz.db.databaseConfig(config))(a).some
+        new FeedbackDBSender(databaseConfig)(a).some
       } else
         None
     }
@@ -234,15 +53,21 @@ object WebApp extends IOApp with LazyLogging {
     import akka.http.scaladsl.server.Directives._
     val port = 8080
 
-    def bindingFuture(
-        quizzes: Ref[IO, Either[String, Map[String, Quizz]]]
-    ): IO[Future[Http.ServerBinding]] =
+    def bindingFuture(store: MindmupStore[IO]): IO[Future[Http.ServerBinding]] = {
+      import better.files.File.home
+      val dir = home / "tmp" / "mindmups"
+      dir.createDirectoryIfNotExists(createParents = true)
+      import Endpoints._
+      import RouteProviders._
+      import akka.actor.ActorSystem
+      import akka.stream.ActorMaterializer
+
       IO {
-        val route                                               = routeEndpoint.toRoute(routeWithPathProvider(quizzes))
-        val routeStart                                          = routeEndpointStart.toRoute(routeWithoutPathProvider(quizzes))
-        val routeList                                           = listQuizzes.toRoute(quizListProvider(quizzes))
-        val routeFeedback                                       = feedback.toRoute(feedbackProvider(quizzes, feedbackSenders))
-        val add                                                 = addQuizz.toRoute(addQuizzProvider(quizzes))
+        val route                                               = routeEndpoint.toRoute(routeWithPathProvider(store))
+        val routeStart                                          = routeEndpointStart.toRoute(routeWithoutPathProvider(store))
+        val routeList                                           = listQuizzes.toRoute(quizListProvider(store))
+        val routeFeedback                                       = feedback.toRoute(feedbackProvider(store, feedbackSenders))
+        val add                                                 = addQuizz.toRoute(addQuizzProvider(store))
         val validateRoute                                       = validateEndpoint.toRoute(validateProvider)
         implicit val system: ActorSystem                        = ActorSystem("my-system")
         implicit val materializer: ActorMaterializer            = ActorMaterializer()
@@ -253,30 +78,34 @@ object WebApp extends IOApp with LazyLogging {
           port
         )
       }
+    }
 
-    def loadQuizzes(): IO[Either[String, Map[String, Quizz]]] =
-      IO {
-        if (dirWithQuizzes.nonEmpty) {
-          val list = Loader.fromFolder(new File(dirWithQuizzes))
-          list.map(errorOr => errorOr.map(q => q.id -> q).toMap)
-        } else
-          Right(ExamplesData.quizzes)
-      }
-
+    val mindmupStoreType = config.getString("mindmup.store-type")
     val initDb =
-      if (config.getBoolean("database.use"))
+      if (config.getBoolean("feedback.database.use") || mindmupStoreType == "database")
         DatabaseInitializer.initDatabase(quizz.db.databaseConfig(config))
       else
         IO.unit
 
+    val createMindmupStore: IO[MindmupStore[IO]] =
+    IO(logger.info(s"Will use $mindmupStoreType for storing mindmups")) *> {
+      mindmupStoreType match {
+        case "file" =>
+          import better.files._
+          import better.files.File.currentWorkingDirectory
+          val str = config.getString("filestorage.dir")
+          val dir = if (str.startsWith("/")) File.apply(str) else currentWorkingDirectory / str
+          FileMindmupStore[IO](dir)
+        case "memory"   => MemoryMindmupStore[IO]
+        case "database" => DbMindMupStore[IO](databaseConfig)
+      }
+    }
+
     logger.info(s"Server is online on port $port")
     for {
-      _ <- initDb
-      quizzesRef <-
-        Ref.of[IO, Either[String, Map[String, Quizz]]]("Not yet loaded".asLeft[Map[String, Quizz]])
-      quizzesOrError <- loadQuizzes()
-      _              <- quizzesRef.set(quizzesOrError)
-      _              <- bindingFuture(quizzesRef)
+      _            <- initDb
+      mindmupStore <- createMindmupStore
+      _            <- bindingFuture(mindmupStore)
     } yield ExitCode.Success
   }
 }

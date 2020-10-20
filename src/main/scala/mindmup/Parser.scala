@@ -8,6 +8,7 @@ import io.circe.{ Decoder, _ }
 object Parser extends LazyLogging {
 
   private implicit val pDecoder: Decoder[ParentConnector]    = deriveDecoder[ParentConnector]
+  private implicit val noteDecoder: Decoder[Note]            = deriveDecoder[Note]
   private implicit val attrDecoder: Decoder[Attr]            = deriveDecoder[Attr]
   private implicit val ideaDecoder: Decoder[V3IdString.Idea] = deriveDecoder[V3IdString.Idea]
   private implicit val mindMupDecoder: Decoder[V3IdString.Mindmap] =

@@ -1,0 +1,51 @@
+{
+  "formatVersion": 3,
+  "id": "root",
+  "ideas": {
+    "1": {
+      "title": "Starting point",
+      "id": 1,
+      "attr": {
+        "position": [
+          -45,
+          -15,
+          1
+        ],
+        "note": {
+          "index": 1,
+          "text": "This is note for starting point"
+        }
+      },
+      "ideas": {
+        "1": {
+          "title": "Node1",
+          "id": "2.eeff.d297c2367-0c3d.6aa7f21a",
+          "attr": {
+            "parentConnector": {
+              "label": "A1"
+            },
+            "note": {
+              "index": 2,
+              "text": "Note\nwith\na few\nlines."
+            }
+          },
+          "ideas": {}
+        },
+        "11": {
+          "title": "Node2",
+          "id": "3.eeff.d297c2367-0c3d.6aa7f21a",
+          "attr": {
+            "parentConnector": {
+              "label": "A2"
+            }
+          }
+        }
+      }
+    }
+  },
+  "attr": {
+    "theme": "topdownStandard"
+  },
+  "title": "Starting point",
+  "links": []
+}

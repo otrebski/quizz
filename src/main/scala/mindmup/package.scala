@@ -3,7 +3,8 @@ import quizz.model.{ Question, QuizStep, Quizz, SuccessStep }
 
 package object mindmup extends LazyLogging {
 
-  case class Attr(parentConnector: Option[ParentConnector] = None)
+  case class Note(text: String)
+  case class Attr(parentConnector: Option[ParentConnector] = None, note:Option[Note] = None)
   case class ParentConnector(label: Option[String] = None)
 
   object V3IdString {

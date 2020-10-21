@@ -84,7 +84,6 @@ package object mindmup extends LazyLogging {
               label.getOrElse("?") -> toStep(v)
           }
           Question(id, title, stringToStep)
-
         }
       }
 

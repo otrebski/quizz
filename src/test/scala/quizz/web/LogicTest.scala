@@ -3,7 +3,6 @@ package quizz.web
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import quizz.data.ExamplesData
-import quizz.web.WebApp.Api
 
 class LogicTest extends AnyFlatSpec with Matchers {
 

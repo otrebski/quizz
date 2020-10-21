@@ -21,11 +21,11 @@ import cats.syntax.show._
 import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
 import quizz.model.{ FailureStep, Question, Quizz, SuccessStep }
-import quizz.web.WebApp.Api.{ Answer, HistoryStep, QuizzState, Step }
+import quizz.web.Api.{ Answer, HistoryStep, QuizzState, Step }
 
 object ExamplesData extends LazyLogging {
 
-  val quiz = Question(
+  val quiz: Question = Question(
     "root",
     "What kind of problem do you have",
     Map(
@@ -117,7 +117,7 @@ object ExamplesData extends LazyLogging {
 
   object Fake {
 
-    val exampleStateInProgress = QuizzState(
+    val exampleStateInProgress: QuizzState = QuizzState(
       path = "root",
       currentStep = Step(
         "a",
@@ -154,12 +154,12 @@ object ExamplesData extends LazyLogging {
         )
       )
     )
-    val exampleStateFinalSuccess = QuizzState(
+    val exampleStateFinalSuccess: QuizzState = QuizzState(
       path = "asdfsdf",
       currentStep = Step("a", "I co dalej?", List.empty, success = Some(true)),
       history = List()
     )
-    val exampleStateFinalFailure = QuizzState(
+    val exampleStateFinalFailure: QuizzState = QuizzState(
       path = "asdfsdf",
       currentStep = Step("a", "I co dalej?", List.empty, success = Some(false)),
       history = List()

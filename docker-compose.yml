@@ -4,13 +4,35 @@ services:
   quizz:
     image: otrebski/quizz:latest
     volumes:
-      - '/tmp/mindmups/:/tmp/mindmups/' 
+      - '/tmp/mindmups/:/mindmups/'
     environment:
-      LOAD_FROM_DIR: "/tmp/mindmups/"
-      USE_SLACK: "false"
       SLACK_TOKEN: ""
+      FEEDBACK_USE_SLACK: "false"
+      FEEDBACK_USE_DB: "false"
+      MINDMUP_STORAGE: "file" #use file, memory or database
+      FILESTORAGE_DIR: "/mindmups"
+#      DB_HOST: "db"
+#      DB_PORT: "5432"
+#      DB_NAME: "quizz"
+#      DB_USERNAME: "postgres"
+#      DB_PASSWORD: "password"
+    links:
+      - db
+
 
   gui:
     image: otrebski/quizz-gui:latest
     ports:
       - 8080:80
+    links:
+      - quizz
+
+  db:
+    image: library/postgres:13
+    #    ports:
+    #      - 5432:15432
+    environment:
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_DB: "quizz"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data

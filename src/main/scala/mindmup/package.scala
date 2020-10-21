@@ -3,7 +3,8 @@ import quizz.model.{ Question, QuizStep, Quizz, SuccessStep }
 
 package object mindmup extends LazyLogging {
 
-  case class Attr(parentConnector: Option[ParentConnector] = None)
+  case class Note(text: String)
+  case class Attr(parentConnector: Option[ParentConnector] = None, note:Option[Note] = None)
   case class ParentConnector(label: Option[String] = None)
 
   object V3IdString {
@@ -61,12 +62,17 @@ package object mindmup extends LazyLogging {
     //TODO change to Either[String,Quizz]
     def toQuizz: Quizz = {
       def toStep(idea: V3IdString.Idea): QuizStep = {
-        val title = idea.title
+        val note = for {
+          attr <- idea.attr
+          note <- attr.note
+        } yield note.text
+
+        val title = idea.title + note.map(t => s"\n$t").getOrElse("")
         val id    = idea.id
         val ideas = idea.ideas.getOrElse(Map.empty[String, V3IdString.Idea])
 
         if (ideas.isEmpty)
-          SuccessStep(id.toString, title)
+          SuccessStep(id, title)
         else {
           val stringToStep: Map[String, QuizStep] = ideas.map {
             case (k, v) =>
@@ -77,7 +83,7 @@ package object mindmup extends LazyLogging {
               } yield label
               label.getOrElse("?") -> toStep(v)
           }
-          Question(id.toString, title, stringToStep)
+          Question(id, title, stringToStep)
 
         }
       }

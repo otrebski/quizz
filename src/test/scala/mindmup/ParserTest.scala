@@ -3,7 +3,7 @@ package mindmup
 import cats.syntax.either._
 import cats.syntax.option._
 import io.circe
-import mindmup.V3IdString.{ Idea, Mindmap }
+import mindmup.V3IdString.{Idea, Mindmap}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -78,6 +78,38 @@ class ParserTest extends AnyFlatSpec with Matchers {
     val value: Either[circe.Error, Mindmap] = Parser.parseInput(file)
     value should be(Symbol("right"))
     value shouldBe validMindmap.asRight
+  }
+
+  "Parser" should "parse file with notes" in {
+    val file: String = Source.fromResource("mindmup/mindmup_with_notes.mup.json").mkString
+
+    val value: Either[circe.Error, Mindmap] = Parser.parseInput(file)
+    value should be(Symbol("right"))
+    val note: Option[Note] = for {
+      map <- value.toOption
+      idea <- map.ideas.get("1")
+      attr <- idea.attr
+      note <- attr.note
+    } yield note
+    note shouldBe Note("This is note for starting point").some
+  }
+
+  "Parser" should "parse file with multiline notes" in {
+    val file: String = Source.fromResource("mindmup/mindmup_with_notes.mup.json").mkString
+
+    val value: Either[circe.Error, Mindmap] = Parser.parseInput(file)
+    val note: Option[Note] = for {
+      map <- value.toOption
+      mainIdea <- map.ideas.get("1")
+      idea <- mainIdea.ideas.get.get("1")
+      attr <- idea.attr
+      note <- attr.note
+    } yield note
+
+    note shouldBe Note("""Note
+                         |with
+                         |a few
+                         |lines.""".stripMargin).some
   }
 
 }

@@ -1,15 +1,16 @@
 package quizz.web
 
+import java.util.NoSuchElementException
+
 import cats.effect.IO
+import cats.syntax.either._
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
+import quizz.data.MemoryMindmupStore
+import quizz.web.Api.{AddQuizzResponse, QuizzInfo, Quizzes}
 
 import scala.io.Source
-import cats.syntax.either._
-import quizz.data.MemoryMindmupStore
-import quizz.web.Api.{QuizzErrorInfoInfo, QuizzInfo, Quizzes}
 
-import scala.concurrent.Future
 
 class RouteProvidersTest extends AsyncFlatSpec with Matchers {
 
@@ -49,5 +50,73 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
     }
   }
 
+  "addQuizzProvider" should "add quizz" in {
+    val future = for {
+      store <- MemoryMindmupStore[IO].unsafeToFuture()
+      addResponse <- RouteProviders.addQuizzProvider(store)(Api.AddQuizz("a", validMindmup))
+      mindmups <- store.listNames().unsafeToFuture()
+    } yield (addResponse, mindmups)
+    future map {
+      _ shouldBe(AddQuizzResponse("added").asRight, Set("a"))
+    }
+  }
+
+  "addQuizzProvider" should "return error on invalid quizz" in {
+    val future = for {
+      store <- MemoryMindmupStore[IO].unsafeToFuture()
+      addResponse <- RouteProviders.addQuizzProvider(store)(Api.AddQuizz("a", "[]")).recover(_ => ().asLeft[Api.Quizzes])
+      mindmups <- store.listNames().unsafeToFuture()
+    } yield (addResponse, mindmups)
+    future map {
+      _ shouldBe(().asLeft, Set.empty[String])
+    }
+  }
+
+  "routeWithoutPathProvider" should "return rood node" in {
+    val future = for {
+      store <- MemoryMindmupStore[IO].unsafeToFuture()
+      _ <- store.store("a", validMindmup).unsafeToFuture()
+      result <- RouteProviders.routeWithoutPathProvider(store)(Api.QuizzId("a"))
+    } yield (result)
+    future.map (_.map(_.currentStep.question)) .map {
+      _ shouldBe "Starting point".asRight
+    }
+  }
+
+  "routeWithoutPathProvider" should "return error if path not find" in {
+    val future = for {
+      store <- MemoryMindmupStore[IO].unsafeToFuture()
+      result <- RouteProviders.routeWithoutPathProvider(store)(Api.QuizzId("a")).recover(e => e)
+    } yield (result)
+    future
+      .map(_.getClass)
+      .map  {
+      _ shouldBe classOf[NoSuchElementException]
+    }
+  }
+
+  "routeWithPathProvider" should " return correct quizz state" in {
+    val future = for {
+      store <- MemoryMindmupStore[IO].unsafeToFuture()
+      _ <- store.store("a", validMindmup).unsafeToFuture()
+      result <- RouteProviders.routeWithPathProvider(store)(Api.QuizzQuery("a","root;1;3.eeff.d297c2367-0c3d.6aa7f21a"))
+    } yield result
+    future
+      .map (_.map(_.currentStep.question))
+      .map {
+      _ shouldBe "Node2".asRight
+    }
+  }
+
+  "routeWithPathProvider" should " return error for wrong path" in {
+    val future = for {
+      store <- MemoryMindmupStore[IO].unsafeToFuture()
+      _ <- store.store("a", validMindmup).unsafeToFuture()
+      result <- RouteProviders.routeWithPathProvider(store)(Api.QuizzQuery("a","root;wrong path"))
+    } yield result
+    future.map (_.map(_.currentStep.question)) .map {
+      _ shouldBe "Wrong selection".asLeft
+    }
+  }
 
 }

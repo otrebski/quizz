@@ -14,13 +14,14 @@ class Step extends React.Component {
         } else if (this.props.success === false) {
             finalStep = <div><span role="img" aria-label="Cross">&#x274C;</span> Failure!</div>
         }
-        let path =  this.props.path === "" ?  "" : `${this.props.path};`
+        let path = this.props.path === "" ? "" : `${this.props.path};`
+        this.props.answers.map(a => console.log("ID", a.id));
         const answers2 = this.props.answers.map(a =>
-                <Link style={{ textDecoration: 'none' }} to={`/quizz/${this.props.quizzId}/path/${path}${a.id}`}>
-            <ListGroup.Item key={a.id} action>
-                {a.text}
-            </ListGroup.Item>
-                </Link>
+            <Link id={path} style={{textDecoration: 'none'}} to={`/quizz/${this.props.quizzId}/path/${path}${a.id}`}>
+                <ListGroup.Item key={a.text} action>
+                    {a.text}
+                </ListGroup.Item>
+            </Link>
         )
 
         return (
@@ -29,8 +30,8 @@ class Step extends React.Component {
                     <Card.Body>
                         <Card.Title>
                             <ReactMarkdown
-                               source={this.props.question.replaceAll('\n','\n\n')}
-                                skipHtml={true} />
+                                source={this.props.question.replaceAll('\n', '\n\n')}
+                                skipHtml={true}/>
                         </Card.Title>
                         <ListGroup>
                             {answers2}

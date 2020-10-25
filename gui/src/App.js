@@ -4,9 +4,6 @@ import Quizz from "./components/Quizz"
 import Api from "./Api"
 import { BrowserRouter as Router, Route , Link} from "react-router-dom";
 import Quizzes from "./components/Quizzes";
-import {withRouter} from "react-router";
-
-
 
 function App() {
 

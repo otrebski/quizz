@@ -41,20 +41,24 @@ class Quiz extends React.Component {
                 loading: false
             });
             console.log("State loaded: ", this.state)
+            this.scrollToBottom()
             return e;
         }).catch(e => console.log("ERROR!", e))
     };
 
     scrollToBottom = () => {
-        this.el.scrollIntoView({behavior: "smooth"});
+        this.bottomElement.scrollIntoView({behavior: "smooth"});
     };
 
     componentDidMount() {
         this.loadState(this.props.quizzId, this.props.path)
     }
 
-    componentDidUpdate() {
-        this.scrollToBottom();
+    componentDidUpdate(prevProps) {
+        if (this.props.quizzId !== prevProps.quizzId || this.props.path !== prevProps.path) {
+            this.loadState(this.props.quizzId, this.props.path)
+            this.scrollToBottom();
+        }
     }
 
     render() {
@@ -99,9 +103,11 @@ class Quiz extends React.Component {
                     {history}
                     <hr/>
                     <div ref={el => {
-                        this.el = el;
+                        this.bottomElement = el; //used for scrolling
                     }}/>
                     {lastStep}
+                <hr/>
+                <hr/>
                     {feedback}
                 </div>
             );

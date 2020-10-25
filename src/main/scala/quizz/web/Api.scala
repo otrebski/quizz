@@ -9,19 +9,19 @@ object Api {
   case class QuizzState(path: String, currentStep: Step, history: List[HistoryStep] = List.empty)
 
   case class Step(
-                   id: String,
-                   question: String,
-                   answers: List[Answer] = List.empty,
-                   success: Option[Boolean] = None
-                 )
+      id: String,
+      question: String,
+      answers: List[Answer] = List.empty,
+      success: Option[Boolean] = None
+  )
 
   case class HistoryStep(
-                          id: String,
-                          question: String,
-                          answers: List[Answer] = List.empty,
-                          path: List[String] = List.empty,
-                          success: Option[Boolean] = None
-                        )
+      id: String,
+      question: String,
+      answers: List[Answer] = List.empty,
+      path: List[String] = List.empty,
+      success: Option[Boolean] = None
+  )
 
   case class Answer(id: String, text: String, selected: Option[Boolean] = None)
 
@@ -29,7 +29,10 @@ object Api {
 
   case class QuizzErrorInfoInfo(id: String, error: String)
 
-  case class Quizzes(quizzes: List[QuizzInfo] = List.empty, errorQuizzes: List[QuizzErrorInfoInfo] = List.empty)
+  case class Quizzes(
+      quizzes: List[QuizzInfo] = List.empty,
+      errorQuizzes: List[QuizzErrorInfoInfo] = List.empty
+  )
 
   case class FeedbackSend(quizzId: String, path: String, rate: Int, comment: String)
 

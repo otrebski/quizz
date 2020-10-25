@@ -17,24 +17,33 @@ object Parser extends LazyLogging {
   private implicit val ideaDecoderInt: Decoder[V3IdInt.Idea]       = deriveDecoder[V3IdInt.Idea]
   private implicit val mindMupDecoderInt: Decoder[V3IdInt.Mindmap] = deriveDecoder[V3IdInt.Mindmap]
 
-  def parseInput(json: String): Either[Error, V3IdString.Mindmap] = {
+  def parseInput(name: String, json: String): Either[Error, V3IdString.Mindmap] = {
     val parsedJson                           = parse(json)
     val r: Either[Error, V3IdString.Mindmap] = parsedJson.flatMap(mindMupDecoder.decodeJson)
     r match {
       case Left(e) =>
         logger.debug(
-          s"Parsing was not successful due to ${e.getMessage}, will try different parser"
+          s"Parsing of $name was not successful due to ${e.getMessage}, will try different parser"
         )
         parsedJson.flatMap(mindMupDecoderInt.decodeJson).map(_.toV3IdString) match {
           case Left(_) =>
             logger.info(
-              s"""Parsing again was not successful due to ${e.getMessage}, will try to replace all INT "id" with String type"""
+              s"""Parsing of $name again was not successful due to ${e.getMessage}, will try to replace all INT "id" with String type"""
             )
             val fixedJson = json.replaceAll("\"id\":\\s*(\\d+)", "\"id\": \"$1\"")
-            parse(fixedJson).flatMap(mindMupDecoder.decodeJson)
-          case Right(value) => Right(value)
+            val r         = parse(fixedJson).flatMap(mindMupDecoder.decodeJson)
+            r match {
+              case Left(value)  => logger.warn(s"Could not parse $name")
+              case Right(value) => logger.info(s"$name parsed successfully")
+            }
+            r
+          case Right(value) =>
+            logger.info(s"$name parsed successfully")
+            Right(value)
         }
-      case Right(s) => Right(s)
+      case Right(s) =>
+        logger.info(s"$name parsed successfully")
+        Right(s)
     }
 
   }

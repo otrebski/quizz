@@ -4,7 +4,7 @@ import quizz.model.{ Question, QuizStep, Quizz, SuccessStep }
 package object mindmup extends LazyLogging {
 
   case class Note(text: String)
-  case class Attr(parentConnector: Option[ParentConnector] = None, note:Option[Note] = None)
+  case class Attr(parentConnector: Option[ParentConnector] = None, note: Option[Note] = None)
   case class ParentConnector(label: Option[String] = None)
 
   object V3IdString {
@@ -87,8 +87,12 @@ package object mindmup extends LazyLogging {
         }
       }
 
-      val answers: Map[String, QuizStep] = m.ideas.map {
-        case (k, v) => m.title -> toStep(v)
+      val value: V3IdString.Idea                           = m.ideas.head._2
+      val maybeIdeas: Option[Map[String, V3IdString.Idea]] = value.ideas
+      val ideas: Map[String, V3IdString.Idea]              = maybeIdeas.get
+
+      val answers: Map[String, QuizStep] = ideas.map {
+        case (k, v) => v.attr.get.parentConnector.get.label.get -> toStep(v)
       }
       Quizz(m.id, m.title, Question(m.id, m.title, answers))
     }

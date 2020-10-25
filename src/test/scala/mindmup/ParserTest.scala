@@ -3,7 +3,7 @@ package mindmup
 import cats.syntax.either._
 import cats.syntax.option._
 import io.circe
-import mindmup.V3IdString.{Idea, Mindmap}
+import mindmup.V3IdString.{ Idea, Mindmap }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -67,7 +67,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "Parser" should "parse valid file with id's as string" in {
     val file = Source.fromResource("mindmup/valid_mindmup_id_String.json").mkString
 
-    val value: Either[circe.Error, Mindmap] = Parser.parseInput(file)
+    val value: Either[circe.Error, Mindmap] = Parser.parseInput("test", file)
     value should be(Symbol("right"))
     value shouldBe validMindmap.asRight
   }
@@ -75,7 +75,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "Parser" should "parse valid file with id's as int and string" in {
     val file: String = Source.fromResource("mindmup/valid_mindmup_id_Int_and_String.json").mkString
 
-    val value: Either[circe.Error, Mindmap] = Parser.parseInput(file)
+    val value: Either[circe.Error, Mindmap] = Parser.parseInput("test", file)
     value should be(Symbol("right"))
     value shouldBe validMindmap.asRight
   }
@@ -83,10 +83,10 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "Parser" should "parse file with notes" in {
     val file: String = Source.fromResource("mindmup/mindmup_with_notes.mup.json").mkString
 
-    val value: Either[circe.Error, Mindmap] = Parser.parseInput(file)
+    val value: Either[circe.Error, Mindmap] = Parser.parseInput("test", file)
     value should be(Symbol("right"))
     val note: Option[Note] = for {
-      map <- value.toOption
+      map  <- value.toOption
       idea <- map.ideas.get("1")
       attr <- idea.attr
       note <- attr.note
@@ -97,13 +97,13 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "Parser" should "parse file with multiline notes" in {
     val file: String = Source.fromResource("mindmup/mindmup_with_notes.mup.json").mkString
 
-    val value: Either[circe.Error, Mindmap] = Parser.parseInput(file)
+    val value: Either[circe.Error, Mindmap] = Parser.parseInput("test", file)
     val note: Option[Note] = for {
-      map <- value.toOption
+      map      <- value.toOption
       mainIdea <- map.ideas.get("1")
-      idea <- mainIdea.ideas.get.get("1")
-      attr <- idea.attr
-      note <- attr.note
+      idea     <- mainIdea.ideas.get.get("1")
+      attr     <- idea.attr
+      note     <- attr.note
     } yield note
 
     note shouldBe Note("""Note

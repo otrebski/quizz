@@ -1,13 +1,20 @@
 package mindmup
 
 import cats.syntax.option.none
-import mindmup.V3IdString.{Idea, Mindmap}
+import mindmup.V3IdString.{ Idea, Mindmap }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.syntax.option._
-import quizz.model.{Question, SuccessStep}
+import quizz.model.{ Question, SuccessStep }
+
+import scala.io.Source
 
 class packageTest extends AnyFlatSpec with Matchers {
+
+  private val quizz = Parser
+    .parseInput("test", Source.fromResource("mindmup/simple_tree.json").mkString)
+    .map(_.toQuizz)
+    .getOrElse(throw new Exception("Not parsed"))
 
   val mindmup: Mindmap = Mindmap(
     id = "root",
@@ -23,8 +30,9 @@ class packageTest extends AnyFlatSpec with Matchers {
             title = "child 1",
             id = "3",
             attr = Attr(
-              ParentConnector("answer 1".some).some, Note("note").some
-            ).some,
+              ParentConnector("answer 1".some).some,
+              Note("note").some
+            ).some
           ),
           "21" -> Idea(
             title = "child 2",
@@ -35,15 +43,36 @@ class packageTest extends AnyFlatSpec with Matchers {
       )
     )
   )
+  "package" should "convert mindmup to quizz" ignore {
 
-  "package" should "convert mindmup to quizz" in {
     val quizz = mindmup.toQuizz
-
-    val question: Question = quizz.firstStep.asInstanceOf[Question].answers("root node").asInstanceOf[Question]
+    val question: Question =
+      quizz.firstStep.asInstanceOf[Question].answers("root node").asInstanceOf[Question]
     question.answers.foreach {
-      case (k,v) => println(s"$k => $v")
+      case (k, v) => println(s"$k => $v")
     }
     question.answers("answer 1").asInstanceOf[SuccessStep].text shouldBe "child 1\nnote"
     question.answers("answer 2").asInstanceOf[SuccessStep].text shouldBe "child 2"
   }
+
+  "converted mindmup" should "have correct title" in {
+    quizz.name shouldBe "Root node"
+  }
+
+  "converted mindmup" should "have correct root node" in {
+    quizz.firstStep.text shouldBe "Root node"
+  }
+
+  "converted mindmup" should "have correct first steps" in {
+    quizz.firstStep.asInstanceOf[Question].answers("Left").text shouldBe "Left node"
+    quizz.firstStep.asInstanceOf[Question].answers("Right").text shouldBe "Right node"
+    quizz.firstStep
+      .asInstanceOf[Question]
+      .answers("Right")
+      .asInstanceOf[Question]
+      .answers("Right")
+      .asInstanceOf[SuccessStep]
+      .text shouldBe "Right Right Node"
+  }
+
 }

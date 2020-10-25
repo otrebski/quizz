@@ -29,7 +29,7 @@ object Loader extends LazyLogging {
     val source = Source.fromFile(file)
     try {
       val content                                        = source.mkString
-      val value: Either[circe.Error, V3IdString.Mindmap] = Parser.parseInput(content)
+      val value: Either[circe.Error, V3IdString.Mindmap] = Parser.parseInput(file.getName, content)
       value
         .map(_.toQuizz)
         .map(_.copy(id = file.getName))

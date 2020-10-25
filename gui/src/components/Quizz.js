@@ -26,9 +26,9 @@ class Quiz extends React.Component {
 
     loadState = (quizzId, path) => {
         console.log("Loading state for quizz " + quizzId + " and path " + path);
-        console.log(`calling`, this.props)
+        // console.log(`calling`, this.props)
         let x = this.props.selectAction(quizzId, path)
-        console.log("Action result", x)
+        // console.log("Action result", x)
         x.then(e => {
             console.log("State loaded")
             this.feedbackAction = (rate, comment) => {
@@ -41,42 +41,32 @@ class Quiz extends React.Component {
                 loading: false
             });
             console.log("State loaded: ", this.state)
+            this.scrollToBottom()
             return e;
         }).catch(e => console.log("ERROR!", e))
     };
 
     scrollToBottom = () => {
-        this.el.scrollIntoView({behavior: "smooth"});
+        this.bottomElement.scrollIntoView({behavior: "smooth"});
     };
 
     componentDidMount() {
         this.loadState(this.props.quizzId, this.props.path)
     }
 
-    componentDidUpdate() {
-        this.scrollToBottom();
+    componentDidUpdate(prevProps) {
+        if (this.props.quizzId !== prevProps.quizzId || this.props.path !== prevProps.path) {
+            this.loadState(this.props.quizzId, this.props.path)
+            this.scrollToBottom();
+        }
     }
 
     render() {
+        console.log("Rendering Quizz with props",this.props);
         if (this.state.loading) {
             return <div>loading...</div>
         } else {
-            const selectFun = (quizzId, path) => {
-                console.log("calling function selectFun for quizzId", quizzId)
-                let pathQuery = this.state.quizzState.path
-                if (pathQuery.length === 0) {
-                    pathQuery = path
-                } else {
-                    pathQuery = pathQuery + ";" + path
-                }
-                this.props
-                    .selectAction(quizzId, pathQuery)
-                    .then(e => this.setState({quizzState: e}))
-            };
-
-            this.state.quizzState.history.forEach(h => console.log("History step", h))
             const history = this.state.quizzState.history.map(h =>
-
                 <div key={"history_" + h.id}>
                     <HistoryStep
                         quizzId={this.props.quizzId}
@@ -84,8 +74,7 @@ class Quiz extends React.Component {
                         id={h.id}
                         path={h.path}
                         question={h.question}
-                        success={h.success}
-                        action={(a, b) => alert("Not supported yet")}/>
+                        success={h.success}/>
                     <hr/>
                 </div>
             );
@@ -98,7 +87,6 @@ class Quiz extends React.Component {
                     answers={this.state.quizzState.currentStep.answers}
                     path={this.state.quizzState.path}
                     quizzId={this.props.quizzId}
-                    action={selectFun}
                 /></div>;
 
             let feedback = <div/>;
@@ -115,11 +103,12 @@ class Quiz extends React.Component {
                     {history}
                     <hr/>
                     <div ref={el => {
-                        this.el = el;
+                        this.bottomElement = el; //used for scrolling
                     }}/>
                     {lastStep}
+                <hr/>
+                <hr/>
                     {feedback}
-
                 </div>
             );
         }

@@ -15,7 +15,7 @@ class Step extends React.Component {
             finalStep = <div><span role="img" aria-label="Cross">&#x274C;</span> Failure!</div>
         }
         let path = this.props.path === "" ? "" : `${this.props.path};`
-        this.props.answers.map(a => console.log("ID", a.id));
+        // this.props.answers.map(a => console.log("ID", a.id));
         const answers2 = this.props.answers.map(a =>
             <Link key={a.text} style={{textDecoration: 'none'}} to={`/quizz/${this.props.quizzId}/path/${path}${a.id}`}>
                 <ListGroup.Item key={a.text} action>

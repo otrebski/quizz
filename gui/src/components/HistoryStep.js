@@ -3,7 +3,6 @@ import ListGroup from 'react-bootstrap/ListGroup'
 import {Link} from "react-router-dom";
 import "./HistoryStep.css"
 import ReactMarkdown from "react-markdown/with-html";
-
 class HistoryStep extends React.Component {
 
     render() {
@@ -13,10 +12,10 @@ class HistoryStep extends React.Component {
         } else if (this.props.success === false) {
             finalStep = <div>Failure!</div>
         }
-        console.log("Props:", this.props)
+        // console.log("Props:", this.props)
         const answers = this.props.answers.map(a => {
                 let variant = a.selected ? "success" : "light";
-                console.log(`${a.id} is selected: ${a.selected}, variant: ${variant}`);
+                // console.log(`${a.id} is selected: ${a.selected}, variant: ${variant}`);
                 let path = Array.from(this.props.path);
                 path.push(this.props.id);
                 path.push(a.id);

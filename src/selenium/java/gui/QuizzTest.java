@@ -12,7 +12,7 @@ public class QuizzTest extends FluentTest {
     Home homePage;
 
     @Test
-    public void goThroughQuizz() throws InterruptedException {
+    public void goThroughQuizz() {
         //TODO upload quizz
         // * Question 1
         //  - Answer 1.1

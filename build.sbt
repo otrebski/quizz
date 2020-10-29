@@ -5,6 +5,8 @@
 name := "quizz"
 version := "0.2"
 
+lazy val SeleniumTest = config("selenium") extend Test
+
 lazy val quizz =
   project
     .in(file("."))
@@ -34,6 +36,16 @@ lazy val quizz =
 //        library.bazelClient
           library.betterFiles
         )
+    )
+    .configs(SeleniumTest)
+    .settings(
+      inConfig(SeleniumTest)(Defaults.testSettings),
+      libraryDependencies += library.scalaTest % SeleniumTest,
+      libraryDependencies += "org.seleniumhq.selenium" % "selenium-java" % "3.141.59" % SeleniumTest,
+      libraryDependencies += "org.fluentlenium" %  "fluentlenium-junit" % "3.10.1" % SeleniumTest,
+      libraryDependencies += "org.fluentlenium" %  "fluentlenium-assertj" % "3.10.1" % SeleniumTest,
+      libraryDependencies += "org.seleniumhq.selenium" %"selenium-chrome-driver" % "3.141.59" % SeleniumTest
+
     )
 
 // *****************************************************************************

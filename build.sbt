@@ -44,7 +44,9 @@ lazy val quizz =
       libraryDependencies += "org.seleniumhq.selenium" % "selenium-java" % "3.141.59" % SeleniumTest,
       libraryDependencies += "org.fluentlenium" %  "fluentlenium-junit" % "3.10.1" % SeleniumTest,
       libraryDependencies += "org.fluentlenium" %  "fluentlenium-assertj" % "3.10.1" % SeleniumTest,
-      libraryDependencies += "org.seleniumhq.selenium" %"selenium-chrome-driver" % "3.141.59" % SeleniumTest
+      libraryDependencies += "org.seleniumhq.selenium" %"selenium-chrome-driver" % "3.141.59" % SeleniumTest,
+      libraryDependencies += "com.mashape.unirest" % "unirest-java" % "1.4.9" % SeleniumTest
+
 
     )
 

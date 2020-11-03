@@ -1,6 +1,7 @@
 package quizz.web
 
 import io.circe.generic.auto._
+import quizz.web.Api.DeleteQuizz
 import tapir.json.circe._
 import tapir.{ path, _ }
 
@@ -23,12 +24,17 @@ object Endpoints {
     .out(jsonBody[Api.Quizzes])
 
   val addQuizz: Endpoint[Api.AddQuizz, Unit, Api.AddQuizzResponse, Nothing] = endpoint.put
-    .in("api" / "quizz" / path[String](name = "id").description("Id of quizz to add/replace"))
+    .in("api" / "quiz" / path[String](name = "id").description("Id of quizz to add/replace"))
     .in(stringBody("UTF-8"))
     .mapIn(idAndContent => Api.AddQuizz(idAndContent._1, idAndContent._2))(a =>
       (a.id, a.mindmupSource)
     )
     .out(jsonBody[Api.AddQuizzResponse])
+
+  val deleteQuizz: Endpoint[DeleteQuizz, Unit, Unit, Nothing] = endpoint.delete
+    .in("api" / "quiz" / path[String](name = "id").description("Id of quizz to delete"))
+    .mapIn(id => DeleteQuizz(id))(_.id)
+    .out(emptyOutput)
 
   val feedback: Endpoint[Api.FeedbackSend, Unit, Api.FeedbackResponse, Nothing] = endpoint.post
     .in("api" / "feedback")

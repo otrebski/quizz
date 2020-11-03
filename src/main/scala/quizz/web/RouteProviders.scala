@@ -80,6 +80,16 @@ object RouteProviders {
     }
   }
 
+  def deleteQuizzProvider(
+      store: MindmupStore[IO]
+  )(request: Api.DeleteQuizz): Future[Either[Unit, Unit]] =
+    store
+      .delete(request.id)
+      //          .store(request.id, request.mindmupSource)
+      //          .map(_ => AddQuizzResponse("added").asRight[Unit])
+      .map(_.asRight[Unit])
+      .unsafeToFuture()
+
   def feedbackProvider(store: MindmupStore[IO], feedbackSenders: List[FeedbackSender[IO]])(
       feedback: Api.FeedbackSend
   ): Future[Either[Unit, FeedbackResponse]] = {

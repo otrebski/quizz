@@ -68,12 +68,13 @@ object WebApp extends IOApp with LazyLogging {
         val routeList                                           = listQuizzes.toRoute(quizListProvider(store))
         val routeFeedback                                       = feedback.toRoute(feedbackProvider(store, feedbackSenders))
         val add                                                 = addQuizz.toRoute(addQuizzProvider(store))
+        val delete                                              = deleteQuizz.toRoute(deleteQuizzProvider(store))
         val validateRoute                                       = validateEndpoint.toRoute(validateProvider)
         implicit val system: ActorSystem                        = ActorSystem("my-system")
         implicit val materializer: ActorMaterializer            = ActorMaterializer()
         implicit val executionContext: ExecutionContextExecutor = system.dispatcher
         Http().bindAndHandle(
-          route ~ routeStart ~ routeList ~ routeFeedback ~ add ~ validateRoute,
+          route ~ routeStart ~ routeList ~ routeFeedback ~ add ~ delete ~ validateRoute,
           "0.0.0.0",
           port
         )

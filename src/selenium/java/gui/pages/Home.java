@@ -26,4 +26,9 @@ public class Home extends FluentPage {
         return $(withId("quizz-link")).$("a").texts();
     }
 
+    public Home displayed() {
+        $(withId("quizz-list-header")).await().until().displayed();
+        return this;
+    }
+
 }

@@ -24,7 +24,7 @@ public class QuizzTest extends FluentTest {
 
 
     @After
-    public  void teardown() throws Exception {
+    public void teardown() throws Exception {
         List<String> ids = Api.listQuizzes();
         for (String id : ids) {
             Api.deleteQuizz(id);
@@ -36,22 +36,42 @@ public class QuizzTest extends FluentTest {
         Api.addQuizz(quizzName, simpleQuizz);
         goTo(homePage)
                 .selectQuizz(quizzName)
-                .select("Right")
-                .select("Right")
+                .select("1st Right")
+                .select("2nd Right")
                 .validateIsFinal("Right Right Node");
     }
 
     @Test
     public void listQuizzes() throws Exception {
-        Api.addQuizz("t1",simpleQuizz.replaceAll("Root node", "t1"));
-        Api.addQuizz("t2",simpleQuizz.replaceAll("Root node", "t2"));
-        Api.addQuizz("t3",simpleQuizz.replaceAll("Root node", "t3"));
+        Api.addQuizz("t1", simpleQuizz.replaceAll("Root node", "t1"));
+        Api.addQuizz("t2", simpleQuizz.replaceAll("Root node", "t2"));
+        Api.addQuizz("t3", simpleQuizz.replaceAll("Root node", "t3"));
         List<String> strings = goTo(homePage).listQuizzes();
         assertThat(strings).contains("t1", "t2", "t3");
     }
 
-    //TODO navigation backward
-    //TODO go back home
+
+    @Test
+    public void navigateBackToHome() throws Exception {
+        Api.addQuizz(quizzName, simpleQuizz);
+        goTo(homePage)
+                .selectQuizz(quizzName)
+                .goHome()
+                .displayed();
+    }
+
+    @Test
+    public void navigateBackwards() throws Exception {
+        Api.addQuizz(quizzName, simpleQuizz);
+        goTo(homePage)
+                .selectQuizz(quizzName)
+                .select("1st Right")
+                .select("2nd Right")
+                .validateIsFinal("Right Right Node")
+                .selectHistory("2nd Left")
+                .validateIsFinal("Right Left Node");
+    }
+
     //TODO send feedback
 
     @Override

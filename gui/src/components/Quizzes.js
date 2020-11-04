@@ -28,7 +28,7 @@ class Quizzes extends React.Component {
             <div id="quizz-link" key={q.id}><Link id={q.id} to={`/quizz/${q.id}`}>{q.title}</Link></div>);
         return (
             <div>
-                <h2>Choose quiz to start:</h2>
+                <h2 id="quizz-list-header">Choose quiz to start:</h2>
                 {noQuizz}
                 {quizzes}
             </div>

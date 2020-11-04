@@ -28,7 +28,7 @@ Accept: */*
 }
 
 ### Add
-PUT http://localhost:8080/api/quizz/testowy
+PUT http://localhost:8080/api/quiz/testowy
 Content-Type: application/json
 Accept: application/json
 

@@ -31,7 +31,7 @@ class HistoryStep extends React.Component {
         );
 
         return (
-            <div className="historyStep">
+            <div className="historyStep" id={`history-step-${this.props.path.join(";")}`}>
                 <h3>
                    <ReactMarkdown
                        source={this.props.question.replaceAll('\n','\n\n')}

@@ -28,7 +28,7 @@ Accept: */*
 }
 
 ### Add
-PUT http://localhost:8080/api/quizz/testowy
+PUT http://localhost:8080/api/quiz/testowy
 Content-Type: application/json
 Accept: application/json
 
@@ -106,6 +106,12 @@ Accept: application/json
   },
   "title": "Starting point"
 }
+
+
+### Delete
+DELETE http://localhost:8080/api/quiz/t1
+Content-Type: application/json
+Accept: application/json
 
 ### validate - not mindmup
 POST http://localhost:8080/api/quizz/validate/mindmup

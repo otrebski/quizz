@@ -22,11 +22,14 @@ class Quizzes extends React.Component {
     };
 
     render() {
+        const noQuizz = (this.state.quizzes.size === 0) ? <div>No quizzes</div> : <div/>
+
         const quizzes = this.state.quizzes.map(q =>
-            <div key={q.id}><Link to={`/quizz/${q.id}`}>{q.title}</Link></div>);
+            <div id="quizz-link" key={q.id}><Link id={q.id} to={`/quizz/${q.id}`}>{q.title}</Link></div>);
         return (
             <div>
-                <h2>Choose quiz to start:</h2>
+                <h2 id="quizz-list-header">Choose quiz to start:</h2>
+                {noQuizz}
                 {quizzes}
             </div>
         );

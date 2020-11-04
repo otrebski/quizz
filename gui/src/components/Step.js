@@ -10,9 +10,9 @@ class Step extends React.Component {
     render() {
         let finalStep = <div/>
         if (this.props.success === true) {
-            finalStep = <div><span role="img" aria-label="Checkmarks">&#10003;</span> Great success</div>
+            finalStep = <div id="final_step"><span role="img" aria-label="Checkmarks">&#10003;</span> Great success</div>
         } else if (this.props.success === false) {
-            finalStep = <div><span role="img" aria-label="Cross">&#x274C;</span> Failure!</div>
+            finalStep = <div id="final_step"><span role="img" aria-label="Cross">&#x274C;</span> Failure!</div>
         }
         let path = this.props.path === "" ? "" : `${this.props.path};`
         // this.props.answers.map(a => console.log("ID", a.id));
@@ -23,9 +23,9 @@ class Step extends React.Component {
                 </ListGroup.Item>
             </Link>
         )
-
+        const id = (this.props.answers.length === 0) ? "final_step" : "question";
         return (
-            <div>
+            <div id={id}>
                 <Card border="info" style={{width: '90%'}} className="step">
                     <Card.Body>
                         <Card.Title>

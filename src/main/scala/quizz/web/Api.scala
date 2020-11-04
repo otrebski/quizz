@@ -40,6 +40,8 @@ object Api {
 
   case class AddQuizz(id: String, mindmupSource: String)
 
+  case class DeleteQuizz(id: String)
+
   case class AddQuizzResponse(status: String)
 
   case class ValidationResult(valid: Boolean, errors: List[String])

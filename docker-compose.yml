@@ -18,14 +18,8 @@ services:
 #      DB_PASSWORD: "password"
     links:
       - db
-
-
-  gui:
-    image: otrebski/quizz-gui:latest
     ports:
       - 8080:80
-    links:
-      - quizz
 
   db:
     image: library/postgres:13

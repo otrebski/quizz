@@ -1,8 +1,6 @@
 
 ### List of quizzes
 GET http://localhost:8080/api/quiz/
-#Set-Cookie: session=202009301433389487108996; ea_uuid_force=1
-#Cookie: session=aaaaaaaaaaaaaaaaa
 
 ### Starting point of quizz testowy
 

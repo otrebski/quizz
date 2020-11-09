@@ -18,20 +18,21 @@ package quizz.web
 
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.`Content-Type`
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse}
+import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse }
 import akka.http.scaladsl.server.RejectionHandler
-import cats.effect.{Clock, ExitCode, IO, IOApp}
+import cats.effect.{ Clock, ExitCode, IO, IOApp }
 import cats.implicits._
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
-import quizz.data.{DbMindMupStore, FileMindmupStore, MemoryMindmupStore, MindmupStore}
+import quizz.data.{ DbMindMupStore, FileMindmupStore, MemoryMindmupStore, MindmupStore }
 import quizz.db.DatabaseInitializer
-import quizz.feedback.{FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender}
+import quizz.feedback.{ FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender }
+import quizz.tracking.{ Tracking, TrackingConsole }
 import sttp.tapir.server.akkahttp._
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.io.Source
-import scala.util.{Failure, Try}
+import scala.util.{ Failure, Try }
 
 object WebApp extends IOApp with LazyLogging {
 
@@ -58,15 +59,18 @@ object WebApp extends IOApp with LazyLogging {
     import akka.http.scaladsl.server.Directives._
     val port = 8080
 
-    def bindingFuture(store: MindmupStore[IO]): IO[Future[Http.ServerBinding]] = {
+    def bindingFuture(
+        store: MindmupStore[IO],
+        tracking: Tracking[IO]
+    ): IO[Future[Http.ServerBinding]] = {
       import Endpoints._
       import RouteProviders._
       import akka.actor.ActorSystem
       import akka.stream.ActorMaterializer
 
       IO {
-        val route         = routeEndpoint.toRoute(routeWithPathProvider(store))
-        val routeStart    = routeEndpointStart.toRoute(routeWithoutPathProvider(store))
+        val route         = routeEndpoint.toRoute(routeWithPathProvider(store, tracking))
+        val routeStart    = routeEndpointStart.toRoute(routeWithoutPathProvider(store, tracking))
         val routeList     = listQuizzes.toRoute(quizListProvider(store))
         val routeFeedback = feedback.toRoute(feedbackProvider(store, feedbackSenders))
         val add           = addQuizz.toRoute(addQuizzProvider(store))
@@ -111,25 +115,27 @@ object WebApp extends IOApp with LazyLogging {
       else
         IO.unit
 
-    val createMindmupStore: IO[MindmupStore[IO]] =
-    IO(logger.info(s"Will use $mindmupStoreType for storing mindmups")) *> {
-      mindmupStoreType match {
-        case "file" =>
-          import better.files.File.currentWorkingDirectory
-          import better.files._
-          val str = config.getString("filestorage.dir")
-          val dir = if (str.startsWith("/")) File.apply(str) else currentWorkingDirectory / str
-          FileMindmupStore[IO](dir)
-        case "memory"   => MemoryMindmupStore[IO]
-        case "database" => DbMindMupStore[IO](databaseConfig)
+    val createMindmupStore: IO[MindmupStore[IO]] = {
+      IO(logger.info(s"Will use $mindmupStoreType for storing mindmups")) *> {
+        mindmupStoreType match {
+          case "file" =>
+            import better.files.File.currentWorkingDirectory
+            import better.files._
+            val str = config.getString("filestorage.dir")
+            val dir = if (str.startsWith("/")) File.apply(str) else currentWorkingDirectory / str
+            FileMindmupStore[IO](dir)
+          case "memory"   => MemoryMindmupStore[IO]
+          case "database" => DbMindMupStore[IO](databaseConfig)
+        }
       }
     }
-
+    val createTracking: IO[TrackingConsole[IO]] = TrackingConsole[IO]()
     logger.info(s"Server is online on port $port")
     for {
       _            <- initDb
       mindmupStore <- createMindmupStore
-      _            <- bindingFuture(mindmupStore)
+      tracking     <- createTracking
+      _            <- bindingFuture(mindmupStore, tracking)
     } yield ExitCode.Success
   }
 }

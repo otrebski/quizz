@@ -10,6 +10,7 @@ import mindmup.Parser
 import quizz.data.MindmupStore
 import quizz.feedback.FeedbackSender
 import quizz.model.Quizz
+import quizz.tracking.Tracking
 import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, Quizzes }
 import sttp.model.{ Cookie, CookieValueWithMeta }
 
@@ -30,34 +31,42 @@ object RouteProviders {
     )
 
   def routeWithoutPathProvider(
-      store: MindmupStore[IO]
-  )(requestAndCookie: (Api.QuizzId, List[Cookie])): Future[Either[String, (Api.QuizzState, CookieValueWithMeta)]] = {
+      store: MindmupStore[IO],
+      tracking: Tracking[IO]
+  )(
+      requestAndCookie: (Api.QuizzId, List[Cookie])
+  ): Future[Either[String, (Api.QuizzState, CookieValueWithMeta)]] = {
     import mindmup._
     val (request, cookies) = requestAndCookie
-    val cookie = generateCookie(cookies.find(_.name == "session"))
+    val cookie             = generateCookie(cookies.find(_.name == "session"))
     val r = for {
+      _ <- tracking.step(request.id, "", Instant.now(), cookie.value, none[String])
       quizzString <- store.load(request.id)
       quizzOrError =
         Parser.parseInput(request.id, quizzString).map(_.toQuizz).left.map(_.getMessage)
-      result = quizzOrError.flatMap(q => Logic.calculateStateOnPathStart(q.firstStep))
-    resultAndCookie = result.map(q => (q, cookie))
+      result          = quizzOrError.flatMap(q => Logic.calculateStateOnPathStart(q.firstStep))
+      resultAndCookie = result.map(q => (q, cookie))
     } yield resultAndCookie
     r.unsafeToFuture()
   }
 
   def routeWithPathProvider(
-      store: MindmupStore[IO]
-  )(requestAndCookie: (Api.QuizzQuery,List[Cookie])): Future[Either[String, (Api.QuizzState, CookieValueWithMeta)]] = {
+      store: MindmupStore[IO],
+      tracking: Tracking[IO]
+  )(
+      requestAndCookie: (Api.QuizzQuery, List[Cookie])
+  ): Future[Either[String, (Api.QuizzState, CookieValueWithMeta)]] = {
     import mindmup._
     val (request, cookies) = requestAndCookie
-    val cookie = generateCookie(cookies.find(_.name == "session"))
+    val cookie             = generateCookie(cookies.find(_.name == "session"))
     val r: IO[Either[String, (Api.QuizzState, CookieValueWithMeta)]] = for {
+      _ <- tracking.step(request.id, request.path, Instant.now(), cookie.value, none[String])
       q <-
         store
           .load(request.id)
           .map(s => Parser.parseInput(request.id, s).map(_.toQuizz).left.map(_.getMessage))
       result = q.flatMap(quizzes => Logic.calculateStateOnPath(request, Map(request.id -> quizzes)))
-      x = result.map(q => (q,cookie))
+      x      = result.map(q => (q, cookie))
     } yield x
     r.unsafeToFuture()
   }
@@ -117,7 +126,7 @@ object RouteProviders {
       feedbackAndCookies: (Api.FeedbackSend, List[Cookie])
   ): Future[Either[Unit, FeedbackResponse]] = {
     val (feedback, cookies) = feedbackAndCookies
-    val request = Api.QuizzQuery(feedback.quizzId, feedback.path)
+    val request             = Api.QuizzQuery(feedback.quizzId, feedback.path)
     val quizzState: IO[Either[String, Api.QuizzState]] = store
       .load(request.id)
       .map(string =>

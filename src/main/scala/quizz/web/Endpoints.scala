@@ -53,12 +53,14 @@ object Endpoints {
     .mapIn(id => DeleteQuizz(id))(_.id)
     .out(emptyOutput)
 
-  val feedback: Endpoint[(Api.FeedbackSend, List[Cookie]), Unit, Api.FeedbackResponse, Nothing] =
+  val feedback: Endpoint[(Api.FeedbackSend, List[Cookie]), String, (Api.FeedbackResponse, CookieValueWithMeta), Nothing] =
     endpoint.post
       .in("api" / "feedback")
       .in(jsonBody[Api.FeedbackSend].description("Feedback from user"))
       .in(cookies)
+      .errorOut(stringBody)
       .out(jsonBody[Api.FeedbackResponse])
+      .out(setCookie("session"))
 
   val validateEndpoint: Endpoint[String, Unit, Api.ValidationResult, Nothing] = endpoint.post
     .in("api" / "quizz" / "validate" / "mindmup")

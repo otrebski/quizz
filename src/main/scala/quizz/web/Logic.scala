@@ -8,14 +8,26 @@ import quizz.web.Api.HistoryStep
 
 object Logic {
 
-  def calculateStateOnPath(
+  def calculateState(
       request: Api.QuizzQuery,
       quizzes: Map[String, Quizz] //TODO replace map with single Quizz
   ): Either[String, Api.QuizzState] = {
-    val path       = request.path
-    val pathList   = path.split(";").toList.reverse
-    val maybeQuizz = quizzes.get(request.id).map(Right(_)).getOrElse(Left("Quizz not found"))
 
+    val maybeQuizz = quizzes.get(request.id)
+
+    maybeQuizz match {
+      case None                                => Left("Quizz not found")
+      case Some(quizz) if request.path.isEmpty => calculateStateOnPathStart(quizz.firstStep)
+      case Some(quizz)                         => calculateStateOnPath(request, quizz)
+    }
+  }
+
+  def calculateStateOnPath(
+      request: Api.QuizzQuery,
+      quizz: Quizz
+  ): Either[String, Api.QuizzState] = {
+    val path     = request.path
+    val pathList = path.split(";").toList.reverse
     def newState(quizz: Quizz): Either[String, Api.QuizzState] =
       pathList match {
         case head :: Nil if head == "" =>
@@ -89,11 +101,11 @@ object Logic {
         )
 
     val result: Either[String, Api.QuizzState] = for {
-      quizz <- maybeQuizz
       state <- newState(quizz)
       h     <- history(quizz)
     } yield state.copy(history = h)
     result
+
   }
 
   def calculateStateOnPathStart(quiz: model.QuizStep): Either[String, Api.QuizzState] =

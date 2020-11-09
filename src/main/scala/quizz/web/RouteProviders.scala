@@ -1,5 +1,9 @@
 package quizz.web
 
+import java.time.Instant
+import java.util.UUID
+
+import cats.Applicative
 import cats.effect.IO
 import cats.implicits._
 import io.circe
@@ -7,60 +11,85 @@ import mindmup.Parser
 import quizz.data.MindmupStore
 import quizz.feedback.FeedbackSender
 import quizz.model.Quizz
-import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, Quizzes }
+import quizz.tracking.Tracking
+import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes }
+import sttp.model.{ Cookie, CookieValueWithMeta }
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
 
 object RouteProviders {
 
-  def routeWithoutPathProvider(
-      store: MindmupStore[IO]
-  )(request: Api.QuizzId): Future[Either[String, Api.QuizzState]] = {
-    import mindmup._
-    val a: IO[Either[String, Api.QuizzState]] = for {
-      quizzString <- store.load(request.id)
-      quizzOrError =
-        Parser.parseInput(request.id, quizzString).map(_.toQuizz).left.map(_.getMessage)
-      result = quizzOrError.flatMap(q => Logic.calculateStateOnPathStart(q.firstStep))
-    } yield result
+  private def generateCookie(maybeCookie: Option[Cookie]): CookieValueWithMeta =
+    CookieValueWithMeta(
+      value = maybeCookie.map(_.value).getOrElse(UUID.randomUUID().toString),
+      expires = Some(Instant.now().plusSeconds(10 * 60)),
+      maxAge = Some(10 * 60),
+      domain = None,
+      path = Some("/"),
+      secure = false,
+      httpOnly = true,
+      otherDirectives = Map.empty
+    )
 
-    a.unsafeToFuture()
+  implicit val idConvert: QuizzQuery => QuizzQuery = q => q
+  implicit val feedbackConvert: Api.FeedbackSend => QuizzQuery = fs =>
+    QuizzQuery(fs.quizzId, fs.path)
+
+  def track[In, Out, Error](tracking: Tracking[IO], f: In => Future[Either[Error, Out]])(
+      requestAndCookie: (In, List[Cookie])
+  )(implicit convert: In => QuizzQuery): Future[Either[Error, (Out, CookieValueWithMeta)]] = {
+    val (request, cookies)                    = requestAndCookie
+    val cookie                                = generateCookie(cookies.find(_.name == "session"))
+    implicit val ec: ExecutionContextExecutor = ExecutionContext.global
+    val quizzQuery                            = convert.apply(request)
+    val result = for {
+      _ <-
+        tracking
+          .step(quizzQuery.id, quizzQuery.path, Instant.now(), cookie.value, none[String])
+          .unsafeToFuture()
+      r <- f.apply(request)
+      withCookie = r.map(x => (x, cookie))
+    } yield withCookie
+    result
   }
 
   def routeWithPathProvider(
       store: MindmupStore[IO]
-  )(request: Api.QuizzQuery): Future[Either[String, Api.QuizzState]] = {
+  )(
+      request: Api.QuizzQuery
+  ): Future[Either[String, Api.QuizzState]] = {
     import mindmup._
-    val r: IO[Either[String, Api.QuizzState]] = for {
+    (for {
       q <-
         store
           .load(request.id)
           .map(s => Parser.parseInput(request.id, s).map(_.toQuizz).left.map(_.getMessage))
-      result = q.flatMap(quizzes => Logic.calculateStateOnPath(request, Map(request.id -> quizzes)))
-    } yield result
-    r.unsafeToFuture()
+      result = q.flatMap(quizzes => Logic.calculateState(request, Map(request.id -> quizzes)))
+    } yield result).unsafeToFuture()
   }
 
-  def quizListProvider(quizzStore: MindmupStore[IO]): Unit => Future[Either[Unit, Api.Quizzes]] = {
-    _ =>
-      import mindmup._
-      val r: IO[Quizzes] = for {
-        ids <- quizzStore.listNames()
-        errorOrQuizzList <-
-          ids.toList
-            .traverse(id =>
-              quizzStore
-                .load(id)
-                .map(string => Parser.parseInput(id, string).map(_.toQuizz))
-                .map {
-                  case Left(error)  => Left(Api.QuizzErrorInfoInfo(id, error.getMessage))
-                  case Right(value) => Right(Api.QuizzInfo(id, value.name))
-                }
-            )
-        (errors, quizzes) = errorOrQuizzList.partitionMap(identity)
-      } yield Quizzes(quizzes, errors)
-      r.redeem(error => Left(()), v => Right(v))
-        .unsafeToFuture()
+  def quizListProvider(
+      quizzStore: MindmupStore[IO]
+  ): List[Cookie] => Future[Either[Unit, Api.Quizzes]] = { cookie =>
+    import mindmup._
+    println(cookie)
+    val r: IO[Quizzes] = for {
+      ids <- quizzStore.listNames()
+      errorOrQuizzList <-
+        ids.toList
+          .traverse(id =>
+            quizzStore
+              .load(id)
+              .map(string => Parser.parseInput(id, string).map(_.toQuizz))
+              .map {
+                case Left(error)  => Left(Api.QuizzErrorInfoInfo(id, error.getMessage))
+                case Right(value) => Right(Api.QuizzInfo(id, value.name))
+              }
+          )
+      (errors, quizzes) = errorOrQuizzList.partitionMap(identity)
+    } yield Quizzes(quizzes, errors)
+    r.redeem(error => Left(()), v => Right(v))
+      .unsafeToFuture()
   }
 
   def addQuizzProvider(
@@ -85,15 +114,12 @@ object RouteProviders {
   )(request: Api.DeleteQuizz): Future[Either[Unit, Unit]] =
     store
       .delete(request.id)
-      //          .store(request.id, request.mindmupSource)
-      //          .map(_ => AddQuizzResponse("added").asRight[Unit])
       .map(_.asRight[Unit])
       .unsafeToFuture()
 
   def feedbackProvider(store: MindmupStore[IO], feedbackSenders: List[FeedbackSender[IO]])(
       feedback: Api.FeedbackSend
-  ): Future[Either[Unit, FeedbackResponse]] = {
-
+  ): Future[Either[String, FeedbackResponse]] = {
     val request = Api.QuizzQuery(feedback.quizzId, feedback.path)
     val quizzState: IO[Either[String, Api.QuizzState]] = store
       .load(request.id)
@@ -103,10 +129,10 @@ object RouteProviders {
           .map(_.toQuizz)
           .left
           .map(_.toString)
-          .flatMap(quizz => Logic.calculateStateOnPath(request, Map(request.id -> quizz)))
+          .flatMap(quizz => Logic.calculateState(request, Map(request.id -> quizz)))
       )
-
-    val p: IO[Either[Unit, FeedbackResponse]] = quizzState.flatMap {
+    //TODO pass cookie to feedback
+    val p: IO[Either[String, FeedbackResponse]] = quizzState.flatMap {
       case Right(quizzState) =>
         feedbackSenders
           .traverse(_.send(feedback, quizzState))

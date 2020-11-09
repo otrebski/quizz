@@ -8,8 +8,11 @@ import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import quizz.data.MemoryMindmupStore
 import quizz.feedback.LogFeedbackSender
+import quizz.tracking.TrackingConsole
 import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzInfo, Quizzes }
+import sttp.model.CookieValueWithMeta
 
+import scala.concurrent.Future
 import scala.io.Source
 
 class RouteProvidersTest extends AsyncFlatSpec with Matchers {
@@ -41,8 +44,9 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
 
   "quizListProvider" should "list empty quizzes" in {
     val mindmups = for {
-      store    <- MemoryMindmupStore[IO].unsafeToFuture()
-      mindmups <- RouteProviders.quizListProvider(store).apply()
+      store <- MemoryMindmupStore[IO].unsafeToFuture()
+
+      mindmups <- RouteProviders.quizListProvider(store).apply(List.empty)
     } yield mindmups
     mindmups map {
       case Right(q)    => q shouldBe Quizzes()
@@ -55,7 +59,7 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
       store    <- MemoryMindmupStore[IO].unsafeToFuture()
       _        <- store.store("a", validMindmup).unsafeToFuture()
       _        <- store.store("b", validMindmup).unsafeToFuture()
-      mindmups <- RouteProviders.quizListProvider(store).apply()
+      mindmups <- RouteProviders.quizListProvider(store).apply(List.empty)
     } yield mindmups
     mindmups map {
       case Right(q) =>
@@ -89,29 +93,20 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
     }
   }
 
-  "routeWithoutPathProvider" should "return rood node" in {
+  "routeWithPathProvider" should " return correct quizz state for starting point" in {
     val future = for {
-      store  <- MemoryMindmupStore[IO].unsafeToFuture()
-      _      <- store.store("a", validMindmup).unsafeToFuture()
-      result <- RouteProviders.routeWithoutPathProvider(store)(Api.QuizzId("a"))
-    } yield result
-    future.map(_.map(_.currentStep.question)).map {
-      _ shouldBe "Starting point".asRight
-    }
-  }
-
-  "routeWithoutPathProvider" should "return error if path not find" in {
-    val future = for {
-      store  <- MemoryMindmupStore[IO].unsafeToFuture()
-      result <- RouteProviders.routeWithoutPathProvider(store)(Api.QuizzId("a")).recover(e => e)
+      store <- MemoryMindmupStore[IO].unsafeToFuture()
+      _     <- store.store("a", validMindmup).unsafeToFuture()
+      result <- RouteProviders.routeWithPathProvider(store)(
+        Api.QuizzQuery("a", "")
+      )
     } yield result
     future
-      .map(_.getClass)
+      .map(_.map(_.currentStep.question))
       .map {
-        _ shouldBe classOf[NoSuchElementException]
+        _ shouldBe "Starting point".asRight
       }
   }
-
   "routeWithPathProvider" should " return correct quizz state" in {
     val future = for {
       store <- MemoryMindmupStore[IO].unsafeToFuture()
@@ -142,9 +137,10 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
     val feedbackSender = new LogFeedbackSender[IO]
     val feedbackSend   = Api.FeedbackSend("a", "root;3.eeff.d297c2367-0c3d.6aa7f21a", 0, "comment")
     val future = for {
-      store  <- MemoryMindmupStore[IO].unsafeToFuture()
-      _      <- store.store("a", validMindmup).unsafeToFuture()
-      result <- RouteProviders.feedbackProvider(store, List(feedbackSender))(feedbackSend)
+      store <- MemoryMindmupStore[IO].unsafeToFuture()
+      _     <- store.store("a", validMindmup).unsafeToFuture()
+      result <-
+        RouteProviders.feedbackProvider(store, List(feedbackSender))(feedbackSend)
     } yield result
     future.map {
       _ shouldBe FeedbackResponse("OK").asRight

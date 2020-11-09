@@ -49,6 +49,7 @@ function App() {
         <br />
         <br />
       </Router>
+      <div>This site is using cookies</div>
     </div>
   );
 }

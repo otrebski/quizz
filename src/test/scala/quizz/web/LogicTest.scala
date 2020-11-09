@@ -10,7 +10,7 @@ class LogicTest extends AnyFlatSpec with Matchers {
 
   "Logic" should "calculate history" in {
     val actual: Either[String, Api.QuizzState] =
-      Logic.calculateStateOnPath(request, ExamplesData.quizzes)
+      Logic.calculateState(request, ExamplesData.quizzes)
 
     actual match {
       case Right(r) =>

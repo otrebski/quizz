@@ -2,25 +2,42 @@ package quizz.web
 
 import io.circe.generic.auto._
 import quizz.web.Api.DeleteQuizz
-import tapir.json.circe._
-import tapir.{ path, _ }
+import sttp.model.{ Cookie, CookieValueWithMeta }
+import sttp.tapir.json.circe._
+import sttp.tapir.{ path, _ }
+import sttp.tapir.setCookie
 
 object Endpoints {
-  val routeEndpoint: Endpoint[Api.QuizzQuery, String, Api.QuizzState, Nothing] = endpoint.get
+  val routeEndpoint: Endpoint[
+    (Api.QuizzQuery, List[Cookie]),
+    String,
+    (Api.QuizzState, CookieValueWithMeta),
+    Nothing
+  ] = endpoint.get
     .in(
       ("api" / "quiz" / path[String]("id") / "path" / path[String]("quizPath"))
         .mapTo(Api.QuizzQuery)
     )
+    .in(cookies)
     .errorOut(stringBody)
     .out(jsonBody[Api.QuizzState])
+    .out(setCookie("session"))
 
-  val routeEndpointStart: Endpoint[Api.QuizzId, String, Api.QuizzState, Nothing] = endpoint.get
-    .in(("api" / "quiz" / path[String]("id") / "path").mapTo(Api.QuizzId))
+  val routeEndpointStart: Endpoint[
+    (Api.QuizzQuery, List[Cookie]),
+    String,
+    (Api.QuizzState, CookieValueWithMeta),
+    Nothing
+  ] = endpoint.get
+    .in(("api" / "quiz" / path[String]("id") / "path").mapTo(id => Api.QuizzQuery(id, "")))
+    .in(cookies)
     .errorOut(stringBody)
     .out(jsonBody[Api.QuizzState])
+    .out(setCookie("session"))
 
-  val listQuizzes: Endpoint[Unit, Unit, Api.Quizzes, Nothing] = endpoint.get
+  val listQuizzes: Endpoint[List[Cookie], Unit, Api.Quizzes, Nothing] = endpoint.get
     .in("api" / "quiz")
+    .in(cookies)
     .out(jsonBody[Api.Quizzes])
 
   val addQuizz: Endpoint[Api.AddQuizz, Unit, Api.AddQuizzResponse, Nothing] = endpoint.put
@@ -36,10 +53,14 @@ object Endpoints {
     .mapIn(id => DeleteQuizz(id))(_.id)
     .out(emptyOutput)
 
-  val feedback: Endpoint[Api.FeedbackSend, Unit, Api.FeedbackResponse, Nothing] = endpoint.post
-    .in("api" / "feedback")
-    .in(jsonBody[Api.FeedbackSend].description("Feedback from user"))
-    .out(jsonBody[Api.FeedbackResponse])
+  val feedback: Endpoint[(Api.FeedbackSend, List[Cookie]), String, (Api.FeedbackResponse, CookieValueWithMeta), Nothing] =
+    endpoint.post
+      .in("api" / "feedback")
+      .in(jsonBody[Api.FeedbackSend].description("Feedback from user"))
+      .in(cookies)
+      .errorOut(stringBody)
+      .out(jsonBody[Api.FeedbackResponse])
+      .out(setCookie("session"))
 
   val validateEndpoint: Endpoint[String, Unit, Api.ValidationResult, Nothing] = endpoint.post
     .in("api" / "quizz" / "validate" / "mindmup")

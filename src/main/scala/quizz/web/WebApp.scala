@@ -17,7 +17,7 @@
 package quizz.web
 
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.model.headers.`Content-Type`
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse}
 import akka.http.scaladsl.server.RejectionHandler
 import cats.effect.{Clock, ExitCode, IO, IOApp}
@@ -27,7 +27,7 @@ import com.typesafe.scalalogging.LazyLogging
 import quizz.data.{DbMindMupStore, FileMindmupStore, MemoryMindmupStore, MindmupStore}
 import quizz.db.DatabaseInitializer
 import quizz.feedback.{FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender}
-import tapir.server.akkahttp._
+import sttp.tapir.server.akkahttp._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.io.Source
@@ -59,7 +59,6 @@ object WebApp extends IOApp with LazyLogging {
     val port = 8080
 
     def bindingFuture(store: MindmupStore[IO]): IO[Future[Http.ServerBinding]] = {
-      import better.files.File.home
       import Endpoints._
       import RouteProviders._
       import akka.actor.ActorSystem
@@ -79,10 +78,16 @@ object WebApp extends IOApp with LazyLogging {
           .newBuilder()
           .handleNotFound {
             val response = Try(Source.fromResource("gui/index.html").mkString) match {
-              case scala.util.Success(value) => HttpResponse(OK, Seq(), HttpEntity(ContentTypes.`text/html(UTF-8)`, value))
-              case Failure(_) => HttpResponse(NotFound, Seq(), HttpEntity(ContentTypes.`text/plain(UTF-8)`, "Not found"))
+              case scala.util.Success(value) =>
+                HttpResponse(OK, Seq(), HttpEntity(ContentTypes.`text/html(UTF-8)`, value))
+              case Failure(_) =>
+                HttpResponse(
+                  NotFound,
+                  Seq(),
+                  HttpEntity(ContentTypes.`text/plain(UTF-8)`, "Not found")
+                )
             }
-            respondWithHeader(RawHeader("Content-Typex", "text/html; charset=UTF-8")) {
+            respondWithHeaders(`Content-Type`(ContentTypes.`text/html(UTF-8)`)) {
               complete(response)
             }
           }

@@ -1,5 +1,8 @@
 package quizz.web
 
+import java.time.Instant
+import java.util.UUID
+
 import cats.effect.IO
 import cats.implicits._
 import io.circe
@@ -8,59 +11,79 @@ import quizz.data.MindmupStore
 import quizz.feedback.FeedbackSender
 import quizz.model.Quizz
 import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, Quizzes }
+import sttp.model.{ Cookie, CookieValueWithMeta }
 
 import scala.concurrent.Future
 
 object RouteProviders {
 
+  def generateCookie(maybeCookie: Option[Cookie]): CookieValueWithMeta =
+    CookieValueWithMeta(
+      value = maybeCookie.map(_.value).getOrElse(UUID.randomUUID().toString),
+      expires = Some(Instant.now().plusSeconds(10 * 60)),
+      maxAge = Some(10 * 60),
+      domain = None,
+      path = Some("/"),
+      secure = false,
+      httpOnly = true,
+      otherDirectives = Map.empty
+    )
+
   def routeWithoutPathProvider(
       store: MindmupStore[IO]
-  )(request: Api.QuizzId): Future[Either[String, Api.QuizzState]] = {
+  )(requestAndCookie: (Api.QuizzId, List[Cookie])): Future[Either[String, (Api.QuizzState, CookieValueWithMeta)]] = {
     import mindmup._
-    val a: IO[Either[String, Api.QuizzState]] = for {
+    val (request, cookies) = requestAndCookie
+    val cookie = generateCookie(cookies.find(_.name == "session"))
+    val r = for {
       quizzString <- store.load(request.id)
       quizzOrError =
         Parser.parseInput(request.id, quizzString).map(_.toQuizz).left.map(_.getMessage)
       result = quizzOrError.flatMap(q => Logic.calculateStateOnPathStart(q.firstStep))
-    } yield result
-
-    a.unsafeToFuture()
+    resultAndCookie = result.map(q => (q, cookie))
+    } yield resultAndCookie
+    r.unsafeToFuture()
   }
 
   def routeWithPathProvider(
       store: MindmupStore[IO]
-  )(request: Api.QuizzQuery): Future[Either[String, Api.QuizzState]] = {
+  )(requestAndCookie: (Api.QuizzQuery,List[Cookie])): Future[Either[String, (Api.QuizzState, CookieValueWithMeta)]] = {
     import mindmup._
-    val r: IO[Either[String, Api.QuizzState]] = for {
+    val (request, cookies) = requestAndCookie
+    val cookie = generateCookie(cookies.find(_.name == "session"))
+    val r: IO[Either[String, (Api.QuizzState, CookieValueWithMeta)]] = for {
       q <-
         store
           .load(request.id)
           .map(s => Parser.parseInput(request.id, s).map(_.toQuizz).left.map(_.getMessage))
       result = q.flatMap(quizzes => Logic.calculateStateOnPath(request, Map(request.id -> quizzes)))
-    } yield result
+      x = result.map(q => (q,cookie))
+    } yield x
     r.unsafeToFuture()
   }
 
-  def quizListProvider(quizzStore: MindmupStore[IO]): Unit => Future[Either[Unit, Api.Quizzes]] = {
-    _ =>
-      import mindmup._
-      val r: IO[Quizzes] = for {
-        ids <- quizzStore.listNames()
-        errorOrQuizzList <-
-          ids.toList
-            .traverse(id =>
-              quizzStore
-                .load(id)
-                .map(string => Parser.parseInput(id, string).map(_.toQuizz))
-                .map {
-                  case Left(error)  => Left(Api.QuizzErrorInfoInfo(id, error.getMessage))
-                  case Right(value) => Right(Api.QuizzInfo(id, value.name))
-                }
-            )
-        (errors, quizzes) = errorOrQuizzList.partitionMap(identity)
-      } yield Quizzes(quizzes, errors)
-      r.redeem(error => Left(()), v => Right(v))
-        .unsafeToFuture()
+  def quizListProvider(
+      quizzStore: MindmupStore[IO]
+  ): List[Cookie] => Future[Either[Unit, Api.Quizzes]] = { cookie =>
+    import mindmup._
+    println(cookie)
+    val r: IO[Quizzes] = for {
+      ids <- quizzStore.listNames()
+      errorOrQuizzList <-
+        ids.toList
+          .traverse(id =>
+            quizzStore
+              .load(id)
+              .map(string => Parser.parseInput(id, string).map(_.toQuizz))
+              .map {
+                case Left(error)  => Left(Api.QuizzErrorInfoInfo(id, error.getMessage))
+                case Right(value) => Right(Api.QuizzInfo(id, value.name))
+              }
+          )
+      (errors, quizzes) = errorOrQuizzList.partitionMap(identity)
+    } yield Quizzes(quizzes, errors)
+    r.redeem(error => Left(()), v => Right(v))
+      .unsafeToFuture()
   }
 
   def addQuizzProvider(
@@ -91,9 +114,9 @@ object RouteProviders {
       .unsafeToFuture()
 
   def feedbackProvider(store: MindmupStore[IO], feedbackSenders: List[FeedbackSender[IO]])(
-      feedback: Api.FeedbackSend
+      feedbackAndCookies: (Api.FeedbackSend, List[Cookie])
   ): Future[Either[Unit, FeedbackResponse]] = {
-
+    val (feedback, cookies) = feedbackAndCookies
     val request = Api.QuizzQuery(feedback.quizzId, feedback.path)
     val quizzState: IO[Either[String, Api.QuizzState]] = store
       .load(request.id)
@@ -105,7 +128,7 @@ object RouteProviders {
           .map(_.toString)
           .flatMap(quizz => Logic.calculateStateOnPath(request, Map(request.id -> quizz)))
       )
-
+    //TODO pass cookie to feedback
     val p: IO[Either[Unit, FeedbackResponse]] = quizzState.flatMap {
       case Right(quizzState) =>
         feedbackSenders

@@ -18,8 +18,6 @@ import scala.io.Source
 class RouteProvidersTest extends AsyncFlatSpec with Matchers {
 
   private val validMindmup = Source.fromResource("mindmup/mindmup_with_notes.mup.json").mkString
-  private val cookieValueWithMeta =
-    CookieValueWithMeta("", None, None, None, None, true, true, Map.empty)
 
   "validateProvider" should "valid correct mindmup" in {
     val future = RouteProviders.validateProvider.apply(validMindmup)
@@ -95,44 +93,28 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
     }
   }
 
-  "routeWithoutPathProvider" should "return rood node" in {
+  "routeWithPathProvider" should " return correct quizz state for starting point" in {
     val future = for {
-      store    <- MemoryMindmupStore[IO].unsafeToFuture()
-      tracking <- TrackingConsole[IO].unsafeToFuture()
-      _        <- store.store("a", validMindmup).unsafeToFuture()
-      result <-
-        RouteProviders.routeWithoutPathProvider(store, tracking)((Api.QuizzId("a"), List.empty))
-    } yield result.map(_._1)
-    future.map(_.map(_.currentStep.question)).map {
-      _ shouldBe "Starting point".asRight
-    }
-  }
-
-  "routeWithoutPathProvider" should "return error if path not find" in {
-    val future: Future[Serializable] = for {
-      store    <- MemoryMindmupStore[IO].unsafeToFuture()
-      tracking <- TrackingConsole[IO].unsafeToFuture()
-      result <-
-        RouteProviders
-          .routeWithoutPathProvider(store, tracking)((Api.QuizzId("a"), List.empty))
-          .recover(e => e)
+      store <- MemoryMindmupStore[IO].unsafeToFuture()
+      _      <- store.store("a", validMindmup).unsafeToFuture()
+      result <- RouteProviders.routeWithPathProvider(store)(
+        Api.QuizzQuery("a", "")
+      )
     } yield result
     future
-      .map(_.getClass)
+      .map(_.map(_.currentStep.question))
       .map {
-        _ shouldBe classOf[NoSuchElementException]
+        _ shouldBe "Starting point".asRight
       }
   }
-
   "routeWithPathProvider" should " return correct quizz state" in {
     val future = for {
-      store    <- MemoryMindmupStore[IO].unsafeToFuture()
-      tracking <- TrackingConsole[IO].unsafeToFuture()
-      _        <- store.store("a", validMindmup).unsafeToFuture()
-      result <- RouteProviders.routeWithPathProvider(store, tracking)(
-        (Api.QuizzQuery("a", "root;3.eeff.d297c2367-0c3d.6aa7f21a"), List.empty)
+      store <- MemoryMindmupStore[IO].unsafeToFuture()
+      _      <- store.store("a", validMindmup).unsafeToFuture()
+      result <- RouteProviders.routeWithPathProvider(store)(
+        Api.QuizzQuery("a", "root;3.eeff.d297c2367-0c3d.6aa7f21a")
       )
-    } yield result.map(_._1)
+    } yield result
     future
       .map(_.map(_.currentStep.question))
       .map {
@@ -142,13 +124,10 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
 
   "routeWithPathProvider" should " return error for wrong path" in {
     val future = for {
-      store    <- MemoryMindmupStore[IO].unsafeToFuture()
-      tracking <- TrackingConsole[IO].unsafeToFuture()
-      _        <- store.store("a", validMindmup).unsafeToFuture()
-      result <- RouteProviders.routeWithPathProvider(store, tracking)(
-        (Api.QuizzQuery("a", "root;wrong path"), List.empty)
-      )
-    } yield result.map(_._1)
+      store  <- MemoryMindmupStore[IO].unsafeToFuture()
+      _      <- store.store("a", validMindmup).unsafeToFuture()
+      result <- RouteProviders.routeWithPathProvider(store)(Api.QuizzQuery("a", "root;wrong path"))
+    } yield result
     future.map(_.map(_.currentStep.question)).map {
       _ shouldBe "Wrong selection".asLeft
     }

@@ -69,8 +69,9 @@ object WebApp extends IOApp with LazyLogging {
       import akka.stream.ActorMaterializer
 
       IO {
-        val route         = routeEndpoint.toRoute(routeWithPathProvider(store, tracking))
-        val routeStart    = routeEndpointStart.toRoute(routeWithoutPathProvider(store, tracking))
+        val route = routeEndpoint.toRoute(withTracking(tracking, routeWithPathProvider(store)))
+        val routeStart =
+          routeEndpointStart.toRoute(withTracking(tracking, routeWithPathProvider(store)))
         val routeList     = listQuizzes.toRoute(quizListProvider(store))
         val routeFeedback = feedback.toRoute(feedbackProvider(store, feedbackSenders))
         val add           = addQuizz.toRoute(addQuizzProvider(store))

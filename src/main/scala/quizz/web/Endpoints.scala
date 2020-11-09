@@ -1,7 +1,7 @@
 package quizz.web
 
 import io.circe.generic.auto._
-import quizz.web.Api.{ DeleteQuizz, UserSession }
+import quizz.web.Api.DeleteQuizz
 import sttp.model.{ Cookie, CookieValueWithMeta }
 import sttp.tapir.json.circe._
 import sttp.tapir.{ path, _ }
@@ -23,8 +23,13 @@ object Endpoints {
     .out(jsonBody[Api.QuizzState])
     .out(setCookie("session"))
 
-  val routeEndpointStart: Endpoint[(Api.QuizzId, List[Cookie]), String, (Api.QuizzState, CookieValueWithMeta), Nothing] = endpoint.get
-    .in(("api" / "quiz" / path[String]("id") / "path").mapTo(Api.QuizzId))
+  val routeEndpointStart: Endpoint[
+    (Api.QuizzQuery, List[Cookie]),
+    String,
+    (Api.QuizzState, CookieValueWithMeta),
+    Nothing
+  ] = endpoint.get
+    .in(("api" / "quiz" / path[String]("id") / "path").mapTo(id => Api.QuizzQuery(id, "")))
     .in(cookies)
     .errorOut(stringBody)
     .out(jsonBody[Api.QuizzState])
@@ -48,11 +53,12 @@ object Endpoints {
     .mapIn(id => DeleteQuizz(id))(_.id)
     .out(emptyOutput)
 
-  val feedback: Endpoint[(Api.FeedbackSend, List[Cookie]), Unit, Api.FeedbackResponse, Nothing] = endpoint.post
-    .in("api" / "feedback")
-    .in(jsonBody[Api.FeedbackSend].description("Feedback from user"))
-    .in(cookies)
-    .out(jsonBody[Api.FeedbackResponse])
+  val feedback: Endpoint[(Api.FeedbackSend, List[Cookie]), Unit, Api.FeedbackResponse, Nothing] =
+    endpoint.post
+      .in("api" / "feedback")
+      .in(jsonBody[Api.FeedbackSend].description("Feedback from user"))
+      .in(cookies)
+      .out(jsonBody[Api.FeedbackResponse])
 
   val validateEndpoint: Endpoint[String, Unit, Api.ValidationResult, Nothing] = endpoint.post
     .in("api" / "quizz" / "validate" / "mindmup")

@@ -3,6 +3,7 @@ package quizz.web
 import java.time.Instant
 import java.util.UUID
 
+import cats.Applicative
 import cats.effect.IO
 import cats.implicits._
 import io.circe
@@ -14,11 +15,11 @@ import quizz.tracking.Tracking
 import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, Quizzes }
 import sttp.model.{ Cookie, CookieValueWithMeta }
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 
 object RouteProviders {
 
-  def generateCookie(maybeCookie: Option[Cookie]): CookieValueWithMeta =
+  private def generateCookie(maybeCookie: Option[Cookie]): CookieValueWithMeta =
     CookieValueWithMeta(
       value = maybeCookie.map(_.value).getOrElse(UUID.randomUUID().toString),
       expires = Some(Instant.now().plusSeconds(10 * 60)),
@@ -30,45 +31,39 @@ object RouteProviders {
       otherDirectives = Map.empty
     )
 
-  def routeWithoutPathProvider(
-      store: MindmupStore[IO],
-      tracking: Tracking[IO]
-  )(
-      requestAndCookie: (Api.QuizzId, List[Cookie])
-  ): Future[Either[String, (Api.QuizzState, CookieValueWithMeta)]] = {
-    import mindmup._
-    val (request, cookies) = requestAndCookie
-    val cookie             = generateCookie(cookies.find(_.name == "session"))
-    val r = for {
-      _ <- tracking.step(request.id, "", Instant.now(), cookie.value, none[String])
-      quizzString <- store.load(request.id)
-      quizzOrError =
-        Parser.parseInput(request.id, quizzString).map(_.toQuizz).left.map(_.getMessage)
-      result          = quizzOrError.flatMap(q => Logic.calculateStateOnPathStart(q.firstStep))
-      resultAndCookie = result.map(q => (q, cookie))
-    } yield resultAndCookie
-    r.unsafeToFuture()
-  }
-
-  def routeWithPathProvider(
-      store: MindmupStore[IO],
-      tracking: Tracking[IO]
+  def withTracking(
+      tracking: Tracking[IO],
+      f: Api.QuizzQuery => Future[Either[String, Api.QuizzState]]
   )(
       requestAndCookie: (Api.QuizzQuery, List[Cookie])
   ): Future[Either[String, (Api.QuizzState, CookieValueWithMeta)]] = {
-    import mindmup._
     val (request, cookies) = requestAndCookie
     val cookie             = generateCookie(cookies.find(_.name == "session"))
-    val r: IO[Either[String, (Api.QuizzState, CookieValueWithMeta)]] = for {
-      _ <- tracking.step(request.id, request.path, Instant.now(), cookie.value, none[String])
+    implicit val ec        = ExecutionContext.global
+    val result = for {
+      _ <-
+        tracking
+          .step(request.id, request.path, Instant.now(), cookie.value, none[String])
+          .unsafeToFuture()
+      r <- f.apply(request)
+      withCookie = r.map(x => (x, cookie))
+    } yield withCookie
+    result
+  }
+
+  def routeWithPathProvider(
+      store: MindmupStore[IO]
+  )(
+      request: Api.QuizzQuery
+  ): Future[Either[String, Api.QuizzState]] = {
+    import mindmup._
+    (for {
       q <-
         store
           .load(request.id)
           .map(s => Parser.parseInput(request.id, s).map(_.toQuizz).left.map(_.getMessage))
       result = q.flatMap(quizzes => Logic.calculateStateOnPath(request, Map(request.id -> quizzes)))
-      x      = result.map(q => (q, cookie))
-    } yield x
-    r.unsafeToFuture()
+    } yield result).unsafeToFuture()
   }
 
   def quizListProvider(
@@ -117,8 +112,6 @@ object RouteProviders {
   )(request: Api.DeleteQuizz): Future[Either[Unit, Unit]] =
     store
       .delete(request.id)
-      //          .store(request.id, request.mindmupSource)
-      //          .map(_ => AddQuizzResponse("added").asRight[Unit])
       .map(_.asRight[Unit])
       .unsafeToFuture()
 

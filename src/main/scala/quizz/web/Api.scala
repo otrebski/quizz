@@ -2,7 +2,7 @@ package quizz.web
 
 object Api {
 
-  case class UserSession(session:String)
+  case class UserSession(session: String)
 
   case class QuizzQuery(id: String, path: String)
 

@@ -16,13 +16,18 @@ trait Tracking[F[_]] {
 }
 
 object TrackingConsole {
-  def apply[F[_] : Sync](): F[TrackingConsole[F]] = Sync[F].delay(new TrackingConsole[F]())
+  def apply[F[_]: Sync](): F[TrackingConsole[F]] = Sync[F].delay(new TrackingConsole[F]())
 }
 
-class TrackingConsole[F[_]:Sync] extends Tracking[F] with LazyLogging {
-  override def step(quizzId: String, path: String, date: Instant, session: String, user: Option[String]): F[Unit] = {
+class TrackingConsole[F[_]: Sync] extends Tracking[F] with LazyLogging {
+  override def step(
+      quizzId: String,
+      path: String,
+      date: Instant,
+      session: String,
+      user: Option[String]
+  ): F[Unit] =
     Sync[F].delay {
       logger.info(s"Tracking: Quizz: $quizzId path: $path User $session/${user.getOrElse("N/A")}")
     }
-  }
 }

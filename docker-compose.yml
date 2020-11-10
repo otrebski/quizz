@@ -8,8 +8,7 @@ services:
     environment:
       SLACK_TOKEN: ""
       FEEDBACK_USE_SLACK: "false"
-      FEEDBACK_USE_DB: "false"
-      MINDMUP_STORAGE: "file" #use file, memory or database
+      PERSISTENCE_TYPE: "file" #use file, memory or database
       FILESTORAGE_DIR: "/mindmups"
 #      DB_HOST: "db"
 #      DB_PORT: "5432"

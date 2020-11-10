@@ -1,5 +1,7 @@
 package quizz.web
 
+import java.util.Date
+
 object Api {
 
   case class UserSession(session: String)
@@ -47,5 +49,21 @@ object Api {
   case class AddQuizzResponse(status: String)
 
   case class ValidationResult(valid: Boolean, errors: List[String])
+
+  case class TrackingSessions(sessions: List[TrackingSession])
+
+  case class TrackingSession(session: String, date: Date, quizzId: String, duration: Long)
+
+  case class TrackingSessionHistory(details: TrackingSession, steps: List[TrackingStep])
+
+  case class TrackingSessionHistoryQuery(session: String, quizzId: String)
+
+  case class TrackingStep(
+      quizzId: String,
+      path: String,
+      date: Date,
+      session: String,
+      username: Option[String]
+  )
 
 }

@@ -1,7 +1,7 @@
 package quizz.web
 
 import java.time.Instant
-import java.util.UUID
+import java.util.{ Date, UUID }
 
 import cats.Applicative
 import cats.effect.IO
@@ -11,8 +11,8 @@ import mindmup.Parser
 import quizz.data.MindmupStore
 import quizz.feedback.FeedbackSender
 import quizz.model.Quizz
-import quizz.tracking.Tracking
-import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes }
+import quizz.tracking.{ Tracking, TrackingStep }
+import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes, TrackingSessions }
 import sttp.model.{ Cookie, CookieValueWithMeta }
 
 import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
@@ -149,4 +149,47 @@ object RouteProviders {
     }
     Future.successful(Right(result))
   }
+
+  def trackingSessionsProvider(
+      tracking: Tracking[IO]
+  ): Unit => Future[Either[String, Api.TrackingSessions]] = { _ =>
+    tracking
+      .listSessions()
+      .map(s =>
+        s.map(ts =>
+          Api
+            .TrackingSession(
+              quizzId = ts.quizzId,
+              session = ts.session,
+              date = ts.date,
+              duration = ts.duration
+            )
+        )
+      )
+      .map(Api.TrackingSessions)
+      .map(_.asRight[String])
+      .unsafeToFuture()
+  }
+
+  def trackingSessionProvider(
+      tracking: Tracking[IO]
+  )(query: Api.TrackingSessionHistoryQuery): Future[Either[String, Api.TrackingSessionHistory]] =
+    tracking
+      .session(query.session, query.quizzId)
+      .map { list =>
+        val dates = list.map(_.date)
+        val min   = dates.minOption.getOrElse(new Date(0))
+        val max   = dates.maxOption.getOrElse(new Date(0))
+        val details = Api.TrackingSession(
+          session = query.session,
+          date = min,
+          quizzId = query.quizzId,
+          duration = max.getTime - min.getTime
+        )
+        val steps =
+          list.map(ts => Api.TrackingStep(ts.quizzId, ts.path, ts.date, ts.session, ts.username))
+        Api.TrackingSessionHistory(details, steps).asRight[String]
+      }
+      .unsafeToFuture()
+
 }

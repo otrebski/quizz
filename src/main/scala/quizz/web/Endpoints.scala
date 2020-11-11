@@ -1,13 +1,26 @@
 package quizz.web
 
+import java.text.SimpleDateFormat
+import java.util.Date
+
+import io.circe.Decoder.Result
 import io.circe.generic.auto._
 import quizz.web.Api.DeleteQuizz
 import sttp.model.{ Cookie, CookieValueWithMeta }
 import sttp.tapir.json.circe._
-import sttp.tapir.{ path, _ }
-import sttp.tapir.setCookie
-
+import sttp.tapir.{ path, setCookie, _ }
 object Endpoints {
+  import io.circe.{ Json, _ }
+  implicit val TimestampFormat: Encoder[Date] with Decoder[Date] =
+    new Encoder[Date] with Decoder[Date] {
+
+      override def apply(a: Date): Json =
+        Encoder.encodeString.apply(new SimpleDateFormat("yyyy-MM-dd HH:mm").format(a))
+
+      override def apply(c: HCursor): Result[Date] =
+        Decoder.decodeString.map(s => new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(s)).apply(c)
+    }
+
   val routeEndpoint: Endpoint[
     (Api.QuizzQuery, List[Cookie]),
     String,
@@ -53,7 +66,12 @@ object Endpoints {
     .mapIn(id => DeleteQuizz(id))(_.id)
     .out(emptyOutput)
 
-  val feedback: Endpoint[(Api.FeedbackSend, List[Cookie]), String, (Api.FeedbackResponse, CookieValueWithMeta), Nothing] =
+  val feedback: Endpoint[
+    (Api.FeedbackSend, List[Cookie]),
+    String,
+    (Api.FeedbackResponse, CookieValueWithMeta),
+    Nothing
+  ] =
     endpoint.post
       .in("api" / "feedback")
       .in(jsonBody[Api.FeedbackSend].description("Feedback from user"))
@@ -66,4 +84,25 @@ object Endpoints {
     .in("api" / "quizz" / "validate" / "mindmup")
     .in(stringBody("UTF-8"))
     .out(jsonBody[Api.ValidationResult])
+
+  val trackingSessions: Endpoint[Unit, String, Api.TrackingSessions, Nothing] = endpoint.get
+    .in("api" / "tracking" / "sessions")
+    .errorOut(stringBody)
+    .out(jsonBody[Api.TrackingSessions])
+
+  val trackingSession
+      : Endpoint[Api.TrackingSessionHistoryQuery, String, Api.TrackingSessionHistory, Nothing] =
+    endpoint.get
+      .in(
+        "api" /
+        "tracking" /
+        "session" /
+        path[String](name = "session").description("Session id") /
+        "quizz" /
+        path[String](name = "quizz id").description("Quizz id")
+      )
+      .mapInTo(Api.TrackingSessionHistoryQuery)
+      .errorOut(stringBody)
+      .out(jsonBody[Api.TrackingSessionHistory])
+
 }

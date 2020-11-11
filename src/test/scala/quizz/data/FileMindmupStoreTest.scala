@@ -7,7 +7,7 @@ import better.files.File
 
 class FileMindmupStoreTest extends AnyFlatSpec with Matchers {
 
-  "FileMindmupStoreTest" should "save mindmup" in {
+  "FileMindmupStore" should "save mindmup" in {
     val dir = File.newTemporaryDirectory()
     (for {
       store <- FileMindmupStore[IO](dir)
@@ -16,7 +16,7 @@ class FileMindmupStoreTest extends AnyFlatSpec with Matchers {
     (dir / "n").contentAsString shouldBe "content"
   }
 
-  "FileMindmupStoreTest" should "update mindmup" in {
+  "FileMindmupStore" should "update mindmup" in {
     val dir = File.newTemporaryDirectory()
     (for {
       store <- FileMindmupStore[IO](dir)
@@ -31,7 +31,7 @@ class FileMindmupStoreTest extends AnyFlatSpec with Matchers {
     (dir / "n").contentAsString shouldBe "something else"
   }
 
-  "FileMindmupStoreTest" should "delete mindmup" in {
+  "FileMindmupStore" should "delete mindmup" in {
     val dir = File.newTemporaryDirectory()
     (dir / "n").write("content")
     (dir / "n").exists shouldBe true
@@ -43,7 +43,7 @@ class FileMindmupStoreTest extends AnyFlatSpec with Matchers {
     (dir / "n").exists shouldBe false
   }
 
-  "FileMindmupStoreTest" should "list all mindmups" in {
+  "FileMindmupStore" should "list all mindmups" in {
     val dir = File.newTemporaryDirectory()
     (dir / "n1").write("content")
     (dir / "n2").write("content")
@@ -57,7 +57,7 @@ class FileMindmupStoreTest extends AnyFlatSpec with Matchers {
     names shouldBe Set("n1", "n2", "n3")
   }
 
-  "FileMindmupStoreTest" should "load mindmup" in {
+  "FileMindmupStore" should "load mindmup" in {
     val dir = File.newTemporaryDirectory()
     (dir / "n1").write("content")
     (dir / "n2").write("content")

@@ -25,6 +25,7 @@ object FileMindmupStore {
   def apply[F[_]](dir: File)(implicit ev: Sync[F]): F[FileMindmupStore[F]] =
     Sync[F].delay {
       dir.createDirectoryIfNotExists(createParents = true)
+
       new FileMindmupStore(dir)
     }
 }
@@ -81,21 +82,9 @@ class MemoryMindmupStore[F[_]: Sync](ref: Ref[F, Map[String, String]]) extends M
 
 object DbMindMupStore {
   def apply[F[_]](
-      dbConfig: DatabaseConfig
+      xa: Aux[F, Unit]
   )(implicit ec2: Async[F], ev3: ContextShift[F]): F[DbMindMupStore[F]] =
-    Async[F].delay {
-
-      implicit val cs: ContextShift[IO] = IO.contextShift(scala.concurrent.ExecutionContext.global)
-
-      val xa: Aux[F, Unit] = Transactor.fromDriverManager[F](
-        driver = "org.postgresql.Driver",
-        url = s"jdbc:postgresql://${dbConfig.host}:${dbConfig.port}/${dbConfig.database}",
-        user = dbConfig.user,
-        pass = dbConfig.password
-      )
-
-      new DbMindMupStore(xa)
-    }
+    Async[F].delay(new DbMindMupStore(xa))
 }
 
 class DbMindMupStore[F[_]: Async: ContextShift](xa: Aux[F, Unit]) extends MindmupStore[F] {

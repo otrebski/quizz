@@ -27,7 +27,7 @@ import com.typesafe.scalalogging.LazyLogging
 import quizz.data.{ DbMindMupStore, FileMindmupStore, MemoryMindmupStore, MindmupStore }
 import quizz.db.DatabaseInitializer
 import quizz.feedback.{ FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender }
-import quizz.tracking.{ Tracking, TrackingConsole }
+import quizz.tracking.{ DbTracking, FileTracking, MemoryTracking, Tracking }
 import sttp.tapir.server.akkahttp._
 
 import scala.concurrent.{ ExecutionContextExecutor, Future }
@@ -40,43 +40,30 @@ object WebApp extends IOApp with LazyLogging {
 
   override def run(args: List[String]): IO[ExitCode] = {
 
-    val logSender = new LogFeedbackSender[IO].some
-    val feedbackSlack =
-      if (config.getBoolean("feedback.slack.use"))
-        Some(new SlackFeedbackSender[IO](config.getString("feedback.slack.token")))
-      else none[FeedbackSender[IO]]
-
-    val databaseConfig = quizz.db.databaseConfig(config)
-    val databaseFeedbackSender: Option[FeedbackDBSender] = {
-      if (config.getBoolean("feedback.database.use")) {
-        val a: Clock[IO] = implicitly[Clock[IO]]
-        new FeedbackDBSender(databaseConfig)(a).some
-      } else
-        None
-    }
-    val feedbackSenders = List(logSender, feedbackSlack, databaseFeedbackSender).flatten
-
     import akka.http.scaladsl.server.Directives._
     val port = 8080
 
     def bindingFuture(
         store: MindmupStore[IO],
-        tracking: Tracking[IO]
+        tracking: Tracking[IO],
+        feedbackSenders: List[FeedbackSender[IO]]
     ): IO[Future[Http.ServerBinding]] = {
       import Endpoints._
       import RouteProviders._
       import akka.actor.ActorSystem
-      import akka.stream.ActorMaterializer
 
       IO {
-        val route         = routeEndpoint.toRoute(track(tracking, routeWithPathProvider(store)))
-        val routeStart    = routeEndpointStart.toRoute(track(tracking, routeWithPathProvider(store)))
-        val routeList     = listQuizzes.toRoute(quizListProvider(store))
-        val routeFeedback = feedback.toRoute(track(tracking, feedbackProvider(store, feedbackSenders)))
-        val add           = addQuizz.toRoute(addQuizzProvider(store))
-        val delete        = deleteQuizz.toRoute(deleteQuizzProvider(store))
-        val validateRoute = validateEndpoint.toRoute(validateProvider)
-        val static        = getFromResourceDirectory("gui")
+        val route      = routeEndpoint.toRoute(track(tracking, routeWithPathProvider(store)))
+        val routeStart = routeEndpointStart.toRoute(track(tracking, routeWithPathProvider(store)))
+        val routeList  = listQuizzes.toRoute(quizListProvider(store))
+        val routeFeedback =
+          feedback.toRoute(track(tracking, feedbackProvider(store, feedbackSenders)))
+        val add                   = addQuizz.toRoute(addQuizzProvider(store))
+        val delete                = deleteQuizz.toRoute(deleteQuizzProvider(store))
+        val validateRoute         = validateEndpoint.toRoute(validateProvider)
+        val trackingSessionsRoute = trackingSessions.toRoute(trackingSessionsProvider(tracking))
+        val trackingSessionRoute  = trackingSession.toRoute(trackingSessionProvider(tracking))
+        val static                = getFromResourceDirectory("gui")
         import akka.http.scaladsl.model.StatusCodes._
         implicit val catchAll: RejectionHandler = RejectionHandler
           .newBuilder()
@@ -100,41 +87,74 @@ object WebApp extends IOApp with LazyLogging {
         implicit val system: ActorSystem                        = ActorSystem("my-system")
         implicit val executionContext: ExecutionContextExecutor = system.dispatcher
         Http().bindAndHandle(
-          route ~ routeStart ~ routeList ~ routeFeedback ~ add ~ delete ~ validateRoute ~ static,
+          route ~ routeStart ~ routeList
+          ~ routeFeedback
+          ~ add ~ delete ~ validateRoute
+          ~ trackingSessionsRoute
+          ~ trackingSessionRoute
+          ~ static,
           "0.0.0.0",
           port
         )
       }
     }
 
-    val mindmupStoreType = config.getString("mindmup.store-type")
-    val initDb =
-      if (config.getBoolean("feedback.database.use") || mindmupStoreType == "database")
-        DatabaseInitializer.initDatabase(quizz.db.databaseConfig(config))
-      else
-        IO.unit
+    case class Services(
+        mindmupStore: MindmupStore[IO],
+        tracking: Tracking[IO],
+        feedbackSender: List[FeedbackSender[IO]]
+    )
+    val storeType = config.getString("persistence.type")
 
-    val createMindmupStore: IO[MindmupStore[IO]] = {
-      IO(logger.info(s"Will use $mindmupStoreType for storing mindmups")) *> {
-        mindmupStoreType match {
+    val createMindmupStore: IO[Services] = {
+      val feedbackSlack =
+        if (config.getBoolean("feedback.slack.use"))
+          Some(new SlackFeedbackSender[IO](config.getString("feedback.slack.token")))
+        else none[FeedbackSender[IO]]
+
+      IO(logger.info(s"Will use $storeType for storing data")) *> {
+        storeType match {
           case "file" =>
             import better.files.File.currentWorkingDirectory
             import better.files._
             val str = config.getString("filestorage.dir")
-            val dir = if (str.startsWith("/")) File.apply(str) else currentWorkingDirectory / str
-            FileMindmupStore[IO](dir)
-          case "memory"   => MemoryMindmupStore[IO]
-          case "database" => DbMindMupStore[IO](databaseConfig)
+            val dir =
+              if (str.startsWith("/")) File.apply(str)
+              else currentWorkingDirectory / str
+            for {
+              store    <- FileMindmupStore[IO](dir / "mindmups")
+              tracking <- FileTracking[IO](dir)
+            } yield Services(
+              store,
+              tracking,
+              List(new LogFeedbackSender[IO]) ::: feedbackSlack.toList
+            )
+          case "memory" =>
+            for {
+              store    <- MemoryMindmupStore[IO]()
+              tracking <- MemoryTracking[IO]()
+            } yield Services(
+              store,
+              tracking,
+              List(new LogFeedbackSender[IO]) ::: feedbackSlack.toList
+            )
+          case "database" =>
+            for {
+              transactor <- DatabaseInitializer.createTransactor(quizz.db.databaseConfig(config))
+              _          <- DatabaseInitializer.initDatabase(transactor)
+              store      <- DbMindMupStore[IO](transactor)
+              tracking   <- DbTracking[IO](transactor)
+              feedback = new FeedbackDBSender(transactor)
+            } yield Services(store, tracking, List(feedback) ::: feedbackSlack.toList)
         }
       }
     }
-    val createTracking: IO[TrackingConsole[IO]] = TrackingConsole[IO]()
-    logger.info(s"Server is online on port $port")
+    logger.info(s"Starting server on $port")
     for {
-      _            <- initDb
-      mindmupStore <- createMindmupStore
-      tracking     <- createTracking
-      _            <- bindingFuture(mindmupStore, tracking)
+      servicesIO <- createMindmupStore
+      services = servicesIO
+      _ <- bindingFuture(services.mindmupStore, services.tracking, services.feedbackSender)
+      _ <- IO(logger.info("Server started"))
     } yield ExitCode.Success
   }
 }

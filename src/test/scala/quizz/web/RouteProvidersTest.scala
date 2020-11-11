@@ -1,16 +1,23 @@
 package quizz.web
 
-import java.util.NoSuchElementException
+import java.time.Instant
+import java.util.{ Date, NoSuchElementException }
 
 import cats.effect.IO
+import cats.implicits.none
 import cats.syntax.either._
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import quizz.data.MemoryMindmupStore
 import quizz.feedback.LogFeedbackSender
-import quizz.tracking.TrackingConsole
-import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzInfo, Quizzes }
-import sttp.model.CookieValueWithMeta
+import quizz.tracking.MemoryTracking
+import quizz.web.Api.{
+  AddQuizzResponse,
+  FeedbackResponse,
+  QuizzInfo,
+  Quizzes,
+  TrackingSessionHistory
+}
 
 import scala.concurrent.Future
 import scala.io.Source
@@ -137,14 +144,59 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
     val feedbackSender = new LogFeedbackSender[IO]
     val feedbackSend   = Api.FeedbackSend("a", "root;3.eeff.d297c2367-0c3d.6aa7f21a", 0, "comment")
     val future = for {
-      store <- MemoryMindmupStore[IO].unsafeToFuture()
-      _     <- store.store("a", validMindmup).unsafeToFuture()
-      result <-
-        RouteProviders.feedbackProvider(store, List(feedbackSender))(feedbackSend)
+      store  <- MemoryMindmupStore[IO].unsafeToFuture()
+      _      <- store.store("a", validMindmup).unsafeToFuture()
+      result <- RouteProviders.feedbackProvider(store, List(feedbackSender))(feedbackSend)
     } yield result
     future.map {
       _ shouldBe FeedbackResponse("OK").asRight
     }
+  }
+
+  "tracking sessions" should "list all sessions" in {
+    val tracking = for {
+      tracking <- MemoryTracking[IO]()
+      _        <- tracking.step("q1", "a", Instant.ofEpochSecond(0), "s1", none[String])
+      _        <- tracking.step("q1", "a;2", Instant.ofEpochSecond(100), "s1", none[String])
+      _        <- tracking.step("q2", "a", Instant.ofEpochSecond(0), "s2", none[String])
+      _        <- tracking.step("q2", "a;2", Instant.ofEpochSecond(0), "s2", none[String])
+      _        <- tracking.step("q2", "a;2;3", Instant.ofEpochSecond(200), "s2", none[String])
+    } yield tracking
+
+    (for {
+      t <- tracking.unsafeToFuture()
+      r <- RouteProviders.trackingSessionsProvider(t)()
+    } yield r)
+      .map {
+        _.map(_.sessions.toSet) shouldBe Set(
+          Api.TrackingSession("s1", new Date(0), "q1", 100 * 1000),
+          Api.TrackingSession("s2", new Date(0), "q2", 200 * 1000)
+        ).asRight
+      }
+  }
+  "tracking session" should "list single session" in {
+    val tracking = for {
+      tracking <- MemoryTracking[IO]()
+      _        <- tracking.step("q1", "a", Instant.ofEpochSecond(0), "s1", none[String])
+      _        <- tracking.step("q1", "a;2", Instant.ofEpochSecond(100), "s1", none[String])
+      _        <- tracking.step("q2", "a", Instant.ofEpochSecond(0), "s2", none[String])
+      _        <- tracking.step("q2", "a;2", Instant.ofEpochSecond(0), "s2", none[String])
+      _        <- tracking.step("q2", "a;2;3", Instant.ofEpochSecond(200), "s2", none[String])
+    } yield tracking
+
+    (for {
+      t <- tracking.unsafeToFuture()
+      r <- RouteProviders.trackingSessionProvider(t)(Api.TrackingSessionHistoryQuery("s1", "q1"))
+    } yield r)
+      .map {
+        _ shouldBe TrackingSessionHistory(
+          details = Api.TrackingSession("s1", new Date(0), "q1", 100 * 1000),
+          steps = List(
+            Api.TrackingStep("q1", "a", new Date(0), "s1", none[String]),
+            Api.TrackingStep("q1", "a;2", new Date(100 * 1000), "s1", none[String])
+          )
+        ).asRight
+      }
   }
 
 }

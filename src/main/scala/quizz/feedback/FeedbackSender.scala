@@ -4,8 +4,9 @@ import cats.effect.{ Clock, IO, Sync }
 import cats.syntax.option._
 import com.typesafe.scalalogging.LazyLogging
 import doobie.quill.DoobieContext
+import doobie.util.transactor.Transactor.Aux
 import io.getquill.Literal
-import quizz.db.{ DatabaseConfig, Feedback }
+import quizz.db.Feedback
 import quizz.web.Api.{ FeedbackSend, QuizzState }
 
 import scala.language.higherKinds
@@ -102,8 +103,7 @@ class SlackFeedbackSender[F[_]: Sync](token: String) extends FeedbackSender[F] {
     }
 }
 
-class FeedbackDBSender(dbConfig: DatabaseConfig)(implicit clock: Clock[IO])
-    extends FeedbackSender[IO] {
+class FeedbackDBSender(xa: Aux[IO, Unit])(implicit clock: Clock[IO]) extends FeedbackSender[IO] {
 
   import cats.effect._
   import doobie._
@@ -112,16 +112,6 @@ class FeedbackDBSender(dbConfig: DatabaseConfig)(implicit clock: Clock[IO])
   val dc      = new DoobieContext.Postgres(Literal) // Literal naming scheme
 
   import dc._
-
-  private implicit val cs: ContextShift[IO] =
-    IO.contextShift(scala.concurrent.ExecutionContext.global)
-
-  private val xa = Transactor.fromDriverManager[IO](
-    driver = "org.postgresql.Driver",
-    url = s"jdbc:postgresql://${dbConfig.host}:${dbConfig.port}/${dbConfig.database}",
-    user = dbConfig.user,
-    pass = dbConfig.password
-  )
 
   override def send(feedback: FeedbackSend, quizzState: QuizzState): IO[Unit] = {
     import java.util.Date

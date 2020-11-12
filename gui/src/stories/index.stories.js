@@ -1,8 +1,8 @@
 import React from 'react';
 
-import { storiesOf } from '@storybook/react';
-import { MemoryRouter } from "react-router-dom"; // our router
-import { linkTo } from '@storybook/addon-links';
+import {storiesOf} from '@storybook/react';
+import {MemoryRouter} from "react-router-dom"; // our router
+import {linkTo} from '@storybook/addon-links';
 import Step from '../components/Step'
 import HistoryStep from '../components/HistoryStep'
 import Quizz from '../components/Quizz'
@@ -10,16 +10,17 @@ import Quizz from '../components/Quizz'
 import Welcome from '@storybook/react/demo';
 import Feedback from '../components/Feedback';
 import 'bootstrap/dist/css/bootstrap.css';
+import Quizzes from "../components/Quizzes";
 
 const answers = [
-  { id: "id1", text: "Yes" },
-  { id: "id2", text: "No" },
-  { id: "id3", text: "Maybe" }
+    {id: "id1", text: "Yes"},
+    {id: "id2", text: "No"},
+    {id: "id3", text: "Maybe"}
 ]
 const historyAnswers = [
-  { id: "id1", text: "Yes" },
-  { id: "id2", text: "No", selected: true },
-  { id: "id3", text: "Maybe" }
+    {id: "id1", text: "Yes"},
+    {id: "id2", text: "No", selected: true},
+    {id: "id3", text: "Maybe"}
 ]
 
 const quizzState = JSON.parse(`{
@@ -165,24 +166,45 @@ const quizzStateFinish = JSON.parse(`{
     ]
   }`)
 
+const quizzes = JSON.parse(`{
+  "quizzes": [
+    { "id": "q1", "title": "Quizz 1" },
+    { "id": "q2", "title": "Quizz 2" }
+  ],
+  "errorQuizzes": []
+}`)
+
+const quizzesWithErrors = JSON.parse(`{
+  "quizzes": [
+    { "id": "q1", "title": "Quizz 1" },
+    { "id": "q2", "title": "Quizz 2" }
+  ],
+  "errorQuizzes": [
+    {"id": "q3", "error": "Invalid syntax ..."},
+    {"id": "q4", "error": "Node(1) / ..."}
+  ]
+}`)
 
 const multiline = `
 This is a **question** with *markdown*.
 Can you see [image](https://image.flaticon.com/icons/png/128/2938/2938229.png) with cat ![Cat](https://image.flaticon.com/icons/png/128/2938/2938229.png)?`
-storiesOf('Welcome!', module).add('to Storybook', () => <Welcome showApp={linkTo('Button')} />);
+storiesOf('Welcome!', module).add('to Storybook', () => <Welcome showApp={linkTo('Button')}/>);
 
 storiesOf('Components', module)
     .addDecorator(story => (
         <MemoryRouter initialEntries={['/']}>{story()}</MemoryRouter>
     ))
 
- .add("Step", () => <Step question="How do you feel today?" action={(a) => console.log("Selected ", a)} answers={answers}></Step>)
- .add("Step with markdown", () => <Step question={multiline} action={(a) => console.log("Selected ", a)} answers={answers}></Step>)
- .add("Step success", () => <Step question="How do you feel today?" action={(a) => console.log("Selected ", a)} success={true} answers={[]}></Step>)
- .add("Step failure", () => <Step question="How do you feel today?" action={(a) => console.log("Selected ", a)} success={false} answers={[]}></Step>)
- .add("HistoryStep", () => <HistoryStep question="How do you feel today?" answers={historyAnswers} path={["a","b"]}></HistoryStep>)
- .add("HistoryStep with markdown", () => <HistoryStep question="How do you *feel* **today?**" answers={historyAnswers} path={["a","b"]}></HistoryStep>)
- .add("Feedback", () => <Feedback path="a;b;c" />)
- .add("Quizz", () => <Quizz quizzId="q1" path={["electricity;checkLocal"]} selectAction={(q, s) => new Promise((res, rej) => res(quizzState))} />)
-  .add("Quizz finished", () => <Quizz quizzId="q1" quizzState={quizzStateFinish} selectAction={(q, s) => new Promise((res, rej) => res(quizzStateFinish))} />)
-  ;
+    .add("Step", () => <Step question="How do you feel today?" action={(a) => console.log("Selected ", a)} answers={answers}/>)
+    .add("Step with markdown", () => <Step question={multiline} action={(a) => console.log("Selected ", a)} answers={answers}/>)
+    .add("Step success", () => <Step question="How do you feel today?" action={(a) => console.log("Selected ", a)} success={true} answers={[]}/>)
+    .add("Step failure", () => <Step question="How do you feel today?" action={(a) => console.log("Selected ", a)} success={false} answers={[]}/>)
+    .add("HistoryStep", () => <HistoryStep question="How do you feel today?" answers={historyAnswers} path={["a", "b"]}/>)
+    .add("HistoryStep with markdown", () => <HistoryStep question="How do you *feel* **today?**" answers={historyAnswers} path={["a", "b"]}/>)
+    .add("Feedback", () => <Feedback path="a;b;c"/>)
+    .add("Quizz", () => <Quizz quizzId="q1" path={["electricity;checkLocal"]} selectAction={(q, s) => new Promise((res, rej) => res(quizzState))}/>)
+    .add("Quizz finished", () => <Quizz quizzId="q1" quizzState={quizzStateFinish} selectAction={(q, s) => new Promise((res, rej) => res(quizzStateFinish))}/>)
+    .add("Quizzes loading error", () => <Quizzes loadAction={() => new Promise((res, rej) => rej(new Error("server error")))}/>)
+    .add("Quizzes loaded with errors", () => <Quizzes loadAction={() => new Promise((res, rej) => res(quizzesWithErrors))}/>)
+    .add("Quizzes all loaded", () => <Quizzes loadAction={() => new Promise((res, rej) => res(quizzes))}/>)
+;

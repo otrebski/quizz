@@ -105,4 +105,16 @@ object Endpoints {
       .errorOut(stringBody)
       .out(jsonBody[Api.TrackingSessionHistory])
 
+  val allEndpoints: Seq[Endpoint[_, _, _, _]] = Seq(
+    routeEndpoint,
+    routeEndpointStart,
+    listQuizzes,
+    addQuizz,
+    deleteQuizz,
+    feedback,
+    validateEndpoint,
+    trackingSessions,
+    trackingSession
+  )
+
 }

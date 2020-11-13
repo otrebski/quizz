@@ -5,7 +5,6 @@ const Api = {
         return fetch(requestUrl)
             .then(Api.checkStatus)
             .then(response => response.json())
-            .catch(e => console.log(e))
     },
 
     sendReponse: (quizz, path) => {
@@ -13,7 +12,6 @@ const Api = {
         return fetch(requestUrl)
             .then(Api.checkStatus)
             .then(response => response.json())
-            .catch(e => console.log(e))
     },
 
     sendFeedback: (rate, comment, quizzId, path) => {

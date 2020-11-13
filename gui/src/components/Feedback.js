@@ -44,13 +44,13 @@ class Feedback extends React.Component {
             </Form.Group>
             <ButtonToolbar className="center">
                 <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("1")}><span
-                    role="img" aria-label=":)" className="emoji"> &#x1f600;</span> </Button>
+                    role="img" aria-label=":)" className="emoji"> &#x1f44d;</span> </Button>
                 <span>&nbsp;</span>
                 <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("0")}><span
                     role="img" aria-label=":|" className="emoji"> &#x1f610; </span></Button>
                 <span>&nbsp;</span>
                 <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("-1")}><span
-                    role="img" aria-label=":(" className="emoji"> &#x1f615;</span> </Button>
+                    role="img" aria-label=":(" className="emoji"> &#x1f44e;</span> </Button>
             </ButtonToolbar>
         </Form>
 

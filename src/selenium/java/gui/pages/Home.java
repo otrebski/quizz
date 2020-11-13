@@ -10,7 +10,7 @@ import java.util.List;
 import static org.fluentlenium.core.filter.FilterConstructor.*;
 
 
-@PageUrl("http://localhost:8080")
+@PageUrl("http://localhost:3000")
 public class Home extends FluentPage {
 
     @FindBy(id = "home")

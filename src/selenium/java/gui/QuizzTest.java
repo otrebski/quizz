@@ -17,7 +17,7 @@ public class QuizzTest extends FluentTest {
     @Page
     Home homePage;
     private final String quizzName = "test1";
-    private String simpleQuizz = Api.loadFromResource("simple_tree.json");
+    private final String simpleQuizz = Api.loadFromResource("simple_tree.json");
 
     public QuizzTest() throws IOException {
     }
@@ -48,6 +48,15 @@ public class QuizzTest extends FluentTest {
         Api.addQuizz("t3", simpleQuizz.replaceAll("Root node", "t3"));
         List<String> strings = goTo(homePage).listQuizzes();
         assertThat(strings).contains("t1", "t2", "t3");
+    }
+
+    @Test
+    public void reloadQuizzes() throws Exception {
+        Api.addQuizz("t1", simpleQuizz.replaceAll("Root node", "t1"));
+        Api.addQuizz("t2", simpleQuizz.replaceAll("Root node", "t2"));
+        assertThat(goTo(homePage).listQuizzes()).contains("t1", "t2");
+        Api.addQuizz("t3", simpleQuizz.replaceAll("Root node", "t3"));
+        assertThat(goTo(homePage).listQuizzes()).contains("t1", "t2", "t3");
     }
 
 

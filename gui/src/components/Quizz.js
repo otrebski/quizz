@@ -19,6 +19,8 @@ class Quiz extends React.Component {
                 },
             },
             loading: true,
+            loadingError: false,
+            errorMessage: "",
             selectAction: props.selectAction
         };
         this.loadState(this.props.quizzId, this.props.path)
@@ -26,9 +28,8 @@ class Quiz extends React.Component {
 
     loadState = (quizzId, path) => {
         console.log("Loading state for quizz " + quizzId + " and path " + path);
-        // console.log(`calling`, this.props)
+        this.setState({loadingError: false, loading: true})
         let x = this.props.selectAction(quizzId, path)
-        // console.log("Action result", x)
         x.then(e => {
             console.log("State loaded")
             this.feedbackAction = (rate, comment) => {
@@ -43,7 +44,15 @@ class Quiz extends React.Component {
             console.log("State loaded: ", this.state)
             this.scrollToBottom()
             return e;
-        }).catch(e => console.log("ERROR!", e))
+        })
+            .catch(e => {
+                console.log("ERROR!", e)
+                this.setState({
+                    loading: false,
+                    loadingError: true,
+                    errorMessage: e.stack
+                })
+            })
     };
 
     scrollToBottom = () => {
@@ -62,9 +71,11 @@ class Quiz extends React.Component {
     }
 
     render() {
-        console.log("Rendering Quizz with props",this.props);
+        console.log("Rendering Quizz with props", this.props);
         if (this.state.loading) {
             return <div>loading...</div>
+        } else if (this.state.loadingError) {
+            return <div>Loading error: {this.state.errorMessage}</div>
         } else {
             const history = this.state.quizzState.history.map(h =>
                 <div key={"history_" + h.id}>
@@ -106,8 +117,8 @@ class Quiz extends React.Component {
                         this.bottomElement = el; //used for scrolling
                     }}/>
                     {lastStep}
-                <hr/>
-                <hr/>
+                    <hr/>
+                    <hr/>
                     {feedback}
                 </div>
             );

@@ -18,21 +18,21 @@ package quizz.web
 
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.`Content-Type`
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse}
+import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse }
 import akka.http.scaladsl.server.RejectionHandler
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{ ExitCode, IO, IOApp }
 import cats.implicits._
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
-import quizz.data.{DbMindMupStore, FileMindmupStore, MemoryMindmupStore, MindmupStore}
+import quizz.data.{ DbMindMupStore, FileMindmupStore, MemoryMindmupStore, MindmupStore }
 import quizz.db.DatabaseInitializer
-import quizz.feedback.{FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender}
-import quizz.tracking.{DbTracking, FileTracking, MemoryTracking, Tracking}
+import quizz.feedback.{ FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender }
+import quizz.tracking.{ DbTracking, FileTracking, MemoryTracking, Tracking }
 import sttp.tapir.server.akkahttp._
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.io.Source
-import scala.util.{Failure, Try}
+import scala.util.{ Failure, Try }
 import sttp.tapir._
 import sttp.tapir.docs.openapi._
 import sttp.tapir.openapi.circe.yaml.RichOpenAPI
@@ -62,15 +62,15 @@ object WebApp extends IOApp with LazyLogging {
         val routeList  = listQuizzes.toRoute(quizListProvider(store))
         val routeFeedback =
           feedback.toRoute(track(tracking, feedbackProvider(store, feedbackSenders)))
-        val add                   = addQuizz.toRoute(addQuizzProvider(store))
-        val delete                = deleteQuizz.toRoute(deleteQuizzProvider(store))
-        val validateRoute         = validateEndpoint.toRoute(validateProvider)
-        val trackingSessionsRoute = trackingSessions.toRoute(trackingSessionsProvider(tracking))
-        val trackingSessionRoute  = trackingSession.toRoute(trackingSessionProvider(tracking))
-        val static                = getFromResourceDirectory("gui")
+        val add                                    = addQuizz.toRoute(addQuizzProvider(store))
+        val delete                                 = deleteQuizz.toRoute(deleteQuizzProvider(store))
+        val validateRoute                          = validateEndpoint.toRoute(validateProvider)
+        val trackingSessionsRoute                  = trackingSessions.toRoute(trackingSessionsProvider(tracking))
+        val trackingSessionRoute                   = trackingSession.toRoute(trackingSessionProvider(tracking))
+        val static                                 = getFromResourceDirectory("gui")
         val myEndpoints: Seq[Endpoint[_, _, _, _]] = Endpoints.allEndpoints
-        val docsAsYaml: String = myEndpoints.toOpenAPI("Quizz", "?").toYaml
-        val swagger = new SwaggerAkka(docsAsYaml).routes
+        val docsAsYaml: String                     = myEndpoints.toOpenAPI("Quizz", "?").toYaml
+        val swagger                                = new SwaggerAkka(docsAsYaml).routes
         import akka.http.scaladsl.model.StatusCodes._
         implicit val catchAll: RejectionHandler = RejectionHandler
           .newBuilder()

@@ -17,7 +17,7 @@ object Parser extends LazyLogging {
   private implicit val ideaDecoderInt: Decoder[V3IdInt.Idea]       = deriveDecoder[V3IdInt.Idea]
   private implicit val mindMupDecoderInt: Decoder[V3IdInt.Mindmap] = deriveDecoder[V3IdInt.Mindmap]
 
-  def parseInput(name: String, json: String): Either[Error, V3IdString.Mindmap] = {
+  def parseInput(name: String, json: String): Either[String, V3IdString.Mindmap] = {
     val parsedJson                           = parse(json)
     val r: Either[Error, V3IdString.Mindmap] = parsedJson.flatMap(mindMupDecoder.decodeJson)
     r match {
@@ -36,7 +36,7 @@ object Parser extends LazyLogging {
               case Left(value)  => logger.warn(s"Could not parse $name")
               case Right(value) => logger.info(s"$name parsed successfully")
             }
-            r
+            r.left.map(_.getMessage)
           case Right(value) =>
             logger.info(s"$name parsed successfully")
             Right(value)

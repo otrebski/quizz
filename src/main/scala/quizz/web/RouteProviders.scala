@@ -63,7 +63,7 @@ object RouteProviders {
       q <-
         store
           .load(request.id)
-          .map(s => Parser.parseInput(request.id, s).map(_.toQuizz).left.map(_.getMessage))
+          .map(s => Parser.parseInput(request.id, s).flatMap(_.toQuizz))
       result = q.flatMap(quizzes => Logic.calculateState(request, Map(request.id -> quizzes)))
     } yield result).unsafeToFuture()
   }
@@ -80,9 +80,9 @@ object RouteProviders {
           .traverse(id =>
             quizzStore
               .load(id)
-              .map(string => Parser.parseInput(id, string).map(_.toQuizz))
+              .map(string => Parser.parseInput(id, string).flatMap(_.toQuizz))
               .map {
-                case Left(error)  => Left(Api.QuizzErrorInfoInfo(id, error.getMessage))
+                case Left(error)  => Left(Api.QuizzErrorInfoInfo(id, error))
                 case Right(value) => Right(Api.QuizzInfo(id, value.name))
               }
           )
@@ -96,11 +96,12 @@ object RouteProviders {
       store: MindmupStore[IO]
   )(request: Api.AddQuizz): Future[Either[Unit, AddQuizzResponse]] = {
     import mindmup._
-    val newQuizzOrError: Either[circe.Error, Quizz] =
-      Parser.parseInput(request.id, request.mindmupSource).map(_.toQuizz.copy(id = request.id))
+    val id: Either[String, V3IdString.Mindmap] =
+      Parser.parseInput(request.id, request.mindmupSource)
+    val newQuizzOrError: Either[String, Quizz] = id.flatMap(_.toQuizz).map(_.copy(id = request.id))
 
     newQuizzOrError match {
-      case Left(error) => Future.failed(new Exception(error.toString))
+      case Left(error) => Future.failed(new Exception(error))
       case Right(_) =>
         store
           .store(request.id, request.mindmupSource)
@@ -126,9 +127,7 @@ object RouteProviders {
       .map(string =>
         Parser
           .parseInput(request.id, string)
-          .map(_.toQuizz)
-          .left
-          .map(_.toString)
+          .flatMap(_.toQuizz)
           .flatMap(quizz => Logic.calculateState(request, Map(request.id -> quizz)))
       )
     //TODO pass cookie to feedback
@@ -144,7 +143,7 @@ object RouteProviders {
 
   val validateProvider: String => Future[Either[Unit, Api.ValidationResult]] = { s =>
     val result = mindmup.Parser.parseInput("validation_test", s) match {
-      case Left(error) => Api.ValidationResult(valid = false, List(error.getMessage))
+      case Left(error) => Api.ValidationResult(valid = false, List(error))
       case Right(_)    => Api.ValidationResult(valid = true, List.empty[String])
     }
     Future.successful(Right(result))

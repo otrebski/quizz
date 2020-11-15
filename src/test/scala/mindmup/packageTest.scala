@@ -5,16 +5,17 @@ import mindmup.V3IdString.{ Idea, Mindmap }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.syntax.option._
+import quizz.model
 import quizz.model.{ Question, SuccessStep }
 
 import scala.io.Source
 
 class packageTest extends AnyFlatSpec with Matchers {
 
-  private val quizz = Parser
+  private val quizz: model.Quizz = Parser
     .parseInput("test", Source.fromResource("mindmup/simple_tree.json").mkString)
-    .map(_.toQuizz)
-    .getOrElse(throw new Exception("Not parsed"))
+    .flatMap(_.toQuizz)
+    .getOrElse(throw new Exception("Mindmup not parsed"))
 
   val mindmup: Mindmap = Mindmap(
     id = "root",
@@ -45,7 +46,7 @@ class packageTest extends AnyFlatSpec with Matchers {
   )
   "package" should "convert mindmup to quizz" ignore {
 
-    val quizz = mindmup.toQuizz
+    val quizz = mindmup.toQuizz.getOrElse(throw new Exception("Mindmup not parsed"))
     val question: Question =
       quizz.firstStep.asInstanceOf[Question].answers("root node").asInstanceOf[Question]
     question.answers.foreach {

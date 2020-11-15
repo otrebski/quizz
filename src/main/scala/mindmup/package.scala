@@ -1,3 +1,4 @@
+import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
 import quizz.model.{ Question, QuizStep, Quizz, SuccessStep }
 
@@ -60,7 +61,7 @@ package object mindmup extends LazyLogging {
   implicit class MindmupStringOps(m: V3IdString.Mindmap) {
 
     //TODO change to Either[String,Quizz]
-    def toQuizz: Quizz = {
+    def toQuizz: Either[String, Quizz] = {
       def toStep(idea: V3IdString.Idea): QuizStep = {
         val note = for {
           attr <- idea.attr
@@ -89,12 +90,15 @@ package object mindmup extends LazyLogging {
 
       val value: V3IdString.Idea                           = m.ideas.head._2
       val maybeIdeas: Option[Map[String, V3IdString.Idea]] = value.ideas
-      val ideas: Map[String, V3IdString.Idea]              = maybeIdeas.get
-
-      val answers: Map[String, QuizStep] = ideas.map {
-        case (k, v) => v.attr.get.parentConnector.get.label.get -> toStep(v)
+      maybeIdeas match {
+        case None => "Missing".asLeft[Quizz]
+        case Some(ideas) =>
+          val answers: Map[String, QuizStep] = ideas.map {
+            case (k, v) => v.attr.get.parentConnector.get.label.get -> toStep(v)
+          }
+          Quizz(m.id, m.title, Question(m.id, m.title, answers)).asRight[String]
       }
-      Quizz(m.id, m.title, Question(m.id, m.title, answers))
+
     }
   }
 

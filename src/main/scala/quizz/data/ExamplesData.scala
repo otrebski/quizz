@@ -169,7 +169,8 @@ object ExamplesData extends LazyLogging {
   private val exmpleSrouce = Source
     .fromInputStream(this.getClass.getClassLoader.getResourceAsStream("quizz.mup.json"))
     .mkString
-  private val errorOrQuizz = Parser.parseInput("example", exmpleSrouce).map(_.toQuizz)
+  private val errorOrQuizz: Either[String, Quizz] =
+    Parser.parseInput("example", exmpleSrouce).flatMap(_.toQuizz)
 
   logger.info(s"Loadded quizz: ${errorOrQuizz.map(_.show)}")
   val quizzMindmup: Quizz = errorOrQuizz.toOption.get

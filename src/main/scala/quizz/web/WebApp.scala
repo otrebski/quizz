@@ -62,6 +62,8 @@ object WebApp extends IOApp with LazyLogging {
         val routeList  = listQuizzes.toRoute(quizListProvider(store))
         val routeFeedback =
           feedback.toRoute(track(tracking, feedbackProvider(store, feedbackSenders)))
+
+        val r                                      = secureEndpoint.toRoute
         val add                                    = addQuizz.toRoute(addQuizzProvider(store))
         val delete                                 = deleteQuizz.toRoute(deleteQuizzProvider(store))
         val validateRoute                          = validateEndpoint.toRoute(validateProvider)
@@ -99,6 +101,7 @@ object WebApp extends IOApp with LazyLogging {
           ~ add ~ delete ~ validateRoute
           ~ trackingSessionsRoute
           ~ trackingSessionRoute
+          ~ r
           ~ swagger
           ~ static,
           "0.0.0.0",

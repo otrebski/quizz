@@ -6,9 +6,16 @@ import java.util.Date
 import io.circe.Decoder.Result
 import io.circe.generic.auto._
 import quizz.web.Api.DeleteQuizz
-import sttp.model.{ Cookie, CookieValueWithMeta }
+import sttp.model.{Cookie, CookieValueWithMeta}
 import sttp.tapir.json.circe._
-import sttp.tapir.{ path, setCookie, _ }
+import sttp.tapir.model.UsernamePassword
+import sttp.tapir.server.{PartialServerEndpoint, ServerEndpoint}
+import sttp.tapir.path
+import sttp.tapir.setCookie
+import sttp.tapir._
+
+import scala.collection.immutable.ListMap
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 object Endpoints {
   import io.circe.{ Json, _ }
   implicit val TimestampFormat: Encoder[Date] with Decoder[Date] =
@@ -20,6 +27,39 @@ object Endpoints {
       override def apply(c: HCursor): Result[Date] =
         Decoder.decodeString.map(s => new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(s)).apply(c)
     }
+
+  private implicit val ec: ExecutionContextExecutor = ExecutionContext.global
+
+  def authBasic(up: UsernamePassword): Future[Either[Int, String]] =
+    Future {
+      println(s"TOKEN: $up")
+      if (up.username == "Aladdin") Right("Stefan")
+      else Left(0)
+    }
+
+
+  def authOauth: String => Future[Either[Int, String]] = {
+    s =>
+      println(s"---------------\n$s")
+      Future(Right("Aaa"))
+    Future(Left(1))
+  }
+
+  val secureEndpointBase: PartialServerEndpoint[String, Unit, Int, Unit, Nothing, Future] = endpoint
+//    .in(header[String]("X-AUTH-TOKEN"))
+//    .in(auth.basic[UsernamePassword])
+    .in(auth.oauth2.authorizationCode("http://www.onet.pl","http://token",ListMap.empty,None))
+    .errorOut(plainBody[Int])
+    .serverLogicForCurrent(authOauth)
+
+  val secureEndpoint = secureEndpointBase.get
+    .in("api" / "secure")
+    .in(query[String]("x"))
+    .out(stringBody)
+    .serverLogic {
+      case (user, header) => Future(Right(s"$user -> $header"))
+    }
+
 
   val routeEndpoint: Endpoint[
     (Api.QuizzQuery, List[Cookie]),

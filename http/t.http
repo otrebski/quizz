@@ -1,0 +1,4 @@
+
+### List of quizzes
+GET http://localhost:8080/api/secure?x=a
+Authorization: Bearer QWxhZGRpbjpPcGVuU2VzYW1l

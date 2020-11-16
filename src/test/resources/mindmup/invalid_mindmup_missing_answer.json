@@ -1,0 +1,72 @@
+{
+  "formatVersion": 3,
+  "id": "root",
+  "ideas": {
+    "1": {
+      "title": "Root node",
+      "id": 1,
+      "attr": {
+        "position": [
+          -37,
+          -15,
+          1
+        ]
+      },
+      "ideas": {
+        "1": {
+          "title": "Child 1",
+          "id": "3.9a42.a4ab45a44-dd14.cd71438ff",
+          "ideas": {
+            "1": {
+              "title": "Child 1 1",
+              "id": "18.cc6d.815a81aae-d552.0ee559b26"
+            },
+            "2": {
+              "title": "Child 1 2",
+              "id": "19.cc6d.815a81aae-d552.0ee559b26",
+              "attr": {
+                "parentConnector": {
+                  "label": "Text 1 2"
+                }
+              }
+            }
+          },
+          "attr": {
+            "parentConnector": {
+              "label": "Text1"
+            }
+          }
+        },
+        "11": {
+          "title": "Child 2",
+          "id": "11.9a42.a4ab45a44-dd14.cd71438ff",
+          "ideas": {
+            "1": {
+              "title": "Child 2 1",
+              "id": "15.9a42.a4ab45a44-dd14.cd71438ff",
+              "attr": {
+                "parentConnector": {
+                  "label": "Text 2 1"
+                }
+              }
+            },
+            "2": {
+              "title": "Child 2 2",
+              "id": "16.9a42.a4ab45a44-dd14.cd71438ff"
+            }
+          },
+          "attr": {
+            "parentConnector": {
+              "label": "Text2"
+            }
+          }
+        }
+      }
+    }
+  },
+  "title": "Root node",
+  "attr": {
+    "theme": "topdownSimple"
+  },
+  "links": []
+}

@@ -3,21 +3,20 @@ package quizz.web
 import java.time.Instant
 import java.util.{ Date, UUID }
 
-import cats.Applicative
 import cats.effect.IO
 import cats.implicits._
-import io.circe
+import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
 import quizz.data.MindmupStore
 import quizz.feedback.FeedbackSender
 import quizz.model.Quizz
-import quizz.tracking.{ Tracking, TrackingStep }
-import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes, TrackingSessions }
+import quizz.tracking.Tracking
+import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes }
 import sttp.model.{ Cookie, CookieValueWithMeta }
 
 import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
 
-object RouteProviders {
+object RouteProviders extends LazyLogging {
 
   private def generateCookie(maybeCookie: Option[Cookie]): CookieValueWithMeta =
     CookieValueWithMeta(
@@ -63,16 +62,15 @@ object RouteProviders {
       q <-
         store
           .load(request.id)
-          .map(s => Parser.parseInput(request.id, s).map(_.toQuizz).left.map(_.getMessage))
+          .map(s => Parser.parseInput(request.id, s).flatMap(_.toQuizz))
       result = q.flatMap(quizzes => Logic.calculateState(request, Map(request.id -> quizzes)))
     } yield result).unsafeToFuture()
   }
 
   def quizListProvider(
       quizzStore: MindmupStore[IO]
-  ): List[Cookie] => Future[Either[Unit, Api.Quizzes]] = { cookie =>
+  ): List[Cookie] => Future[Either[Unit, Api.Quizzes]] = { _ =>
     import mindmup._
-    println(cookie)
     val r: IO[Quizzes] = for {
       ids <- quizzStore.listNames()
       errorOrQuizzList <-
@@ -80,15 +78,21 @@ object RouteProviders {
           .traverse(id =>
             quizzStore
               .load(id)
-              .map(string => Parser.parseInput(id, string).map(_.toQuizz))
+              .map(string => Parser.parseInput(id, string).flatMap(_.toQuizz))
               .map {
-                case Left(error)  => Left(Api.QuizzErrorInfoInfo(id, error.getMessage))
+                case Left(error)  => Left(Api.QuizzErrorInfoInfo(id, error))
                 case Right(value) => Right(Api.QuizzInfo(id, value.name))
               }
           )
       (errors, quizzes) = errorOrQuizzList.partitionMap(identity)
     } yield Quizzes(quizzes, errors)
-    r.redeem(error => Left(()), v => Right(v))
+    r.redeem(
+        error => {
+          RouteProviders.logger.error("Error on request", error)
+          Left(())
+        },
+        v => Right(v)
+      )
       .unsafeToFuture()
   }
 
@@ -96,11 +100,12 @@ object RouteProviders {
       store: MindmupStore[IO]
   )(request: Api.AddQuizz): Future[Either[Unit, AddQuizzResponse]] = {
     import mindmup._
-    val newQuizzOrError: Either[circe.Error, Quizz] =
-      Parser.parseInput(request.id, request.mindmupSource).map(_.toQuizz.copy(id = request.id))
+    val id: Either[String, V3IdString.Mindmap] =
+      Parser.parseInput(request.id, request.mindmupSource)
+    val newQuizzOrError: Either[String, Quizz] = id.flatMap(_.toQuizz).map(_.copy(id = request.id))
 
     newQuizzOrError match {
-      case Left(error) => Future.failed(new Exception(error.toString))
+      case Left(error) => Future.failed(new Exception(error))
       case Right(_) =>
         store
           .store(request.id, request.mindmupSource)
@@ -126,9 +131,7 @@ object RouteProviders {
       .map(string =>
         Parser
           .parseInput(request.id, string)
-          .map(_.toQuizz)
-          .left
-          .map(_.toString)
+          .flatMap(_.toQuizz)
           .flatMap(quizz => Logic.calculateState(request, Map(request.id -> quizz)))
       )
     //TODO pass cookie to feedback
@@ -144,7 +147,7 @@ object RouteProviders {
 
   val validateProvider: String => Future[Either[Unit, Api.ValidationResult]] = { s =>
     val result = mindmup.Parser.parseInput("validation_test", s) match {
-      case Left(error) => Api.ValidationResult(valid = false, List(error.getMessage))
+      case Left(error) => Api.ValidationResult(valid = false, List(error))
       case Right(_)    => Api.ValidationResult(valid = true, List.empty[String])
     }
     Future.successful(Right(result))

@@ -21,7 +21,7 @@ package object model {
 
   case class Quizz(id: String, name: String, firstStep: QuizStep)
 
-  sealed trait QuizStep {
+  sealed trait QuizStep extends Product with Serializable {
     def id: String
     def text: String
   }

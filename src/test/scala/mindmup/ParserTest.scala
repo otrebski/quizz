@@ -67,7 +67,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "Parser" should "parse valid file with id's as string" in {
     val file = Source.fromResource("mindmup/valid_mindmup_id_String.json").mkString
 
-    val value: Either[circe.Error, Mindmap] = Parser.parseInput("test", file)
+    val value: Either[String, Mindmap] = Parser.parseInput("test", file)
     value should be(Symbol("right"))
     value shouldBe validMindmap.asRight
   }
@@ -75,7 +75,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "Parser" should "parse valid file with id's as int and string" in {
     val file: String = Source.fromResource("mindmup/valid_mindmup_id_Int_and_String.json").mkString
 
-    val value: Either[circe.Error, Mindmap] = Parser.parseInput("test", file)
+    val value: Either[String, Mindmap] = Parser.parseInput("test", file)
     value should be(Symbol("right"))
     value shouldBe validMindmap.asRight
   }
@@ -83,7 +83,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "Parser" should "parse file with notes" in {
     val file: String = Source.fromResource("mindmup/mindmup_with_notes.mup.json").mkString
 
-    val value: Either[circe.Error, Mindmap] = Parser.parseInput("test", file)
+    val value: Either[String, Mindmap] = Parser.parseInput("test", file)
     value should be(Symbol("right"))
     val note: Option[Note] = for {
       map  <- value.toOption
@@ -97,7 +97,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "Parser" should "parse file with multiline notes" in {
     val file: String = Source.fromResource("mindmup/mindmup_with_notes.mup.json").mkString
 
-    val value: Either[circe.Error, Mindmap] = Parser.parseInput("test", file)
+    val value: Either[String, Mindmap] = Parser.parseInput("test", file)
     val note: Option[Note] = for {
       map      <- value.toOption
       mainIdea <- map.ideas.get("1")

@@ -1,0 +1,82 @@
+{
+  "formatVersion": 3,
+  "id": "root",
+  "ideas": {
+    "1": {
+      "title": "Root node",
+      "id": 1,
+      "attr": {
+        "position": [
+          -232,
+          -236,
+          1
+        ]
+      },
+      "ideas": {
+        "1": {
+          "title": "Left node",
+          "id": "3.82d7.ffd6e842a-f910.2cd53981f",
+          "attr": {
+            "parentConnector": {
+              "label": "Left"
+            }
+          },
+          "ideas": {
+            "1": {
+              "title": "Left Left node",
+              "id": "5.82d7.ffd6e842a-f910.2cd53981f",
+              "attr": {
+                "parentConnector": {
+                  "label": "Left"
+                }
+              }
+            },
+            "2": {
+              "title": "Left Right Node",
+              "id": "6.82d7.ffd6e842a-f910.2cd53981f",
+              "attr": {
+                "parentConnector": {
+                  "label": "Left"
+                }
+              }
+            }
+          }
+        },
+        "11": {
+          "title": "Right node",
+          "id": "4.82d7.ffd6e842a-f910.2cd53981f",
+          "attr": {
+            "parentConnector": {
+              "label": "Right"
+            }
+          },
+          "ideas": {
+            "1": {
+              "title": "Right Left Node",
+              "id": "8.82d7.ffd6e842a-f910.2cd53981f",
+              "attr": {
+                "parentConnector": {
+                  "label": "Right"
+                }
+              }
+            },
+            "2": {
+              "title": "Right Right Node",
+              "id": "9.82d7.ffd6e842a-f910.2cd53981f",
+              "attr": {
+                "parentConnector": {
+                  "label": "Right"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "title": "Root node",
+  "attr": {
+    "theme": "topdownStandard"
+  },
+  "links": []
+}

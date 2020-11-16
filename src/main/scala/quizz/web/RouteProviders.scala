@@ -1,21 +1,19 @@
 package quizz.web
 
 import java.time.Instant
-import java.util.{ Date, UUID }
+import java.util.{Date, UUID}
 
-import cats.Applicative
 import cats.effect.IO
 import cats.implicits._
-import io.circe
 import mindmup.Parser
 import quizz.data.MindmupStore
 import quizz.feedback.FeedbackSender
 import quizz.model.Quizz
-import quizz.tracking.{ Tracking, TrackingStep }
-import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes, TrackingSessions }
-import sttp.model.{ Cookie, CookieValueWithMeta }
+import quizz.tracking.Tracking
+import quizz.web.Api.{AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes}
+import sttp.model.{Cookie, CookieValueWithMeta}
 
-import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 object RouteProviders {
 
@@ -72,7 +70,6 @@ object RouteProviders {
       quizzStore: MindmupStore[IO]
   ): List[Cookie] => Future[Either[Unit, Api.Quizzes]] = { cookie =>
     import mindmup._
-    println(cookie)
     val r: IO[Quizzes] = for {
       ids <- quizzStore.listNames()
       errorOrQuizzList <-

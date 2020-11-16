@@ -33,8 +33,8 @@ object Parser extends LazyLogging {
             val fixedJson = json.replaceAll("\"id\":\\s*(\\d+)", "\"id\": \"$1\"")
             val r         = parse(fixedJson).flatMap(mindMupDecoder.decodeJson)
             r match {
-              case Left(value)  => logger.warn(s"Could not parse $name")
-              case Right(value) => logger.info(s"$name parsed successfully")
+              case Left(_)  => logger.warn(s"Could not parse $name")
+              case Right(_) => logger.info(s"$name parsed successfully after replacing INT id as STRING id")
             }
             r.left.map(_.getMessage)
           case Right(value) =>

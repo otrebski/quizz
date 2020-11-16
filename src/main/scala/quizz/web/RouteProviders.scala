@@ -1,21 +1,22 @@
 package quizz.web
 
 import java.time.Instant
-import java.util.{Date, UUID}
+import java.util.{ Date, UUID }
 
 import cats.effect.IO
 import cats.implicits._
+import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
 import quizz.data.MindmupStore
 import quizz.feedback.FeedbackSender
 import quizz.model.Quizz
 import quizz.tracking.Tracking
-import quizz.web.Api.{AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes}
-import sttp.model.{Cookie, CookieValueWithMeta}
+import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes }
+import sttp.model.{ Cookie, CookieValueWithMeta }
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
 
-object RouteProviders {
+object RouteProviders extends LazyLogging {
 
   private def generateCookie(maybeCookie: Option[Cookie]): CookieValueWithMeta =
     CookieValueWithMeta(
@@ -68,7 +69,7 @@ object RouteProviders {
 
   def quizListProvider(
       quizzStore: MindmupStore[IO]
-  ): List[Cookie] => Future[Either[Unit, Api.Quizzes]] = { cookie =>
+  ): List[Cookie] => Future[Either[Unit, Api.Quizzes]] = { _ =>
     import mindmup._
     val r: IO[Quizzes] = for {
       ids <- quizzStore.listNames()
@@ -85,7 +86,13 @@ object RouteProviders {
           )
       (errors, quizzes) = errorOrQuizzList.partitionMap(identity)
     } yield Quizzes(quizzes, errors)
-    r.redeem(error => Left(()), v => Right(v))
+    r.redeem(
+        error => {
+          logger.error("Error on request", error)
+          Left(())
+        },
+        v => Right(v)
+      )
       .unsafeToFuture()
   }
 

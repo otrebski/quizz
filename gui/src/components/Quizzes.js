@@ -57,8 +57,8 @@ class Quizzes extends React.Component {
         const invalidQuizzes = (this.state.errorQuizzes.length !== 0) ? <div><Alert variant={"warning"}>
             <Alert.Heading>Following quizzes can't be parsed {this.state.errorQuizzes.size}: </Alert.Heading>
             <hr/>
-            <div>
-                {this.state.errorQuizzes.map(eq => <p key={eq.id}>Quizz {eq.id}: {eq.error}</p>)}
+            <div className="quizzParsingError">
+                {this.state.errorQuizzes.map(eq => <p key={eq.id}><b>Quizz {eq.id}:</b> {eq.error}</p>)}
             </div>
 
         </Alert></div> : <div/>

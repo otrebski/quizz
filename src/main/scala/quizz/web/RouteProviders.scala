@@ -88,7 +88,7 @@ object RouteProviders extends LazyLogging {
     } yield Quizzes(quizzes, errors)
     r.redeem(
         error => {
-          logger.error("Error on request", error)
+          RouteProviders.logger.error("Error on request", error)
           Left(())
         },
         v => Right(v)

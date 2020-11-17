@@ -78,25 +78,25 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
 
   "addQuizzProvider" should "add quizz" in {
     val future = for {
-      store       <- MemoryMindmupStore[IO].unsafeToFuture()
+      store       <- MemoryMindmupStore[IO]()
       addResponse <- RouteProviders.addQuizzProvider(store)(Api.AddQuizz("a", validMindmup))
-      mindmups    <- store.listNames().unsafeToFuture()
+      mindmups    <- store.listNames()
     } yield (addResponse, mindmups)
-    future map {
+    future.unsafeToFuture() map {
       _ shouldBe (AddQuizzResponse("added").asRight, Set("a"))
     }
   }
 
   "addQuizzProvider" should "return error on invalid quizz" in {
     val future = for {
-      store <- MemoryMindmupStore[IO].unsafeToFuture()
+      store <- MemoryMindmupStore[IO]
       addResponse <-
         RouteProviders
           .addQuizzProvider(store)(Api.AddQuizz("a", "[]"))
-          .recover(_ => ().asLeft[Api.Quizzes])
-      mindmups <- store.listNames().unsafeToFuture()
+          .redeem(_ => ().asLeft[Api.Quizzes], identity)
+      mindmups <- store.listNames()
     } yield (addResponse, mindmups)
-    future map {
+    future.unsafeToFuture() map {
       _ shouldBe (().asLeft, Set.empty[String])
     }
   }
@@ -147,11 +147,11 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
     val feedbackSender = new LogFeedbackSender[IO]
     val feedbackSend   = Api.FeedbackSend("a", "root;3.eeff.d297c2367-0c3d.6aa7f21a", 0, "comment")
     val future = for {
-      store  <- MemoryMindmupStore[IO].unsafeToFuture()
-      _      <- store.store("a", validMindmup).unsafeToFuture()
+      store  <- MemoryMindmupStore[IO]
+      _      <- store.store("a", validMindmup)
       result <- RouteProviders.feedbackProvider(store, List(feedbackSender))(feedbackSend)
     } yield result
-    future.map {
+    future.unsafeToFuture().map {
       _ shouldBe FeedbackResponse("OK").asRight
     }
   }
@@ -188,7 +188,7 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
     } yield tracking
 
     (for {
-      t <- tracking.unsafeToFuture()
+      t <- tracking
       r <- RouteProviders.trackingSessionProvider(t)(Api.TrackingSessionHistoryQuery("s1", "q1"))
     } yield r)
       .map {
@@ -200,6 +200,7 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
           )
         ).asRight
       }
+      .unsafeToFuture()
   }
 
 }

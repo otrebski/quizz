@@ -98,37 +98,38 @@ object RouteProviders extends LazyLogging {
       .unsafeToFuture()
   }
 
-  def addQuizzProvider(
-      store: MindmupStore[IO]
-  )(request: Api.AddQuizz): Future[Either[Unit, AddQuizzResponse]] = {
+  def addQuizzProvider[F[_]: Sync](
+      store: MindmupStore[F]
+  )(request: Api.AddQuizz): F[Either[Unit, AddQuizzResponse]] = {
     import mindmup._
     val id: Either[String, V3IdString.Mindmap] =
       Parser.parseInput(request.id, request.mindmupSource)
     val newQuizzOrError: Either[String, Quizz] = id.flatMap(_.toQuizz).map(_.copy(id = request.id))
 
     newQuizzOrError match {
-      case Left(error) => Future.failed(new Exception(error))
+      case Left(error) => Sync[F].raiseError(new Exception(error))
       case Right(_) =>
         store
           .store(request.id, request.mindmupSource)
           .map(_ => AddQuizzResponse("added").asRight[Unit])
-          .unsafeToFuture()
     }
   }
 
-  def deleteQuizzProvider(
-      store: MindmupStore[IO]
-  )(request: Api.DeleteQuizz): Future[Either[Unit, Unit]] =
+  def deleteQuizzProvider[F[_]: Sync](
+      store: MindmupStore[F]
+  )(request: Api.DeleteQuizz): F[Either[Unit, Unit]] =
     store
       .delete(request.id)
       .map(_.asRight[Unit])
-      .unsafeToFuture()
 
-  def feedbackProvider(store: MindmupStore[IO], feedbackSenders: List[FeedbackSender[IO]])(
+  def feedbackProvider[F[_]: Sync](
+      store: MindmupStore[F],
+      feedbackSenders: List[FeedbackSender[F]]
+  )(
       feedback: Api.FeedbackSend
-  ): Future[Either[String, FeedbackResponse]] = {
+  ): F[Either[String, FeedbackResponse]] = {
     val request = Api.QuizzQuery(feedback.quizzId, feedback.path)
-    val quizzState: IO[Either[String, Api.QuizzState]] = store
+    val quizzState: F[Either[String, Api.QuizzState]] = store
       .load(request.id)
       .map(string =>
         Parser
@@ -136,15 +137,13 @@ object RouteProviders extends LazyLogging {
           .flatMap(_.toQuizz)
           .flatMap(quizz => Logic.calculateState(request, Map(request.id -> quizz)))
       )
-    //TODO pass cookie to feedback
-    val p: IO[Either[String, FeedbackResponse]] = quizzState.flatMap {
+    quizzState.flatMap {
       case Right(quizzState) =>
         feedbackSenders
           .traverse(_.send(feedback, quizzState))
           .map(_ => FeedbackResponse("OK").asRight)
-      case Left(error) => IO.raiseError(new Exception(s"Can't process feedback: $error"))
+      case Left(error) => Sync[F].raiseError(new Exception(s"Can't process feedback: $error"))
     }
-    p.unsafeToFuture()
   }
 
   def validateProvider[F[_]: Applicative]: String => F[Either[Unit, Api.ValidationResult]] = { s =>
@@ -176,9 +175,9 @@ object RouteProviders extends LazyLogging {
       .unsafeToFuture()
   }
 
-  def trackingSessionProvider(
-      tracking: Tracking[IO]
-  )(query: Api.TrackingSessionHistoryQuery): Future[Either[String, Api.TrackingSessionHistory]] =
+  def trackingSessionProvider[F[_]: Sync](
+      tracking: Tracking[F]
+  )(query: Api.TrackingSessionHistoryQuery): F[Either[String, Api.TrackingSessionHistory]] =
     tracking
       .session(query.session, query.quizzId)
       .map { list =>
@@ -195,6 +194,5 @@ object RouteProviders extends LazyLogging {
           list.map(ts => Api.TrackingStep(ts.quizzId, ts.path, ts.date, ts.session, ts.username))
         Api.TrackingSessionHistory(details, steps).asRight[String]
       }
-      .unsafeToFuture()
 
 }

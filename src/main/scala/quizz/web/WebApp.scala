@@ -67,12 +67,15 @@ object WebApp extends IOApp with LazyLogging {
         val routeStart = routeEndpointStart.toRoute(track(tracking, queryToFuture))
         val routeList  = listQuizzes.toRoute(quizListProvider(store))
         val routeFeedback =
-          feedback.toRoute(track(tracking, feedbackProvider(store, feedbackSenders)))
-        val add                                    = addQuizz.toRoute(addQuizzProvider(store))
-        val delete                                 = deleteQuizz.toRoute(deleteQuizzProvider(store))
-        val validateRoute                          = validateEndpoint.toRoute(v)
-        val trackingSessionsRoute                  = trackingSessions.toRoute(trackingSessionsProvider(tracking))
-        val trackingSessionRoute                   = trackingSession.toRoute(trackingSessionProvider(tracking))
+          feedback.toRoute(
+            track(tracking, feedbackProvider[IO](store, feedbackSenders)(_).unsafeToFuture())
+          )
+        val add                   = addQuizz.toRoute(addQuizzProvider(store)(_).unsafeToFuture())
+        val delete                = deleteQuizz.toRoute(deleteQuizzProvider(store)(_).unsafeToFuture())
+        val validateRoute         = validateEndpoint.toRoute(v)
+        val trackingSessionsRoute = trackingSessions.toRoute(trackingSessionsProvider(tracking))
+        val trackingSessionRoute =
+          trackingSession.toRoute(trackingSessionProvider(tracking)(_).unsafeToFuture())
         val static                                 = getFromResourceDirectory("gui")
         val myEndpoints: Seq[Endpoint[_, _, _, _]] = Endpoints.allEndpoints
         val docsAsYaml: String                     = myEndpoints.toOpenAPI("Quizz", "?").toYaml

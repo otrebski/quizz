@@ -61,14 +61,15 @@ object WebApp extends IOApp with LazyLogging {
       import akka.actor.ActorSystem
       val v: String => Future[Either[Unit, Api.ValidationResult]] = validateProvider[Future]
       IO {
-        val queryToFuture: Api.QuizzQuery => Future[Either[String, Api.QuizzState]] =
-          routeWithPathProvider(store)(_).unsafeToFuture()
-        val route      = routeEndpoint.toRoute(track(tracking, queryToFuture))
-        val routeStart = routeEndpointStart.toRoute(track(tracking, queryToFuture))
-        val routeList  = listQuizzes.toRoute(quizListProvider(store))
+        val queryToFuture: Api.QuizzQuery => IO[Either[String, Api.QuizzState]] =
+          routeWithPathProvider(store)(_)
+        val route = routeEndpoint.toRoute(track(tracking, queryToFuture)(_).unsafeToFuture())
+        val routeStart =
+          routeEndpointStart.toRoute(track(tracking, queryToFuture)(_).unsafeToFuture())
+        val routeList = listQuizzes.toRoute(quizListProvider(store))
         val routeFeedback =
           feedback.toRoute(
-            track(tracking, feedbackProvider[IO](store, feedbackSenders)(_).unsafeToFuture())
+            track(tracking, feedbackProvider[IO](store, feedbackSenders))(_).unsafeToFuture()
           )
         val add                   = addQuizz.toRoute(addQuizzProvider(store)(_).unsafeToFuture())
         val delete                = deleteQuizz.toRoute(deleteQuizzProvider(store)(_).unsafeToFuture())

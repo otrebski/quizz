@@ -36,9 +36,9 @@ object RouteProviders extends LazyLogging {
   implicit val feedbackConvert: Api.FeedbackSend => QuizzQuery = fs =>
     QuizzQuery(fs.quizzId, fs.path)
 
-  def track[In, Out, Error](tracking: Tracking[IO], f: In => Future[Either[Error, Out]])(
+  def track[In, Out, Error, F[_]: Sync](tracking: Tracking[F], f: In => F[Either[Error, Out]])(
       requestAndCookie: (In, List[Cookie])
-  )(implicit convert: In => QuizzQuery): Future[Either[Error, (Out, CookieValueWithMeta)]] = {
+  )(implicit convert: In => QuizzQuery): F[Either[Error, (Out, CookieValueWithMeta)]] = {
     val (request, cookies)                    = requestAndCookie
     val cookie                                = generateCookie(cookies.find(_.name == "session"))
     implicit val ec: ExecutionContextExecutor = ExecutionContext.global
@@ -47,7 +47,6 @@ object RouteProviders extends LazyLogging {
       _ <-
         tracking
           .step(quizzQuery.id, quizzQuery.path, Instant.now(), cookie.value, none[String])
-          .unsafeToFuture()
       r <- f.apply(request)
       withCookie = r.map(x => (x, cookie))
     } yield withCookie

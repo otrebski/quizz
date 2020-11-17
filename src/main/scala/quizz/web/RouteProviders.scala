@@ -3,7 +3,8 @@ package quizz.web
 import java.time.Instant
 import java.util.{ Date, UUID }
 
-import cats.effect.IO
+import cats.Applicative
+import cats.effect.{ IO, Sync }
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
@@ -15,6 +16,7 @@ import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes }
 import sttp.model.{ Cookie, CookieValueWithMeta }
 
 import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
+import scala.language.higherKinds
 
 object RouteProviders extends LazyLogging {
 
@@ -52,11 +54,11 @@ object RouteProviders extends LazyLogging {
     result
   }
 
-  def routeWithPathProvider(
-      store: MindmupStore[IO]
+  def routeWithPathProvider[F[_]: Sync](
+      store: MindmupStore[F]
   )(
       request: Api.QuizzQuery
-  ): Future[Either[String, Api.QuizzState]] = {
+  ): F[Either[String, Api.QuizzState]] = {
     import mindmup._
     (for {
       q <-
@@ -64,7 +66,7 @@ object RouteProviders extends LazyLogging {
           .load(request.id)
           .map(s => Parser.parseInput(request.id, s).flatMap(_.toQuizz))
       result = q.flatMap(quizzes => Logic.calculateState(request, Map(request.id -> quizzes)))
-    } yield result).unsafeToFuture()
+    } yield result)
   }
 
   def quizListProvider(
@@ -145,12 +147,12 @@ object RouteProviders extends LazyLogging {
     p.unsafeToFuture()
   }
 
-  val validateProvider: String => Future[Either[Unit, Api.ValidationResult]] = { s =>
+  def validateProvider[F[_]: Applicative]: String => F[Either[Unit, Api.ValidationResult]] = { s =>
     val result = mindmup.Parser.parseInput("validation_test", s) match {
       case Left(error) => Api.ValidationResult(valid = false, List(error))
       case Right(_)    => Api.ValidationResult(valid = true, List.empty[String])
     }
-    Future.successful(Right(result))
+    Applicative[F].pure(Right(result))
   }
 
   def trackingSessionsProvider(

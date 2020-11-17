@@ -36,7 +36,11 @@ import scala.util.{ Failure, Try }
 import sttp.tapir._
 import sttp.tapir.docs.openapi._
 import sttp.tapir.openapi.circe.yaml.RichOpenAPI
+import sttp.tapir.swagger.akkahttp
+import cats.instances.future.catsStdInstancesForFuture
 import sttp.tapir.swagger.akkahttp.SwaggerAkka
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object WebApp extends IOApp with LazyLogging {
 
@@ -55,16 +59,18 @@ object WebApp extends IOApp with LazyLogging {
       import Endpoints._
       import RouteProviders._
       import akka.actor.ActorSystem
-
+      val v: String => Future[Either[Unit, Api.ValidationResult]] = validateProvider[Future]
       IO {
-        val route      = routeEndpoint.toRoute(track(tracking, routeWithPathProvider(store)))
-        val routeStart = routeEndpointStart.toRoute(track(tracking, routeWithPathProvider(store)))
+        val queryToFuture: Api.QuizzQuery => Future[Either[String, Api.QuizzState]] =
+          routeWithPathProvider(store)(_).unsafeToFuture()
+        val route      = routeEndpoint.toRoute(track(tracking, queryToFuture))
+        val routeStart = routeEndpointStart.toRoute(track(tracking, queryToFuture))
         val routeList  = listQuizzes.toRoute(quizListProvider(store))
         val routeFeedback =
           feedback.toRoute(track(tracking, feedbackProvider(store, feedbackSenders)))
         val add                                    = addQuizz.toRoute(addQuizzProvider(store))
         val delete                                 = deleteQuizz.toRoute(deleteQuizzProvider(store))
-        val validateRoute                          = validateEndpoint.toRoute(validateProvider)
+        val validateRoute                          = validateEndpoint.toRoute(v)
         val trackingSessionsRoute                  = trackingSessions.toRoute(trackingSessionsProvider(tracking))
         val trackingSessionRoute                   = trackingSession.toRoute(trackingSessionProvider(tracking))
         val static                                 = getFromResourceDirectory("gui")

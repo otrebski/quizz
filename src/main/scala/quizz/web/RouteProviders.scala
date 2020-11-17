@@ -38,9 +38,9 @@ object RouteProviders extends LazyLogging {
   def track[In, Out, Error, F[_]: Sync](tracking: Tracking[F], f: In => F[Either[Error, Out]])(
       requestAndCookie: (In, List[Cookie])
   )(implicit convert: In => QuizzQuery): F[Either[Error, (Out, CookieValueWithMeta)]] = {
-    val (request, cookies)                    = requestAndCookie
-    val cookie                                = generateCookie(cookies.find(_.name == "session"))
-    val quizzQuery                            = convert.apply(request)
+    val (request, cookies) = requestAndCookie
+    val cookie             = generateCookie(cookies.find(_.name == "session"))
+    val quizzQuery         = convert.apply(request)
     val result = for {
       _ <-
         tracking
@@ -150,7 +150,7 @@ object RouteProviders extends LazyLogging {
     Applicative[F].pure(Right(result))
   }
 
-  def trackingSessionsProvider[F[_]:Sync](
+  def trackingSessionsProvider[F[_]: Sync](
       tracking: Tracking[F]
   ): Unit => F[Either[String, Api.TrackingSessions]] = { _ =>
     tracking

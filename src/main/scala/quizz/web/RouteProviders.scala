@@ -57,13 +57,13 @@ object RouteProviders extends LazyLogging {
       request: Api.QuizzQuery
   ): F[Either[String, Api.QuizzState]] = {
     import mindmup._
-    (for {
+    for {
       q <-
         store
           .load(request.id)
           .map(s => Parser.parseInput(request.id, s).flatMap(_.toQuizz))
       result = q.flatMap(quizzes => Logic.calculateState(request, Map(request.id -> quizzes)))
-    } yield result)
+    } yield result
   }
 
   def quizListProvider[F[_]: Sync](

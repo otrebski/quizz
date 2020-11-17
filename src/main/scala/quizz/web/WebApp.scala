@@ -20,7 +20,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.`Content-Type`
 import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse }
 import akka.http.scaladsl.server.RejectionHandler
-import cats.effect.{ ExitCode, IO, IOApp }
+import cats.effect.{ ExitCode, IO, IOApp, Sync }
 import cats.implicits._
 import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
@@ -38,6 +38,7 @@ import sttp.tapir.docs.openapi._
 import sttp.tapir.openapi.circe.yaml.RichOpenAPI
 import sttp.tapir.swagger.akkahttp
 import cats.instances.future.catsStdInstancesForFuture
+import sttp.model.Cookie
 import sttp.tapir.swagger.akkahttp.SwaggerAkka
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -63,10 +64,14 @@ object WebApp extends IOApp with LazyLogging {
       IO {
         val queryToFuture: Api.QuizzQuery => IO[Either[String, Api.QuizzState]] =
           routeWithPathProvider(store)(_)
-        val route = routeEndpoint.toRoute(track(tracking, queryToFuture)(_).unsafeToFuture())
+        val route = routeEndpoint.toRoute(
+          track(tracking, routeWithPathProvider(store)(_))(_).unsafeToFuture()
+        )
         val routeStart =
-          routeEndpointStart.toRoute(track(tracking, queryToFuture)(_).unsafeToFuture())
-        val routeList = listQuizzes.toRoute(quizListProvider(store))
+          routeEndpointStart.toRoute(
+            track(tracking, routeWithPathProvider(store)(_))(_).unsafeToFuture()
+          )
+        val routeList = listQuizzes.toRoute(quizListProvider(store).andThen(_.unsafeToFuture()))
         val routeFeedback =
           feedback.toRoute(
             track(tracking, feedbackProvider[IO](store, feedbackSenders))(_).unsafeToFuture()

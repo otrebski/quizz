@@ -52,11 +52,10 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
 
   "quizListProvider" should "list empty quizzes" in {
     val mindmups = for {
-      store <- MemoryMindmupStore[IO].unsafeToFuture()
-
+      store    <- MemoryMindmupStore[IO]
       mindmups <- RouteProviders.quizListProvider(store).apply(List.empty)
     } yield mindmups
-    mindmups map {
+    mindmups.unsafeToFuture() map {
       case Right(q)    => q shouldBe Quizzes()
       case Left(error) => fail(error.toString)
     }
@@ -64,12 +63,12 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
 
   "quizListProvider" should "list all quizzes" in {
     val mindmups = for {
-      store    <- MemoryMindmupStore[IO].unsafeToFuture()
-      _        <- store.store("a", validMindmup).unsafeToFuture()
-      _        <- store.store("b", validMindmup).unsafeToFuture()
+      store    <- MemoryMindmupStore[IO]
+      _        <- store.store("a", validMindmup)
+      _        <- store.store("b", validMindmup)
       mindmups <- RouteProviders.quizListProvider(store).apply(List.empty)
     } yield mindmups
-    mindmups map {
+    mindmups.unsafeToFuture() map {
       case Right(q) =>
         q shouldBe Quizzes(List(QuizzInfo("a", "Starting point"), QuizzInfo("b", "Starting point")))
       case Left(error) => fail(error.toString)

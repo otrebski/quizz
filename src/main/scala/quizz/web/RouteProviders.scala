@@ -68,11 +68,11 @@ object RouteProviders extends LazyLogging {
     } yield result)
   }
 
-  def quizListProvider(
-      quizzStore: MindmupStore[IO]
-  ): List[Cookie] => Future[Either[Unit, Api.Quizzes]] = { _ =>
+  def quizListProvider[F[_]: Sync](
+      quizzStore: MindmupStore[F]
+  ): List[Cookie] => F[Either[Unit, Api.Quizzes]] = { _ =>
     import mindmup._
-    val r: IO[Quizzes] = for {
+    val r: F[Quizzes] = for {
       ids <- quizzStore.listNames()
       errorOrQuizzList <-
         ids.toList
@@ -88,13 +88,12 @@ object RouteProviders extends LazyLogging {
       (errors, quizzes) = errorOrQuizzList.partitionMap(identity)
     } yield Quizzes(quizzes, errors)
     r.redeem(
-        error => {
-          RouteProviders.logger.error("Error on request", error)
-          Left(())
-        },
-        v => Right(v)
-      )
-      .unsafeToFuture()
+      error => {
+        RouteProviders.logger.error("Error on request", error)
+        Left(())
+      },
+      v => Right(v)
+    )
   }
 
   def addQuizzProvider[F[_]: Sync](

@@ -60,10 +60,8 @@ object WebApp extends IOApp with LazyLogging {
       import Endpoints._
       import RouteProviders._
       import akka.actor.ActorSystem
-      val v: String => Future[Either[Unit, Api.ValidationResult]] = validateProvider[Future]
+      val validate: String => Future[Either[Unit, Api.ValidationResult]] = validateProvider[Future]
       IO {
-        val queryToFuture: Api.QuizzQuery => IO[Either[String, Api.QuizzState]] =
-          routeWithPathProvider(store)(_)
         val route = routeEndpoint.toRoute(
           track(tracking, routeWithPathProvider(store)(_))(_).unsafeToFuture()
         )
@@ -78,7 +76,7 @@ object WebApp extends IOApp with LazyLogging {
           )
         val add                   = addQuizz.toRoute(addQuizzProvider(store)(_).unsafeToFuture())
         val delete                = deleteQuizz.toRoute(deleteQuizzProvider(store)(_).unsafeToFuture())
-        val validateRoute         = validateEndpoint.toRoute(v)
+        val validateRoute         = validateEndpoint.toRoute(validate)
         val trackingSessionsRoute = trackingSessions.toRoute(trackingSessionsProvider(tracking))
         val trackingSessionRoute =
           trackingSession.toRoute(trackingSessionProvider(tracking)(_).unsafeToFuture())

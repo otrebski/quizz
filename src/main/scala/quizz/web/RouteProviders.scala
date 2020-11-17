@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.{ Date, UUID }
 
 import cats.Applicative
-import cats.effect.{ IO, Sync }
+import cats.effect.Sync
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
@@ -15,7 +15,6 @@ import quizz.tracking.Tracking
 import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes }
 import sttp.model.{ Cookie, CookieValueWithMeta }
 
-import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
 import scala.language.higherKinds
 
 object RouteProviders extends LazyLogging {
@@ -41,7 +40,6 @@ object RouteProviders extends LazyLogging {
   )(implicit convert: In => QuizzQuery): F[Either[Error, (Out, CookieValueWithMeta)]] = {
     val (request, cookies)                    = requestAndCookie
     val cookie                                = generateCookie(cookies.find(_.name == "session"))
-    implicit val ec: ExecutionContextExecutor = ExecutionContext.global
     val quizzQuery                            = convert.apply(request)
     val result = for {
       _ <-
@@ -152,9 +150,9 @@ object RouteProviders extends LazyLogging {
     Applicative[F].pure(Right(result))
   }
 
-  def trackingSessionsProvider(
-      tracking: Tracking[IO]
-  ): Unit => Future[Either[String, Api.TrackingSessions]] = { _ =>
+  def trackingSessionsProvider[F[_]:Sync](
+      tracking: Tracking[F]
+  ): Unit => F[Either[String, Api.TrackingSessions]] = { _ =>
     tracking
       .listSessions()
       .map(s =>
@@ -170,7 +168,6 @@ object RouteProviders extends LazyLogging {
       )
       .map(Api.TrackingSessions)
       .map(_.asRight[String])
-      .unsafeToFuture()
   }
 
   def trackingSessionProvider[F[_]: Sync](

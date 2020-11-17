@@ -77,7 +77,7 @@ object WebApp extends IOApp with LazyLogging {
         val add                   = addQuizz.toRoute(addQuizzProvider(store)(_).unsafeToFuture())
         val delete                = deleteQuizz.toRoute(deleteQuizzProvider(store)(_).unsafeToFuture())
         val validateRoute         = validateEndpoint.toRoute(validate)
-        val trackingSessionsRoute = trackingSessions.toRoute(trackingSessionsProvider(tracking))
+        val trackingSessionsRoute = trackingSessions.toRoute(trackingSessionsProvider(tracking).andThen(_.unsafeToFuture()))
         val trackingSessionRoute =
           trackingSession.toRoute(trackingSessionProvider(tracking)(_).unsafeToFuture())
         val static                                 = getFromResourceDirectory("gui")

@@ -165,17 +165,19 @@ class RouteProvidersTest extends AsyncFlatSpec with Matchers {
       _        <- tracking.step("q2", "a;2;3", Instant.ofEpochSecond(200), "s2", none[String])
     } yield tracking
 
-    (for {
-      t <- tracking.unsafeToFuture()
-      r <- RouteProviders.trackingSessionsProvider(t)()
-    } yield r)
-      .map {
-        _.map(_.sessions.toSet) shouldBe Set(
-          Api.TrackingSession("s1", new Date(0), "q1", 100 * 1000),
-          Api.TrackingSession("s2", new Date(0), "q2", 200 * 1000)
-        ).asRight
-      }
+    val x = for {
+      t <- tracking
+      r <- RouteProviders.trackingSessionsProvider(t).apply(())
+    } yield r
+
+    x.unsafeToFuture().map {
+      _.map(_.sessions.toSet) shouldBe Set(
+        Api.TrackingSession("s1", new Date(0), "q1", 100 * 1000),
+        Api.TrackingSession("s2", new Date(0), "q2", 200 * 1000)
+      ).asRight
+    }
   }
+
   "tracking session" should "list single session" in {
     val tracking = for {
       tracking <- MemoryTracking[IO]()

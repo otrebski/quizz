@@ -168,7 +168,7 @@ object ExamplesData extends LazyLogging {
   }
 
   private val exampleSource = Source
-    .fromInputStream(this.getClass.getClassLoader.getResourceAsStream("quizz.mup.json"))
+    .fromInputStream(this.getClass.getClassLoader.getResourceAsStream("tree.mup.json"))
     .mkString
   private val errorOrDecisionTree: Either[String, DecisionTree] =
     Parser.parseInput("example", exampleSource).flatMap(_.toDecisionTree)

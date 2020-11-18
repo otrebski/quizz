@@ -119,7 +119,7 @@ const quizzStateInProgress = JSON.parse(`{
     ]
   }`)
 
-const quizzStateFinish = JSON.parse(`{
+const treeStateFinish = JSON.parse(`{
     "path": "electricity;checkLocal;buildingFuses",
     "currentStep": {
       "id": "buildingFuses",
@@ -185,18 +185,18 @@ const quizzStateFinish = JSON.parse(`{
     ]
   }`)
 
-const quizzes = JSON.parse(`{
+const trees = JSON.parse(`{
   "trees": [
-    { "id": "q1", "title": "Quizz 1" },
-    { "id": "q2", "title": "Quizz 2" }
+    { "id": "q1", "title": "Tree 1" },
+    { "id": "q2", "title": "Tree 2" }
   ],
   "treesWithErrors": []
 }`)
 
-const quizzesWithErrors = JSON.parse(`{
+const treesWithErrors = JSON.parse(`{
   "trees": [
-    { "id": "q1", "title": "Quizz 1" },
-    { "id": "q2", "title": "Quizz 2" }
+    { "id": "q1", "title": "Tree 1" },
+    { "id": "q2", "title": "Tree 2" }
   ],
   "treesWithErrors": [
     {"id": "q3", "error": "Invalid syntax ..."},
@@ -214,8 +214,8 @@ storiesOf('Main page', module)
         <MemoryRouter initialEntries={['/']}>{story()}</MemoryRouter>
     ))
     .add("Trees loading error", () => <Quizzes loadAction={() => new Promise((res, rej) => rej(new Error("server error")))}/>)
-    .add("Trees loaded with errors", () => <Quizzes loadAction={() => new Promise((res) => res(quizzesWithErrors))}/>)
-    .add("Trees all loaded", () => <Quizzes loadAction={() => new Promise((res) => res(quizzes))}/>)
+    .add("Trees loaded with errors", () => <Quizzes loadAction={() => new Promise((res) => res(treesWithErrors))}/>)
+    .add("Trees all loaded", () => <Quizzes loadAction={() => new Promise((res) => res(trees))}/>)
 ;
 
 storiesOf("Step", module)
@@ -233,9 +233,9 @@ storiesOf("Quizz", module)
     .addDecorator(story => (
         <MemoryRouter initialEntries={['/']}>{story()}</MemoryRouter>
     ))
-    .add("Quizz starting", () => <Quizz quizzId="q1" path={[""]} selectAction={(q, s) => new Promise((res) => res(quizzStateStarting))}/>)
-    .add("Quizz in progress", () => <Quizz quizzId="q1" path={["electricity;checkLocal"]} selectAction={(q, s) => new Promise((res) => res(quizzStateInProgress))}/>)
-    .add("Quizz finished", () => <Quizz quizzId="q1" quizzState={quizzStateFinish} selectAction={(q, s) => new Promise((res) => res(quizzStateFinish))}/>)
+    .add("Tree starting", () => <Quizz quizzId="q1" path={[""]} selectAction={(q, s) => new Promise((res) => res(quizzStateStarting))}/>)
+    .add("Tree in progress", () => <Quizz quizzId="q1" path={["electricity;checkLocal"]} selectAction={(q, s) => new Promise((res) => res(quizzStateInProgress))}/>)
+    .add("Tree finished", () => <Quizz quizzId="q1" quizzState={treeStateFinish} selectAction={(q, s) => new Promise((res) => res(treeStateFinish))}/>)
 
 
 storiesOf('Other', module)

@@ -33,7 +33,7 @@ object DatabaseInitializer {
             |(
             |    id        SERIAL PRIMARY KEY,
             |    timestamp timestamp     NOT NULL,
-            |    quizzId   varchar(300)  NOT NULL,
+            |    treeId    varchar(300)  NOT NULL,
             |    path      varchar(2000) NOT NULL,
             |    comment   varchar(5000) NOT NULL,
             |    rate      INT           NOT NULL
@@ -50,7 +50,7 @@ object DatabaseInitializer {
       sql"""CREATE TABLE IF NOT EXISTS trackingstep
         | (
         |    id        SERIAL PRIMARY KEY,
-        |    quizzId   varchar(300)  NOT NULL,
+        |    treeId    varchar(300)  NOT NULL,
         |    path      varchar(2000) NOT NULL,
         |    date      timestamp     NOT NULL,
         |    session   varchar(5000) NOT NULL,

@@ -45,7 +45,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
   "quizListProvider" should "list empty trees" in {
     val mindmups: IO[Either[Unit, DecisionTrees]] = for {
       store    <- MemoryMindmupStore[IO]
-      mindmups <- RouteProviders.quizListProvider(store).apply(List.empty)
+      mindmups <- RouteProviders.treeListProvider(store).apply(List.empty)
     } yield mindmups
     mindmups.unsafeRunSync() match {
       case Right(q)    => q shouldBe DecisionTrees()
@@ -58,7 +58,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
       store    <- MemoryMindmupStore[IO]
       _        <- store.store("a", validMindmup)
       _        <- store.store("b", validMindmup)
-      mindmups <- RouteProviders.quizListProvider(store).apply(List.empty)
+      mindmups <- RouteProviders.treeListProvider(store).apply(List.empty)
     } yield mindmups
     mindmups.unsafeRunSync() match {
       case Right(q) =>

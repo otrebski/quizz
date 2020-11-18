@@ -66,7 +66,7 @@ object SlackFeedbackSender {
     )
     val header = Block(
       Text(
-        s"Feedback ${feedbackIcon(feedback)} for quiz ${feedback.treeId}",
+        s"Feedback ${feedbackIcon(feedback)} for tree ${feedback.treeId}",
         `type` = "plain_text"
       ),
       block_id = "header".some,

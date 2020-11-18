@@ -65,7 +65,7 @@ object WebApp extends IOApp with LazyLogging {
           routeEndpointStart.toRoute(
             track(tracking, routeWithPathProvider(store)(_))(_).unsafeToFuture()
           )
-        val routeList = listTrees.toRoute(quizListProvider(store).andThen(_.unsafeToFuture()))
+        val routeList = listTrees.toRoute(treeListProvider(store).andThen(_.unsafeToFuture()))
         val routeFeedback =
           feedback.toRoute(
             track(tracking, feedbackProvider[IO](store, feedbackSenders))(_).unsafeToFuture()

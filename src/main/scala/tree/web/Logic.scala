@@ -10,7 +10,7 @@ object Logic {
 
   def calculateState(
                       request: Api.DecisionTreeQuery,
-                      trees: Map[String, DecisionTree] //TODO replace map with single Quizz
+                      trees: Map[String, DecisionTree] //TODO replace map with single Tree
   ): Either[String, Api.DecisionTreeState] = {
 
     val maybeTree = trees.get(request.id)
@@ -28,10 +28,10 @@ object Logic {
   ): Either[String, Api.DecisionTreeState] = {
     val path     = request.path
     val pathList = path.split(";").toList.reverse
-    def newState(quizz: DecisionTree): Either[String, Api.DecisionTreeState] =
+    def newState(tree: DecisionTree): Either[String, Api.DecisionTreeState] =
       pathList match {
         case head :: Nil if head == "" =>
-          val answers = quizz.firstStep
+          val answers = tree.firstStep
             .asInstanceOf[Question]
             .answers
             .map(kv => Api.Answer(kv._2.id, kv._1))
@@ -40,13 +40,13 @@ object Logic {
             Api.DecisionTreeState(
               path = "",
               currentStep = Api
-                .Step(id = quizz.firstStep.id, question = quizz.firstStep.text, answers = answers)
+                .Step(id = tree.firstStep.id, question = tree.firstStep.text, answers = answers)
             )
           )
 
         case head :: tail =>
           val r: Either[String, DecisionTreeEngine.SelectionResult] =
-            DecisionTreeEngine.process(head, quizz.firstStep, tail)
+            DecisionTreeEngine.process(head, tree.firstStep, tail)
 
           r.map(_.current)
             .map {
@@ -76,11 +76,11 @@ object Logic {
 
       }
 
-    def valueSteps(quizz: DecisionTree): Either[String, List[model.DecisionTreeStep]] =
-      DecisionTreeEngine.history(quizz.firstStep, pathList)
+    def valueSteps(tree: DecisionTree): Either[String, List[model.DecisionTreeStep]] =
+      DecisionTreeEngine.history(tree.firstStep, pathList)
 
-    def history(quizz: DecisionTree): Either[String, List[Api.HistoryStep]] =
-      valueSteps(quizz)
+    def history(tree: DecisionTree): Either[String, List[Api.HistoryStep]] =
+      valueSteps(tree)
         .map(h =>
           h.foldLeft(List.empty[Api.HistoryStep]) { (list, step) =>
               val path = list.map(_.id).reverse
@@ -108,16 +108,16 @@ object Logic {
 
   }
 
-  def calculateStateOnPathStart(quiz: model.DecisionTreeStep): Either[String, Api.DecisionTreeState] =
-    quiz match {
+  def calculateStateOnPathStart(tree: model.DecisionTreeStep): Either[String, Api.DecisionTreeState] =
+    tree match {
       case q: Question =>
         val answers: List[Api.Answer] = q.answers.map(kv => Api.Answer(kv._2.id, kv._1)).toList
         Right(
           Api.DecisionTreeState(
-            path = quiz.id,
-            currentStep = Api.Step(id = quiz.id, question = quiz.text, answers = answers)
+            path = tree.id,
+            currentStep = Api.Step(id = tree.id, question = tree.text, answers = answers)
           )
         )
-      case _ => Left("Quiz have to starts question")
+      case _ => Left("Tree have to starts question")
     }
 }

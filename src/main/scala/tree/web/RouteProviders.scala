@@ -66,13 +66,13 @@ object RouteProviders extends LazyLogging {
     } yield result
   }
 
-  def quizListProvider[F[_]: Sync](
+  def treeListProvider[F[_]: Sync](
                                     treeStore: MindmupStore[F]
   ): List[Cookie] => F[Either[Unit, Api.DecisionTrees]] = { _ =>
     import mindmup._
     val r: F[DecisionTrees] = for {
       ids <- treeStore.listNames()
-      errorOrQuizzList <-
+      errorOrTreeList <-
         ids.toList
           .traverse(id =>
             treeStore
@@ -83,7 +83,7 @@ object RouteProviders extends LazyLogging {
                 case Right(value) => Right(Api.DecisionTreeInfo(id, value.name))
               }
           )
-      (errors, trees) = errorOrQuizzList.partitionMap(identity)
+      (errors, trees) = errorOrTreeList.partitionMap(identity)
     } yield DecisionTrees(trees, errors)
     r.redeem(
       error => {

@@ -1,13 +1,13 @@
 package quizz.feedback
 
-import cats.effect.{ Clock, IO, Sync }
+import cats.effect.{Clock, IO, Sync}
 import cats.syntax.option._
 import com.typesafe.scalalogging.LazyLogging
 import doobie.quill.DoobieContext
 import doobie.util.transactor.Transactor.Aux
 import io.getquill.Literal
 import quizz.db.Feedback
-import quizz.web.Api.{ FeedbackSend, QuizzState }
+import quizz.web.Api.{FeedbackSend, QuizzState}
 
 import scala.language.higherKinds
 

@@ -3,7 +3,7 @@ package mindmup
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.semiauto._
 import io.circe.parser._
-import io.circe.{ Decoder, _ }
+import io.circe.{Decoder, _}
 
 object Parser extends LazyLogging {
 
@@ -33,8 +33,9 @@ object Parser extends LazyLogging {
             val fixedJson = json.replaceAll("\"id\":\\s*(\\d+)", "\"id\": \"$1\"")
             val r         = parse(fixedJson).flatMap(mindMupDecoder.decodeJson)
             r match {
-              case Left(_)  => logger.warn(s"Could not parse $name")
-              case Right(_) => logger.info(s"$name parsed successfully after replacing INT id as STRING id")
+              case Left(_) => logger.warn(s"Could not parse $name")
+              case Right(_) =>
+                logger.info(s"$name parsed successfully after replacing INT id as STRING id")
             }
             r.left.map(_.getMessage)
           case Right(value) =>

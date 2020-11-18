@@ -1,9 +1,10 @@
 package quizz.web
 
 import java.time.Instant
-import java.util.{ Date, UUID }
+import java.util.{Date, UUID}
 
-import cats.effect.IO
+import cats.Applicative
+import cats.effect.Sync
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
@@ -11,10 +12,10 @@ import quizz.data.MindmupStore
 import quizz.feedback.FeedbackSender
 import quizz.model.Quizz
 import quizz.tracking.Tracking
-import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes }
-import sttp.model.{ Cookie, CookieValueWithMeta }
+import quizz.web.Api.{AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes}
+import sttp.model.{Cookie, CookieValueWithMeta}
 
-import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
+import scala.language.higherKinds
 
 object RouteProviders extends LazyLogging {
 
@@ -34,44 +35,42 @@ object RouteProviders extends LazyLogging {
   implicit val feedbackConvert: Api.FeedbackSend => QuizzQuery = fs =>
     QuizzQuery(fs.quizzId, fs.path)
 
-  def track[In, Out, Error](tracking: Tracking[IO], f: In => Future[Either[Error, Out]])(
+  def track[In, Out, Error, F[_]: Sync](tracking: Tracking[F], f: In => F[Either[Error, Out]])(
       requestAndCookie: (In, List[Cookie])
-  )(implicit convert: In => QuizzQuery): Future[Either[Error, (Out, CookieValueWithMeta)]] = {
-    val (request, cookies)                    = requestAndCookie
-    val cookie                                = generateCookie(cookies.find(_.name == "session"))
-    implicit val ec: ExecutionContextExecutor = ExecutionContext.global
-    val quizzQuery                            = convert.apply(request)
+  )(implicit convert: In => QuizzQuery): F[Either[Error, (Out, CookieValueWithMeta)]] = {
+    val (request, cookies) = requestAndCookie
+    val cookie             = generateCookie(cookies.find(_.name == "session"))
+    val quizzQuery         = convert.apply(request)
     val result = for {
       _ <-
         tracking
           .step(quizzQuery.id, quizzQuery.path, Instant.now(), cookie.value, none[String])
-          .unsafeToFuture()
       r <- f.apply(request)
       withCookie = r.map(x => (x, cookie))
     } yield withCookie
     result
   }
 
-  def routeWithPathProvider(
-      store: MindmupStore[IO]
+  def routeWithPathProvider[F[_]: Sync](
+      store: MindmupStore[F]
   )(
       request: Api.QuizzQuery
-  ): Future[Either[String, Api.QuizzState]] = {
+  ): F[Either[String, Api.QuizzState]] = {
     import mindmup._
-    (for {
+    for {
       q <-
         store
           .load(request.id)
           .map(s => Parser.parseInput(request.id, s).flatMap(_.toQuizz))
       result = q.flatMap(quizzes => Logic.calculateState(request, Map(request.id -> quizzes)))
-    } yield result).unsafeToFuture()
+    } yield result
   }
 
-  def quizListProvider(
-      quizzStore: MindmupStore[IO]
-  ): List[Cookie] => Future[Either[Unit, Api.Quizzes]] = { _ =>
+  def quizListProvider[F[_]: Sync](
+      quizzStore: MindmupStore[F]
+  ): List[Cookie] => F[Either[Unit, Api.Quizzes]] = { _ =>
     import mindmup._
-    val r: IO[Quizzes] = for {
+    val r: F[Quizzes] = for {
       ids <- quizzStore.listNames()
       errorOrQuizzList <-
         ids.toList
@@ -87,46 +86,46 @@ object RouteProviders extends LazyLogging {
       (errors, quizzes) = errorOrQuizzList.partitionMap(identity)
     } yield Quizzes(quizzes, errors)
     r.redeem(
-        error => {
-          RouteProviders.logger.error("Error on request", error)
-          Left(())
-        },
-        v => Right(v)
-      )
-      .unsafeToFuture()
+      error => {
+        RouteProviders.logger.error("Error on request", error)
+        Left(())
+      },
+      v => Right(v)
+    )
   }
 
-  def addQuizzProvider(
-      store: MindmupStore[IO]
-  )(request: Api.AddQuizz): Future[Either[Unit, AddQuizzResponse]] = {
+  def addQuizzProvider[F[_]: Sync](
+      store: MindmupStore[F]
+  )(request: Api.AddQuizz): F[Either[Unit, AddQuizzResponse]] = {
     import mindmup._
     val id: Either[String, V3IdString.Mindmap] =
       Parser.parseInput(request.id, request.mindmupSource)
     val newQuizzOrError: Either[String, Quizz] = id.flatMap(_.toQuizz).map(_.copy(id = request.id))
 
     newQuizzOrError match {
-      case Left(error) => Future.failed(new Exception(error))
+      case Left(error) => Sync[F].raiseError(new Exception(error))
       case Right(_) =>
         store
           .store(request.id, request.mindmupSource)
           .map(_ => AddQuizzResponse("added").asRight[Unit])
-          .unsafeToFuture()
     }
   }
 
-  def deleteQuizzProvider(
-      store: MindmupStore[IO]
-  )(request: Api.DeleteQuizz): Future[Either[Unit, Unit]] =
+  def deleteQuizzProvider[F[_]: Sync](
+      store: MindmupStore[F]
+  )(request: Api.DeleteQuizz): F[Either[Unit, Unit]] =
     store
       .delete(request.id)
       .map(_.asRight[Unit])
-      .unsafeToFuture()
 
-  def feedbackProvider(store: MindmupStore[IO], feedbackSenders: List[FeedbackSender[IO]])(
+  def feedbackProvider[F[_]: Sync](
+      store: MindmupStore[F],
+      feedbackSenders: List[FeedbackSender[F]]
+  )(
       feedback: Api.FeedbackSend
-  ): Future[Either[String, FeedbackResponse]] = {
+  ): F[Either[String, FeedbackResponse]] = {
     val request = Api.QuizzQuery(feedback.quizzId, feedback.path)
-    val quizzState: IO[Either[String, Api.QuizzState]] = store
+    val quizzState: F[Either[String, Api.QuizzState]] = store
       .load(request.id)
       .map(string =>
         Parser
@@ -134,28 +133,26 @@ object RouteProviders extends LazyLogging {
           .flatMap(_.toQuizz)
           .flatMap(quizz => Logic.calculateState(request, Map(request.id -> quizz)))
       )
-    //TODO pass cookie to feedback
-    val p: IO[Either[String, FeedbackResponse]] = quizzState.flatMap {
+    quizzState.flatMap {
       case Right(quizzState) =>
         feedbackSenders
           .traverse(_.send(feedback, quizzState))
           .map(_ => FeedbackResponse("OK").asRight)
-      case Left(error) => IO.raiseError(new Exception(s"Can't process feedback: $error"))
+      case Left(error) => Sync[F].raiseError(new Exception(s"Can't process feedback: $error"))
     }
-    p.unsafeToFuture()
   }
 
-  val validateProvider: String => Future[Either[Unit, Api.ValidationResult]] = { s =>
+  def validateProvider[F[_]: Applicative]: String => F[Either[Unit, Api.ValidationResult]] = { s =>
     val result = mindmup.Parser.parseInput("validation_test", s) match {
       case Left(error) => Api.ValidationResult(valid = false, List(error))
       case Right(_)    => Api.ValidationResult(valid = true, List.empty[String])
     }
-    Future.successful(Right(result))
+    Applicative[F].pure(Right(result))
   }
 
-  def trackingSessionsProvider(
-      tracking: Tracking[IO]
-  ): Unit => Future[Either[String, Api.TrackingSessions]] = { _ =>
+  def trackingSessionsProvider[F[_]: Sync](
+      tracking: Tracking[F]
+  ): Unit => F[Either[String, Api.TrackingSessions]] = { _ =>
     tracking
       .listSessions()
       .map(s =>
@@ -171,12 +168,11 @@ object RouteProviders extends LazyLogging {
       )
       .map(Api.TrackingSessions)
       .map(_.asRight[String])
-      .unsafeToFuture()
   }
 
-  def trackingSessionProvider(
-      tracking: Tracking[IO]
-  )(query: Api.TrackingSessionHistoryQuery): Future[Either[String, Api.TrackingSessionHistory]] =
+  def trackingSessionProvider[F[_]: Sync](
+      tracking: Tracking[F]
+  )(query: Api.TrackingSessionHistoryQuery): F[Either[String, Api.TrackingSessionHistory]] =
     tracking
       .session(query.session, query.quizzId)
       .map { list =>
@@ -193,6 +189,5 @@ object RouteProviders extends LazyLogging {
           list.map(ts => Api.TrackingStep(ts.quizzId, ts.path, ts.date, ts.session, ts.username))
         Api.TrackingSessionHistory(details, steps).asRight[String]
       }
-      .unsafeToFuture()
 
 }

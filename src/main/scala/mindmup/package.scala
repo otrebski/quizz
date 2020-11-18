@@ -1,9 +1,6 @@
-import cats.{ Eval, Foldable }
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import quizz.model.{ Question, QuizStep, Quizz, SuccessStep }
-
-import scala.collection.{ MapView, immutable }
+import quizz.model.{Question, QuizStep, Quizz, SuccessStep}
 
 package object mindmup extends LazyLogging {
 
@@ -107,9 +104,9 @@ package object mindmup extends LazyLogging {
               val answers: Map[String, QuizStep] = ideas.map {
                 case (k, v) =>
                   val label: Option[String] = for {
-                   attr <- v.attr
-                   parent <-attr.parentConnector
-                   label <- parent.label
+                    attr   <- v.attr
+                    parent <- attr.parentConnector
+                    label  <- parent.label
                   } yield label
                   label.getOrElse("") -> toStep(v)
               }

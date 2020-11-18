@@ -3,7 +3,7 @@ package quizz.web
 import cats.syntax.option._
 import quizz.engine.QuizzEngine
 import quizz.model
-import quizz.model.{ FailureStep, Question, Quizz, SuccessStep }
+import quizz.model.{FailureStep, Question, Quizz, SuccessStep}
 import quizz.web.Api.HistoryStep
 
 object Logic {

@@ -16,7 +16,7 @@
 
 package quizz.engine
 
-import quizz.model.{ FailureStep, Question, QuizStep, SuccessStep }
+import quizz.model.{FailureStep, Question, QuizStep, SuccessStep}
 
 object QuizzEngine {
 

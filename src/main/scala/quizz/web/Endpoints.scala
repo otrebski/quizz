@@ -6,11 +6,12 @@ import java.util.Date
 import io.circe.Decoder.Result
 import io.circe.generic.auto._
 import quizz.web.Api.DeleteQuizz
-import sttp.model.{ Cookie, CookieValueWithMeta }
+import sttp.model.{Cookie, CookieValueWithMeta}
 import sttp.tapir.json.circe._
-import sttp.tapir.{ path, setCookie, _ }
+import sttp.tapir.{path, setCookie, _}
+
 object Endpoints {
-  import io.circe.{ Json, _ }
+  import io.circe.{Json, _}
   implicit val TimestampFormat: Encoder[Date] with Decoder[Date] =
     new Encoder[Date] with Decoder[Date] {
 

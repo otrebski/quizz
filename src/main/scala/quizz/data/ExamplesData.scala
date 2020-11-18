@@ -16,12 +16,13 @@
 
 package quizz.data
 
-import scala.io.Source
 import cats.syntax.show._
 import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
-import quizz.model.{ FailureStep, Question, Quizz, SuccessStep }
-import quizz.web.Api.{ Answer, HistoryStep, QuizzState, Step }
+import quizz.model.{FailureStep, Question, Quizz, SuccessStep}
+import quizz.web.Api.{Answer, HistoryStep, QuizzState, Step}
+
+import scala.io.Source
 
 object ExamplesData extends LazyLogging {
 

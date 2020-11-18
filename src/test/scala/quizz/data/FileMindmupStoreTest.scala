@@ -1,9 +1,9 @@
 package quizz.data
 
+import better.files.File
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import better.files.File
 
 class FileMindmupStoreTest extends AnyFlatSpec with Matchers {
 

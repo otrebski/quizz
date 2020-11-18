@@ -7,7 +7,7 @@ import org.openqa.selenium.support.FindBy;
 
 import java.util.List;
 
-import static org.fluentlenium.core.filter.FilterConstructor.*;
+import static org.fluentlenium.core.filter.FilterConstructor.withId;
 
 
 @PageUrl("http://localhost:3000")

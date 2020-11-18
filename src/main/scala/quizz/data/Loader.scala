@@ -1,12 +1,13 @@
 package quizz.data
 
-import java.io.{ File, FileFilter }
+import java.io.{File, FileFilter}
 
-import scala.io.{ BufferedSource, Source }
 import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
-import mindmup.{ Parser, V3IdString }
+import mindmup.{Parser, V3IdString}
 import quizz.model.Quizz
+
+import scala.io.{BufferedSource, Source}
 
 object Loader extends LazyLogging {
 

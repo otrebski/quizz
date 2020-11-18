@@ -8,8 +8,8 @@ import better.files.Dsl.SymbolicOperations
 import better.files.File
 import cats.Applicative
 import cats.effect.concurrent.Ref
-import cats.effect.{ Async, ContextShift, Sync }
-import cats.implicits.{ catsSyntaxOptionId, none }
+import cats.effect.{Async, ContextShift, Sync}
+import cats.implicits.{catsSyntaxOptionId, none}
 import com.typesafe.scalalogging.LazyLogging
 import doobie.util.transactor.Transactor.Aux
 

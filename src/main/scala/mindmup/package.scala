@@ -1,9 +1,6 @@
-import cats.{ Eval, Foldable }
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import quizz.model.{ Question, QuizStep, Quizz, SuccessStep }
-
-import scala.collection.{ MapView, immutable }
+import quizz.model.{Question, QuizStep, Quizz, SuccessStep}
 
 package object mindmup extends LazyLogging {
 

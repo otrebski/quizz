@@ -18,27 +18,26 @@ package quizz.web
 
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.`Content-Type`
-import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse }
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse}
 import akka.http.scaladsl.server.RejectionHandler
-import cats.effect.{ ExitCode, IO, IOApp }
+import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
-import com.typesafe.config.{ Config, ConfigFactory }
+import cats.instances.future.catsStdInstancesForFuture
+import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
-import quizz.data.{ DbMindMupStore, FileMindmupStore, MemoryMindmupStore, MindmupStore }
+import quizz.data.{DbMindMupStore, FileMindmupStore, MemoryMindmupStore, MindmupStore}
 import quizz.db.DatabaseInitializer
-import quizz.feedback.{ FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender }
-import quizz.tracking.{ DbTracking, FileTracking, MemoryTracking, Tracking }
-import sttp.tapir.server.akkahttp._
-
-import scala.concurrent.{ ExecutionContextExecutor, Future }
-import scala.io.Source
-import scala.util.{ Failure, Try }
+import quizz.feedback.{FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender}
+import quizz.tracking.{DbTracking, FileTracking, MemoryTracking, Tracking}
 import sttp.tapir.docs.openapi._
 import sttp.tapir.openapi.circe.yaml.RichOpenAPI
-import cats.instances.future.catsStdInstancesForFuture
+import sttp.tapir.server.akkahttp._
 import sttp.tapir.swagger.akkahttp.SwaggerAkka
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.io.Source
+import scala.util.{Failure, Try}
 
 object WebApp extends IOApp with LazyLogging {
 

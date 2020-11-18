@@ -12,13 +12,7 @@ import org.scalatest.matchers.should.Matchers
 import quizz.data.MemoryMindmupStore
 import quizz.feedback.LogFeedbackSender
 import quizz.tracking.MemoryTracking
-import quizz.web.Api.{
-  AddQuizzResponse,
-  FeedbackResponse,
-  QuizzInfo,
-  Quizzes,
-  TrackingSessionHistory
-}
+import quizz.web.Api._
 
 import scala.io.Source
 

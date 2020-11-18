@@ -1,14 +1,12 @@
 package quizz.data
 
-import cats.effect.{ Async, ContextShift, IO, Sync }
+import better.files._
+import cats.effect.concurrent.Ref
+import cats.effect.{Async, ContextShift, Sync}
+import cats.{Applicative, FlatMap}
+import doobie.util.transactor.Transactor.Aux
 
 import scala.language.higherKinds
-import better.files._
-import cats.{ Applicative, FlatMap }
-import cats.effect.concurrent.Ref
-import doobie.Transactor
-import doobie.util.transactor.Transactor.Aux
-import quizz.db.DatabaseConfig
 
 trait MindmupStore[F[_]] {
 

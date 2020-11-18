@@ -1,7 +1,7 @@
 package quizz.web
 
 import java.time.Instant
-import java.util.{ Date, UUID }
+import java.util.{Date, UUID}
 
 import cats.Applicative
 import cats.effect.Sync
@@ -12,8 +12,8 @@ import quizz.data.MindmupStore
 import quizz.feedback.FeedbackSender
 import quizz.model.Quizz
 import quizz.tracking.Tracking
-import quizz.web.Api.{ AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes }
-import sttp.model.{ Cookie, CookieValueWithMeta }
+import quizz.web.Api.{AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes}
+import sttp.model.{Cookie, CookieValueWithMeta}
 
 import scala.language.higherKinds
 

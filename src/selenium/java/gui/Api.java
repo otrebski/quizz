@@ -22,13 +22,13 @@ public class Api {
         return IOUtils.toString(stream, StandardCharsets.UTF_8);
     }
 
-    static void addTree(String id, String quizzSource) throws Exception {
-        addTree(URL, id, quizzSource);
+    static void addTree(String id, String treeSource) throws Exception {
+        addTree(URL, id, treeSource);
     }
 
-    static void addTree(String url, String id, String quizzSource) throws Exception {
+    static void addTree(String url, String id, String treeSource) throws Exception {
         String url1 = url + "/api/tree/" + id;
-        int status = Unirest.put(url1).body(quizzSource).asString().getStatus();
+        int status = Unirest.put(url1).body(treeSource).asString().getStatus();
         validateStatus(status);
     }
 
@@ -48,9 +48,9 @@ public class Api {
     static List<String> listTrees(String url) throws Exception {
         List<String> result = new ArrayList<>();
         JsonNode body = Unirest.get(url + "/api/tree/").asJson().getBody();
-        JSONArray quizzes = body.getObject().getJSONArray("trees");
-        for (int i = 0; i < quizzes.length(); i++) {
-            String id = quizzes.getJSONObject(i).getString("id");
+        JSONArray trees = body.getObject().getJSONArray("trees");
+        for (int i = 0; i < trees.length(); i++) {
+            String id = trees.getJSONObject(i).getString("id");
             result.add(id);
         }
         return result;

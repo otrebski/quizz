@@ -50,22 +50,22 @@ class Trees extends React.Component {
 
         </Alert></div> : <div/>
         const trees = this.state.trees.map(q =>
-            <div id="tree-link" key={q.id} className="quizzLink">
+            <div id="tree-link" key={q.id} className="treeLink">
                 <Link id={q.id} to={`/tree/${q.id}`}>{q.title}</Link>
             </div>);
         const error = this.state.loadingError ? <Alert variant={"danger"}>Can't load data: {this.state.error}</Alert> : <div/>
         const invalidTrees = (this.state.treesWithErrors.length !== 0) ? <div><Alert variant={"warning"}>
             <Alert.Heading>Following decision trees can't be parsed {this.state.treesWithErrors.size}: </Alert.Heading>
             <hr/>
-            <div className="quizzParsingError">
-                {this.state.treesWithErrors.map(eq => <p key={eq.id}><b>Quizz {eq.id}:</b> {eq.error}</p>)}
+            <div className="treeParsingError">
+                {this.state.treesWithErrors.map(eq => <p key={eq.id}><b>Tree {eq.id}:</b> {eq.error}</p>)}
             </div>
 
         </Alert></div> : <div/>
 
         return (
             <div>
-                <h2 id="quizz-list-header">Choose decision tree to start:</h2>
+                <h2 id="tree-list-header">Choose decision tree to start:</h2>
                 {noTrees}
                 {error}
                 {trees}

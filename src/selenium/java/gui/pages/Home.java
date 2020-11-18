@@ -23,11 +23,11 @@ public class Home extends FluentPage {
     }
 
     public List<String> listTrees() {
-        return $(withId("quizz-link")).$("a").texts();
+        return $(withId("tree-link")).$("a").texts();
     }
 
     public Home displayed() {
-        $(withId("quizz-list-header")).await().until().displayed();
+        $(withId("tree-list-header")).await().until().displayed();
         return this;
     }
 

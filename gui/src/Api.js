@@ -1,14 +1,14 @@
 const Api = {
 
-    getQuizes: () => {
+    getTrees: () => {
         const requestUrl = `/api/tree/`;
         return fetch(requestUrl)
             .then(Api.checkStatus)
             .then(response => response.json())
     },
 
-    sendReponse: (quizz, path) => {
-        const requestUrl = `/api/tree/` + quizz + '/path/' + path;
+    sendResponse: (treeId, path) => {
+        const requestUrl = `/api/tree/` + treeId + '/path/' + path;
         return fetch(requestUrl)
             .then(Api.checkStatus)
             .then(response => response.json())

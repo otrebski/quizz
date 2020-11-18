@@ -1,13 +1,13 @@
 import React from 'react';
 import './App.css';
-import Quizz from "./components/Tree"
+import Tree from "./components/Tree"
 import Api from "./Api"
 import { BrowserRouter as Router, Route , Link} from "react-router-dom";
 import Trees from "./components/Trees";
 
 function App() {
 
-  const Index = <div><Trees loadAction={() => Api.getQuizes()}/></div>
+  const Index = <div><Trees loadAction={() => Api.getTrees()}/></div>
 
   return (
     <div>
@@ -16,10 +16,10 @@ function App() {
         <div className="App">
           <Route path="/" exact render={() => Index} />
           <Route path="/tree/:id/path/:path" exact render={(query) => {
-            return <Quizz
+            return <Tree
                 treeId={query.match.params.id}
                 path={query.match.params.path}
-                selectAction={(treeId, path) => Api.sendReponse(treeId, path)}
+                selectAction={(treeId, path) => Api.sendResponse(treeId, path)}
                 feedbackSendAction={(rate, comment, treeId, path) => Api.sendFeedback(rate, comment, treeId, path)}
             />
           }
@@ -27,11 +27,11 @@ function App() {
 
           <Route path="/tree/:id" exact render={(query) => {
             const match = query.match;
-            return <Quizz
+            return <Tree
                 {...query}
                 treeId={match.params.id}
                 path=""
-                selectAction={(treeId, path) => Api.sendReponse(treeId, path)}
+                selectAction={(treeId, path) => Api.sendResponse(treeId, path)}
                 feedbackSendAction={(rate, comment, treeId, path) => Api.sendFeedback(rate, comment, treeId, path)}
             />
           }

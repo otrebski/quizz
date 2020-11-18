@@ -51,7 +51,7 @@ public class SeleniumTest extends FluentTest {
     }
 
     @Test
-    public void reloadQuizzes() throws Exception {
+    public void reloadTrees() throws Exception {
         Api.addTree("t1", simpleTree.replaceAll("Root node", "t1"));
         Api.addTree("t2", simpleTree.replaceAll("Root node", "t2"));
         assertThat(goTo(homePage).listTrees()).contains("t1", "t2");

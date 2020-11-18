@@ -8,7 +8,7 @@ import Quizz from '../components/Quizz'
 
 import Feedback from '../components/Feedback';
 import 'bootstrap/dist/css/bootstrap.css';
-import Quizzes from "../components/Quizzes";
+import Trees from "../components/Trees";
 
 const answers = [
     {id: "id1", text: "Yes"},
@@ -213,9 +213,9 @@ storiesOf('Main page', module)
     .addDecorator(story => (
         <MemoryRouter initialEntries={['/']}>{story()}</MemoryRouter>
     ))
-    .add("Trees loading error", () => <Quizzes loadAction={() => new Promise((res, rej) => rej(new Error("server error")))}/>)
-    .add("Trees loaded with errors", () => <Quizzes loadAction={() => new Promise((res) => res(treesWithErrors))}/>)
-    .add("Trees all loaded", () => <Quizzes loadAction={() => new Promise((res) => res(trees))}/>)
+    .add("Trees loading error", () => <Trees loadAction={() => new Promise((res, rej) => rej(new Error("server error")))}/>)
+    .add("Trees loaded with errors", () => <Trees loadAction={() => new Promise((res) => res(treesWithErrors))}/>)
+    .add("Trees all loaded", () => <Trees loadAction={() => new Promise((res) => res(trees))}/>)
 ;
 
 storiesOf("Step", module)

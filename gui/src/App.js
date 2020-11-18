@@ -3,11 +3,11 @@ import './App.css';
 import Quizz from "./components/Quizz"
 import Api from "./Api"
 import { BrowserRouter as Router, Route , Link} from "react-router-dom";
-import Quizzes from "./components/Quizzes";
+import Trees from "./components/Trees";
 
 function App() {
 
-  const Index = <div><Quizzes loadAction={() => Api.getQuizes()}/></div>
+  const Index = <div><Trees loadAction={() => Api.getQuizes()}/></div>
 
   return (
     <div>

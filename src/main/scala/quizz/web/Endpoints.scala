@@ -9,6 +9,7 @@ import quizz.web.Api.DeleteQuizz
 import sttp.model.{ Cookie, CookieValueWithMeta }
 import sttp.tapir.json.circe._
 import sttp.tapir.{ path, setCookie, _ }
+
 object Endpoints {
   import io.circe.{ Json, _ }
   implicit val TimestampFormat: Encoder[Date] with Decoder[Date] =

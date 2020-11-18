@@ -14,7 +14,7 @@ RUN sbt universal:packageZipTarball
 
 FROM openjdk:8
 EXPOSE 8080:8080
-COPY --from=1 /workdir/target/universal/quizz-0.2.tgz /
-RUN tar xzvf /quizz-0.2.tgz
-ENTRYPOINT ["quizz-0.2/bin/quizz"]
+COPY --from=1 /workdir/target/universal/decisiontree-0.2.tgz /
+RUN tar xzvf /decisiontree-0.2.tgz
+ENTRYPOINT ["decisiontree-0.2/bin/decisiontree"]
 CMD []

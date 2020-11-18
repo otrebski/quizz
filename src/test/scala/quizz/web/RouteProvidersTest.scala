@@ -27,7 +27,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
   private val validMindmup = Source.fromResource("mindmup/mindmup_with_notes.mup.json").mkString
 
   "validateProvider" should "valid correct mindmup" in {
-    RouteProviders.validateProvider[IO].apply(validMindmup).unsafeRunSync() shouldBe Api
+    RouteProviders.validateProvider[Id].apply(validMindmup) shouldBe Api
       .ValidationResult(valid = true, List.empty[String])
       .asRight
 
@@ -49,7 +49,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
   }
 
   "quizListProvider" should "list empty quizzes" in {
-    val mindmups = for {
+    val mindmups: IO[Either[Unit, Quizzes]] = for {
       store    <- MemoryMindmupStore[IO]
       mindmups <- RouteProviders.quizListProvider(store).apply(List.empty)
     } yield mindmups

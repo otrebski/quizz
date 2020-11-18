@@ -68,12 +68,12 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
   }
 
   "addQuizzProvider" should "add quizz" in {
-    val future = for {
+    val io = for {
       store       <- MemoryMindmupStore[IO]()
       addResponse <- RouteProviders.addQuizzProvider(store)(Api.AddQuizz("a", validMindmup))
       mindmups    <- store.listNames()
     } yield (addResponse, mindmups)
-    future.unsafeRunSync() shouldBe (AddQuizzResponse("added").asRight, Set("a"))
+    io.unsafeRunSync() shouldBe (AddQuizzResponse("added").asRight, Set("a"))
 
   }
 
@@ -98,12 +98,9 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
         Api.QuizzQuery("a", "")
       )
     } yield result
-    io.map(_.map(_.currentStep.question))
-      .map {
-        _ shouldBe "Starting point".asRight
-      }
-      .unsafeToFuture()
+    io.map(_.map(_.currentStep.question)).unsafeRunSync() shouldBe "Starting point".asRight
   }
+
   "routeWithPathProvider" should " return correct quizz state" in {
     val io = for {
       store <- MemoryMindmupStore[IO]
@@ -112,11 +109,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
         Api.QuizzQuery("a", "root;3.eeff.d297c2367-0c3d.6aa7f21a")
       )
     } yield result
-    io.map(_.map(_.currentStep.question))
-      .map {
-        _ shouldBe "Node2".asRight
-      }
-      .unsafeToFuture()
+    io.map(_.map(_.currentStep.question)).unsafeRunSync() shouldBe "Node2".asRight
   }
 
   "routeWithPathProvider" should " return error for wrong path" in {
@@ -125,11 +118,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
       _      <- store.store("a", validMindmup)
       result <- RouteProviders.routeWithPathProvider(store)(Api.QuizzQuery("a", "root;wrong path"))
     } yield result
-    io.map(_.map(_.currentStep.question))
-      .map {
-        _ shouldBe "Wrong selection".asLeft
-      }
-      .unsafeToFuture()
+    io.map(_.map(_.currentStep.question)).unsafeRunSync() shouldBe "Wrong selection".asLeft
   }
 
   "feedbackProvider" should "send feedback" in {
@@ -179,16 +168,13 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
       t <- tracking
       r <- RouteProviders.trackingSessionProvider(t)(Api.TrackingSessionHistoryQuery("s1", "q1"))
     } yield r)
-      .map {
-        _ shouldBe TrackingSessionHistory(
+      .unsafeRunSync() shouldBe TrackingSessionHistory(
           details = Api.TrackingSession("s1", new Date(0), "q1", 100 * 1000),
           steps = List(
             Api.TrackingStep("q1", "a", new Date(0), "s1", none[String]),
             Api.TrackingStep("q1", "a;2", new Date(100 * 1000), "s1", none[String])
           )
         ).asRight
-      }
-      .unsafeToFuture()
   }
 
 }

@@ -4,7 +4,7 @@ import {storiesOf} from '@storybook/react';
 import {MemoryRouter} from "react-router-dom"; // our router
 import Step from '../components/Step'
 import HistoryStep from '../components/HistoryStep'
-import Quizz from '../components/Quizz'
+import Tree from '../components/Tree'
 
 import Feedback from '../components/Feedback';
 import 'bootstrap/dist/css/bootstrap.css';
@@ -21,7 +21,7 @@ const historyAnswers = [
     {id: "id3", text: "Maybe"}
 ]
 
-const quizzStateStarting = JSON.parse(`{
+const treeStateStarting = JSON.parse(`{
   "path": "",
   "currentStep": {
     "id": "buildingFuses",
@@ -42,7 +42,7 @@ const quizzStateStarting = JSON.parse(`{
   },
   "history": []
 }`)
-const quizzStateInProgress = JSON.parse(`{
+const treeStateInProgress = JSON.parse(`{
     "path": "electricity;checkLocal;buildingFuses",
     "currentStep": {
       "id": "buildingFuses",
@@ -229,13 +229,13 @@ storiesOf("Step", module)
     .add("HistoryStep", () => <HistoryStep question="How do you feel today?" answers={historyAnswers} path={["a", "b"]}/>)
     .add("HistoryStep with markdown", () => <HistoryStep question="How do you *feel* **today?**" answers={historyAnswers} path={["a", "b"]}/>)
 
-storiesOf("Quizz", module)
+storiesOf("Tree", module)
     .addDecorator(story => (
         <MemoryRouter initialEntries={['/']}>{story()}</MemoryRouter>
     ))
-    .add("Tree starting", () => <Quizz quizzId="q1" path={[""]} selectAction={(q, s) => new Promise((res) => res(quizzStateStarting))}/>)
-    .add("Tree in progress", () => <Quizz quizzId="q1" path={["electricity;checkLocal"]} selectAction={(q, s) => new Promise((res) => res(quizzStateInProgress))}/>)
-    .add("Tree finished", () => <Quizz quizzId="q1" quizzState={treeStateFinish} selectAction={(q, s) => new Promise((res) => res(treeStateFinish))}/>)
+    .add("Tree starting", () => <Tree treeId="q1" path={[""]} selectAction={(q, s) => new Promise((res) => res(treeStateStarting))}/>)
+    .add("Tree in progress", () => <Tree treeId="q1" path={["electricity;checkLocal"]} selectAction={(q, s) => new Promise((res) => res(treeStateInProgress))}/>)
+    .add("Tree finished", () => <Tree treeId="q1" treeState={treeStateFinish} selectAction={(q, s) => new Promise((res) => res(treeStateFinish))}/>)
 
 
 storiesOf('Other', module)

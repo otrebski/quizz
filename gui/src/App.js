@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import Quizz from "./components/Quizz"
+import Quizz from "./components/Tree"
 import Api from "./Api"
 import { BrowserRouter as Router, Route , Link} from "react-router-dom";
 import Trees from "./components/Trees";

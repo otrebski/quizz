@@ -3,7 +3,7 @@ import Step from './Step'
 import Feedback from './Feedback';
 import HistoryStep from './HistoryStep';
 
-class Quiz extends React.Component {
+class Tree extends React.Component {
 
     constructor(props) {
         super(props);
@@ -126,4 +126,4 @@ class Quiz extends React.Component {
     }
 }
 
-export default Quiz
+export default Tree

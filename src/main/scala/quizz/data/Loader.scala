@@ -5,20 +5,20 @@ import java.io.{File, FileFilter}
 import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
 import mindmup.{Parser, V3IdString}
-import quizz.model.Quizz
+import quizz.model.DecisionTree
 
 import scala.io.{BufferedSource, Source}
 
 object Loader extends LazyLogging {
 
   //TODO IO[]
-  def fromFolder(folder: File): Either[String, List[Quizz]] = {
+  def fromFolder(folder: File): Either[String, List[DecisionTree]] = {
     val files = folder.listFiles(new FileFilter {
       override def accept(pathname: File): Boolean =
         pathname.isFile && pathname.getName.endsWith("mup")
     })
 
-    files.map(fromFile).foldLeft(List.empty[Quizz].asRight[String]) {
+    files.map(fromFile).foldLeft(List.empty[DecisionTree].asRight[String]) {
       case (Right(list), Right(quizz)) => Right(quizz :: list)
       case (Left(error), _)            => Left(error)
       case (_, Left(error))            => Left(error)
@@ -26,7 +26,7 @@ object Loader extends LazyLogging {
   }
 
   //TODO IO[]
-  def fromFile(file: File): Either[String, Quizz] = {
+  def fromFile(file: File): Either[String, DecisionTree] = {
     val source: BufferedSource = Source.fromFile(file)
     try {
       val content: String                           = source.mkString

@@ -11,15 +11,15 @@ class Quizzes extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            quizzes: [],
-            errorQuizzes: [],
+            trees: [],
+            treesWithErrors: [],
             loading: true,
             error: ""
         }
-        this.loadQuizzes(true)
+        this.loadTrees(true)
     }
 
-    loadQuizzes = (initial) => {
+    loadTrees = (initial) => {
         if (!initial) {
             this.setState({
                 loading: true,
@@ -30,48 +30,48 @@ class Quizzes extends React.Component {
         this.props.loadAction()
             .then(q =>
                 this.setState({
-                    quizzes: q.quizzes,
-                    errorQuizzes: q.errorQuizzes,
+                    trees: q.trees,
+                    treesWithErrors: q.treesWithErrors,
                     loading: false
                 })
             ).catch(e => {
-                this.setState({loading: false, loadingError: true, error: e.message, quizzes: [], errorQuizzes: []})
+                this.setState({loading: false, loadingError: true, error: e.message, trees: [], treesWithErrors: []})
             }
         )
     };
 
     render() {
-        const noQuizz = (this.state.quizzes.length === 0) ? <div><Alert variant={"secondary"}>
-            <Alert.Heading>There is no quizzes defined</Alert.Heading>
+        const noTrees = (this.state.trees.length === 0) ? <div><Alert variant={"secondary"}>
+            <Alert.Heading>There is no decision trees defined</Alert.Heading>
             <hr/>
             <div>
-               Check in documentation how to define and load quizz.
+               Check in documentation how to define and load decision tree.
             </div>
 
         </Alert></div> : <div/>
-        const quizzes = this.state.quizzes.map(q =>
-            <div id="quizz-link" key={q.id} className="quizzLink">
-                <Link id={q.id} to={`/quizz/${q.id}`}>{q.title}</Link>
+        const trees = this.state.trees.map(q =>
+            <div id="tree-link" key={q.id} className="quizzLink">
+                <Link id={q.id} to={`/tree/${q.id}`}>{q.title}</Link>
             </div>);
         const error = this.state.loadingError ? <Alert variant={"danger"}>Can't load data: {this.state.error}</Alert> : <div/>
-        const invalidQuizzes = (this.state.errorQuizzes.length !== 0) ? <div><Alert variant={"warning"}>
-            <Alert.Heading>Following quizzes can't be parsed {this.state.errorQuizzes.size}: </Alert.Heading>
+        const invalidTrees = (this.state.treesWithErrors.length !== 0) ? <div><Alert variant={"warning"}>
+            <Alert.Heading>Following decision trees can't be parsed {this.state.treesWithErrors.size}: </Alert.Heading>
             <hr/>
             <div className="quizzParsingError">
-                {this.state.errorQuizzes.map(eq => <p key={eq.id}><b>Quizz {eq.id}:</b> {eq.error}</p>)}
+                {this.state.treesWithErrors.map(eq => <p key={eq.id}><b>Quizz {eq.id}:</b> {eq.error}</p>)}
             </div>
 
         </Alert></div> : <div/>
 
         return (
             <div>
-                <h2 id="quizz-list-header">Choose quiz to start:</h2>
-                {noQuizz}
+                <h2 id="quizz-list-header">Choose decision tree to start:</h2>
+                {noTrees}
                 {error}
-                {quizzes}
-                {invalidQuizzes}
+                {trees}
+                {invalidTrees}
                 <Button variant="light" disabled={this.state.isLoading}
-                        onClick={!this.state.loading ? () => this.loadQuizzes(false) : null}>{this.state.loading ? 'Loading…' : 'Click to reload'}</Button>
+                        onClick={!this.state.loading ? () => this.loadTrees(false) : null}>{this.state.loading ? 'Loading…' : 'Click to reload'}</Button>
             </div>
         );
     }

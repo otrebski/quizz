@@ -19,7 +19,7 @@ class HistoryStep extends React.Component {
                 let path = Array.from(this.props.path);
                 path.push(this.props.id);
                 path.push(a.id);
-                return <Link key={a.id} to={`/quizz/${this.props.quizzId}/path/${path.join(";")}`}>
+                return <Link key={a.id} to={`/tree/${this.props.quizzId}/path/${path.join(";")}`}>
                 <ListGroup.Item
                     key={a.id}
                     action

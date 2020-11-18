@@ -16,14 +16,14 @@
 
 package quizz.engine
 
-import quizz.model.{FailureStep, Question, QuizStep, SuccessStep}
+import quizz.model.{FailureStep, Question, DecisionTreeStep, SuccessStep}
 
-object QuizzEngine {
+object DecisionTreeEngine {
 
-  case class SelectionResult(current: QuizStep, selections: List[String])
+  case class SelectionResult(current: DecisionTreeStep, selections: List[String])
 
-  def history(quiz: QuizStep, selections: List[String]): Either[String, List[QuizStep]] = {
-    def next(current: QuizStep, path: List[String]): Either[String, List[QuizStep]] =
+  def history(tree: DecisionTreeStep, selections: List[String]): Either[String, List[DecisionTreeStep]] = {
+    def next(current: DecisionTreeStep, path: List[String]): Either[String, List[DecisionTreeStep]] =
       path match {
         case head :: tail =>
           current match {
@@ -38,18 +38,18 @@ object QuizzEngine {
         case Nil => Right(Nil)
       }
 
-    if (selections.reverse.headOption.contains(quiz.id))
-      next(quiz, selections.dropRight(1).tail.reverse).map(quiz :: _)
+    if (selections.reverse.headOption.contains(tree.id))
+      next(tree, selections.dropRight(1).tail.reverse).map(tree :: _)
     else
       Left("Wrong path, not starting with first node selection")
   }
 
   def process(
-      answerId: String,
-      quiz: QuizStep,
-      selections: List[String]
+               answerId: String,
+               tree: DecisionTreeStep,
+               selections: List[String]
   ): Either[String, SelectionResult] = {
-    def select(path: List[String], tree: QuizStep): Either[String, QuizStep] =
+    def select(path: List[String], tree: DecisionTreeStep): Either[String, DecisionTreeStep] =
       path.headOption match {
         case Some(c) =>
           tree match {
@@ -73,8 +73,8 @@ object QuizzEngine {
             case f: FailureStep => Right(f)
           }
       }
-    if (selections.reverse.headOption.contains(quiz.id)) {
-      val value: Either[String, QuizStep] = select(selections.reverse.drop(1), quiz)
+    if (selections.reverse.headOption.contains(tree.id)) {
+      val value: Either[String, DecisionTreeStep] = select(selections.reverse.drop(1), tree)
       value.map(step => SelectionResult(step, answerId :: selections))
     } else
       Left("Wrong path, not starting with first node selection")

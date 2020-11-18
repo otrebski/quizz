@@ -186,19 +186,19 @@ const quizzStateFinish = JSON.parse(`{
   }`)
 
 const quizzes = JSON.parse(`{
-  "quizzes": [
+  "trees": [
     { "id": "q1", "title": "Quizz 1" },
     { "id": "q2", "title": "Quizz 2" }
   ],
-  "errorQuizzes": []
+  "treesWithErrors": []
 }`)
 
 const quizzesWithErrors = JSON.parse(`{
-  "quizzes": [
+  "trees": [
     { "id": "q1", "title": "Quizz 1" },
     { "id": "q2", "title": "Quizz 2" }
   ],
-  "errorQuizzes": [
+  "treesWithErrors": [
     {"id": "q3", "error": "Invalid syntax ..."},
     {"id": "q4", "error": "Node(1) / ..."}
   ]
@@ -213,9 +213,9 @@ storiesOf('Main page', module)
     .addDecorator(story => (
         <MemoryRouter initialEntries={['/']}>{story()}</MemoryRouter>
     ))
-    .add("Quizzes loading error", () => <Quizzes loadAction={() => new Promise((res, rej) => rej(new Error("server error")))}/>)
-    .add("Quizzes loaded with errors", () => <Quizzes loadAction={() => new Promise((res) => res(quizzesWithErrors))}/>)
-    .add("Quizzes all loaded", () => <Quizzes loadAction={() => new Promise((res) => res(quizzes))}/>)
+    .add("Trees loading error", () => <Quizzes loadAction={() => new Promise((res, rej) => rej(new Error("server error")))}/>)
+    .add("Trees loaded with errors", () => <Quizzes loadAction={() => new Promise((res) => res(quizzesWithErrors))}/>)
+    .add("Trees all loaded", () => <Quizzes loadAction={() => new Promise((res) => res(quizzes))}/>)
 ;
 
 storiesOf("Step", module)

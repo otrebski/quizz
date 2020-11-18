@@ -8,8 +8,8 @@ class Quiz extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            quizzId: props.quizzId,
-            quizzState: {
+            treeId: props.treeId,
+            treeState: {
                 path: this.props.path,
                 history: [],
                 currentStep: {
@@ -23,20 +23,20 @@ class Quiz extends React.Component {
             errorMessage: "",
             selectAction: props.selectAction
         };
-        this.loadState(this.props.quizzId, this.props.path)
+        this.loadState(this.props.treeId, this.props.path)
     }
 
-    loadState = (quizzId, path) => {
-        console.log("Loading state for quizz " + quizzId + " and path " + path);
+    loadState = (treeId, path) => {
+        console.log("Loading state for tree " + treeId + " and path " + path);
         this.setState({loadingError: false, loading: true})
-        let x = this.props.selectAction(quizzId, path)
+        let x = this.props.selectAction(treeId, path)
         x.then(e => {
             console.log("State loaded")
             this.feedbackAction = (rate, comment) => {
-                this.props.feedbackSendAction(rate, comment, quizzId, path)
+                this.props.feedbackSendAction(rate, comment, treeId, path)
             };
             this.setState({
-                quizzState: e,
+                treeState: e,
                 feedbackSendAction: this.feedbackAction,
                 history: e.history,
                 loading: false
@@ -60,27 +60,27 @@ class Quiz extends React.Component {
     };
 
     componentDidMount() {
-        this.loadState(this.props.quizzId, this.props.path)
+        this.loadState(this.props.treeId, this.props.path)
     }
 
     componentDidUpdate(prevProps) {
-        if (this.props.quizzId !== prevProps.quizzId || this.props.path !== prevProps.path) {
-            this.loadState(this.props.quizzId, this.props.path)
+        if (this.props.treeId !== prevProps.treeId || this.props.path !== prevProps.path) {
+            this.loadState(this.props.treeId, this.props.path)
             this.scrollToBottom();
         }
     }
 
     render() {
-        console.log("Rendering Quizz with props", this.props);
+        console.log("Rendering tree with props", this.props);
         if (this.state.loading) {
             return <div>loading...</div>
         } else if (this.state.loadingError) {
             return <div>Loading error: {this.state.errorMessage}</div>
         } else {
-            const history = this.state.quizzState.history.map(h =>
+            const history = this.state.treeState.history.map(h =>
                 <div key={"history_" + h.id}>
                     <HistoryStep
-                        quizzId={this.props.quizzId}
+                        treeId={this.props.treeId}
                         answers={h.answers}
                         id={h.id}
                         path={h.path}
@@ -89,15 +89,15 @@ class Quiz extends React.Component {
                     <hr/>
                 </div>
             );
-            const isThisLastStep = this.state.quizzState.currentStep.answers.length === 0;
+            const isThisLastStep = this.state.treeState.currentStep.answers.length === 0;
             let currentTitle = isThisLastStep ? "Solution" : "Question:";
             const lastStep = <div>
                 <h2>{currentTitle}</h2>
                 <Step
-                    question={this.state.quizzState.currentStep.question}
-                    answers={this.state.quizzState.currentStep.answers}
-                    path={this.state.quizzState.path}
-                    quizzId={this.props.quizzId}
+                    question={this.state.treeState.currentStep.question}
+                    answers={this.state.treeState.currentStep.answers}
+                    path={this.state.treeState.path}
+                    treeId={this.props.treeId}
                 /></div>;
 
             let feedback = <div/>;

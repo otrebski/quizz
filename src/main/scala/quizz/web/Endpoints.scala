@@ -5,7 +5,7 @@ import java.util.Date
 
 import io.circe.Decoder.Result
 import io.circe.generic.auto._
-import quizz.web.Api.DeleteQuizz
+import quizz.web.Api.DeleteDecisionTree
 import sttp.model.{Cookie, CookieValueWithMeta}
 import sttp.tapir.json.circe._
 import sttp.tapir.{path, setCookie, _}
@@ -23,48 +23,48 @@ object Endpoints {
     }
 
   val routeEndpoint: Endpoint[
-    (Api.QuizzQuery, List[Cookie]),
+    (Api.DecisionTreeQuery, List[Cookie]),
     String,
-    (Api.QuizzState, CookieValueWithMeta),
+    (Api.DecisionTreeState, CookieValueWithMeta),
     Nothing
   ] = endpoint.get
     .in(
-      ("api" / "quiz" / path[String]("id") / "path" / path[String]("quizPath"))
-        .mapTo(Api.QuizzQuery)
+      ("api" / "tree" / path[String]("id") / "path" / path[String]("treePath"))
+        .mapTo(Api.DecisionTreeQuery)
     )
     .in(cookies)
     .errorOut(stringBody)
-    .out(jsonBody[Api.QuizzState])
+    .out(jsonBody[Api.DecisionTreeState])
     .out(setCookie("session"))
 
   val routeEndpointStart: Endpoint[
-    (Api.QuizzQuery, List[Cookie]),
+    (Api.DecisionTreeQuery, List[Cookie]),
     String,
-    (Api.QuizzState, CookieValueWithMeta),
+    (Api.DecisionTreeState, CookieValueWithMeta),
     Nothing
   ] = endpoint.get
-    .in(("api" / "quiz" / path[String]("id") / "path").mapTo(id => Api.QuizzQuery(id, "")))
+    .in(("api" / "tree" / path[String]("id") / "path").mapTo(id => Api.DecisionTreeQuery(id, "")))
     .in(cookies)
     .errorOut(stringBody)
-    .out(jsonBody[Api.QuizzState])
+    .out(jsonBody[Api.DecisionTreeState])
     .out(setCookie("session"))
 
-  val listQuizzes: Endpoint[List[Cookie], Unit, Api.Quizzes, Nothing] = endpoint.get
-    .in("api" / "quiz")
+  val listTrees: Endpoint[List[Cookie], Unit, Api.DecisionTrees, Nothing] = endpoint.get
+    .in("api" / "tree")
     .in(cookies)
-    .out(jsonBody[Api.Quizzes])
+    .out(jsonBody[Api.DecisionTrees])
 
-  val addQuizz: Endpoint[Api.AddQuizz, Unit, Api.AddQuizzResponse, Nothing] = endpoint.put
-    .in("api" / "quiz" / path[String](name = "id").description("Id of quizz to add/replace"))
+  val addTree: Endpoint[Api.AddDecisionTree, Unit, Api.AddQDecisionTreeResponse, Nothing] = endpoint.put
+    .in("api" / "tree" / path[String](name = "id").description("Id of tree to add/replace"))
     .in(stringBody("UTF-8"))
-    .mapIn(idAndContent => Api.AddQuizz(idAndContent._1, idAndContent._2))(a =>
+    .mapIn(idAndContent => Api.AddDecisionTree(idAndContent._1, idAndContent._2))(a =>
       (a.id, a.mindmupSource)
     )
-    .out(jsonBody[Api.AddQuizzResponse])
+    .out(jsonBody[Api.AddQDecisionTreeResponse])
 
-  val deleteQuizz: Endpoint[DeleteQuizz, Unit, Unit, Nothing] = endpoint.delete
-    .in("api" / "quiz" / path[String](name = "id").description("Id of quizz to delete"))
-    .mapIn(id => DeleteQuizz(id))(_.id)
+  val deleteTree: Endpoint[DeleteDecisionTree, Unit, Unit, Nothing] = endpoint.delete
+    .in("api" / "tree" / path[String](name = "id").description("Id of tree to delete"))
+    .mapIn(id => DeleteDecisionTree(id))(_.id)
     .out(emptyOutput)
 
   val feedback: Endpoint[
@@ -82,7 +82,7 @@ object Endpoints {
       .out(setCookie("session"))
 
   val validateEndpoint: Endpoint[String, Unit, Api.ValidationResult, Nothing] = endpoint.post
-    .in("api" / "quizz" / "validate" / "mindmup")
+    .in("api" / "tree" / "validate" / "mindmup")
     .in(stringBody("UTF-8"))
     .out(jsonBody[Api.ValidationResult])
 
@@ -99,8 +99,8 @@ object Endpoints {
         "tracking" /
         "session" /
         path[String](name = "session").description("Session id") /
-        "quizz" /
-        path[String](name = "quizz id").description("Quizz id")
+        "tree" /
+        path[String](name = "tree id").description("Tree id")
       )
       .mapInTo(Api.TrackingSessionHistoryQuery)
       .errorOut(stringBody)
@@ -109,9 +109,9 @@ object Endpoints {
   val allEndpoints: Seq[Endpoint[_, _, _, _]] = Seq(
     routeEndpoint,
     routeEndpointStart,
-    listQuizzes,
-    addQuizz,
-    deleteQuizz,
+    listTrees,
+    addTree,
+    deleteTree,
     feedback,
     validateEndpoint,
     trackingSessions,

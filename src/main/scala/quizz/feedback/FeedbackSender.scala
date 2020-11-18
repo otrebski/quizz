@@ -7,17 +7,17 @@ import doobie.quill.DoobieContext
 import doobie.util.transactor.Transactor.Aux
 import io.getquill.Literal
 import quizz.db.Feedback
-import quizz.web.Api.{FeedbackSend, QuizzState}
+import quizz.web.Api.{FeedbackSend, DecisionTreeState}
 
 import scala.language.higherKinds
 
 trait FeedbackSender[F[_]] {
 
-  def send(feedback: FeedbackSend, quizzState: QuizzState): F[Unit]
+  def send(feedback: FeedbackSend, quizzState: DecisionTreeState): F[Unit]
 }
 
 class LogFeedbackSender[F[_]: Sync] extends FeedbackSender[F] with LazyLogging {
-  override def send(feedback: FeedbackSend, quizzState: QuizzState): F[Unit] =
+  override def send(feedback: FeedbackSend, quizzState: DecisionTreeState): F[Unit] =
     Sync[F].delay(logger.info(s"Have feedback: $feedback for $quizzState"))
 }
 
@@ -36,7 +36,7 @@ object SlackFeedbackSender {
       case a if a == 0 => ":point_right:"
     }
 
-  def convertFeedback(feedback: FeedbackSend, quizzState: QuizzState): SlackMessage = {
+  def convertFeedback(feedback: FeedbackSend, quizzState: DecisionTreeState): SlackMessage = {
     val history: List[Block] = quizzState.history.foldRight(List.empty[Block]) {
       (historyStep, list) =>
         val answers = historyStep.answers
@@ -66,7 +66,7 @@ object SlackFeedbackSender {
     )
     val header = Block(
       Text(
-        s"Feedback ${feedbackIcon(feedback)} for quiz ${feedback.quizzId}",
+        s"Feedback ${feedbackIcon(feedback)} for quiz ${feedback.treeId}",
         `type` = "plain_text"
       ),
       block_id = "header".some,
@@ -82,7 +82,7 @@ object SlackFeedbackSender {
 
 class SlackFeedbackSender[F[_]: Sync](token: String) extends FeedbackSender[F] {
 
-  override def send(feedback: FeedbackSend, quizzState: QuizzState): F[Unit] =
+  override def send(feedback: FeedbackSend, quizzState: DecisionTreeState): F[Unit] =
     Sync[F].delay {
       import sttp.client.circe._
 
@@ -113,7 +113,7 @@ class FeedbackDBSender(xa: Aux[IO, Unit])(implicit clock: Clock[IO]) extends Fee
 
   import dc._
 
-  override def send(feedback: FeedbackSend, quizzState: QuizzState): IO[Unit] = {
+  override def send(feedback: FeedbackSend, quizzState: DecisionTreeState): IO[Unit] = {
     import java.util.Date
 
     import doobie.implicits._
@@ -122,7 +122,7 @@ class FeedbackDBSender(xa: Aux[IO, Unit])(implicit clock: Clock[IO]) extends Fee
       fb = Feedback(
         id = 0,
         timestamp = new Date(now),
-        quizzId = feedback.quizzId,
+        quizzId = feedback.treeId,
         path = feedback.path,
         comment = feedback.comment,
         rate = feedback.rate

@@ -12,7 +12,7 @@ import scala.io.Source
 
 class packageTest extends AnyFlatSpec with Matchers {
 
-  private val quizz: Either[String, model.Quizz] = Parser
+  private val quizz: Either[String, model.DecisionTree] = Parser
     .parseInput("test", Source.fromResource("mindmup/simple_tree.json").mkString)
     .flatMap(_.toQuizz)
 
@@ -80,7 +80,7 @@ class packageTest extends AnyFlatSpec with Matchers {
   }
 
   "package" should "detect missing answer" in {
-    val error: Either[String, model.Quizz] = Parser
+    val error: Either[String, model.DecisionTree] = Parser
       .parseInput(
         "test",
         Source.fromResource("mindmup/invalid_mindmup_missing_answer.json").mkString
@@ -93,7 +93,7 @@ class packageTest extends AnyFlatSpec with Matchers {
   }
 
   "package" should "detect 2 root nodes" in {
-    val error: Either[String, model.Quizz] = Parser
+    val error: Either[String, model.DecisionTree] = Parser
       .parseInput(
         "test",
         Source.fromResource("mindmup/2roots.json").mkString
@@ -104,7 +104,7 @@ class packageTest extends AnyFlatSpec with Matchers {
   }
 
   "package" should "detect 2 the same answers" in {
-    val error: Either[String, model.Quizz] = Parser
+    val error: Either[String, model.DecisionTree] = Parser
       .parseInput(
         "test",
         Source.fromResource("mindmup/duplicated_answers.json").mkString

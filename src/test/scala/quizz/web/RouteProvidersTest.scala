@@ -43,12 +43,12 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
   }
 
   "quizListProvider" should "list empty quizzes" in {
-    val mindmups: IO[Either[Unit, Quizzes]] = for {
+    val mindmups: IO[Either[Unit, DecisionTrees]] = for {
       store    <- MemoryMindmupStore[IO]
       mindmups <- RouteProviders.quizListProvider(store).apply(List.empty)
     } yield mindmups
     mindmups.unsafeRunSync() match {
-      case Right(q)    => q shouldBe Quizzes()
+      case Right(q)    => q shouldBe DecisionTrees()
       case Left(error) => fail(error.toString)
     }
   }
@@ -62,7 +62,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
     } yield mindmups
     mindmups.unsafeRunSync() match {
       case Right(q) =>
-        q shouldBe Quizzes(List(QuizzInfo("a", "Starting point"), QuizzInfo("b", "Starting point")))
+        q shouldBe DecisionTrees(List(DecisionTreeInfo("a", "Starting point"), DecisionTreeInfo("b", "Starting point")))
       case Left(error) => fail(error.toString)
     }
   }
@@ -70,10 +70,10 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
   "addQuizzProvider" should "add quizz" in {
     val io = for {
       store       <- MemoryMindmupStore[IO]()
-      addResponse <- RouteProviders.addQuizzProvider(store)(Api.AddQuizz("a", validMindmup))
+      addResponse <- RouteProviders.addQuizzProvider(store)(Api.AddDecisionTree("a", validMindmup))
       mindmups    <- store.listNames()
     } yield (addResponse, mindmups)
-    io.unsafeRunSync() shouldBe (AddQuizzResponse("added").asRight, Set("a"))
+    io.unsafeRunSync() shouldBe (AddQDecisionTreeResponse("added").asRight, Set("a"))
 
   }
 
@@ -82,8 +82,8 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
       store <- MemoryMindmupStore[IO]
       addResponse <-
         RouteProviders
-          .addQuizzProvider(store)(Api.AddQuizz("a", "[]"))
-          .redeem(_ => ().asLeft[Api.Quizzes], identity)
+          .addQuizzProvider(store)(Api.AddDecisionTree("a", "[]"))
+          .redeem(_ => ().asLeft[Api.DecisionTrees], identity)
       mindmups <- store.listNames()
     } yield (addResponse, mindmups)
     io.unsafeRunSync() shouldBe (().asLeft, Set.empty[String])
@@ -95,7 +95,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
       store <- MemoryMindmupStore[IO]
       _     <- store.store("a", validMindmup)
       result <- RouteProviders.routeWithPathProvider(store)(
-        Api.QuizzQuery("a", "")
+        Api.DecisionTreeQuery("a", "")
       )
     } yield result
     io.map(_.map(_.currentStep.question)).unsafeRunSync() shouldBe "Starting point".asRight
@@ -106,7 +106,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
       store <- MemoryMindmupStore[IO]
       _     <- store.store("a", validMindmup)
       result <- RouteProviders.routeWithPathProvider(store)(
-        Api.QuizzQuery("a", "root;3.eeff.d297c2367-0c3d.6aa7f21a")
+        Api.DecisionTreeQuery("a", "root;3.eeff.d297c2367-0c3d.6aa7f21a")
       )
     } yield result
     io.map(_.map(_.currentStep.question)).unsafeRunSync() shouldBe "Node2".asRight
@@ -116,7 +116,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
     val io = for {
       store  <- MemoryMindmupStore[IO]
       _      <- store.store("a", validMindmup)
-      result <- RouteProviders.routeWithPathProvider(store)(Api.QuizzQuery("a", "root;wrong path"))
+      result <- RouteProviders.routeWithPathProvider(store)(Api.DecisionTreeQuery("a", "root;wrong path"))
     } yield result
     io.map(_.map(_.currentStep.question)).unsafeRunSync() shouldBe "Wrong selection".asLeft
   }

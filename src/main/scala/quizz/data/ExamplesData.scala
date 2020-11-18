@@ -19,8 +19,8 @@ package quizz.data
 import cats.syntax.show._
 import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
-import quizz.model.{FailureStep, Question, Quizz, SuccessStep}
-import quizz.web.Api.{Answer, HistoryStep, QuizzState, Step}
+import quizz.model.{FailureStep, Question, DecisionTree, SuccessStep}
+import quizz.web.Api.{Answer, HistoryStep, DecisionTreeState, Step}
 
 import scala.io.Source
 
@@ -118,7 +118,7 @@ object ExamplesData extends LazyLogging {
 
   object Fake {
 
-    val exampleStateInProgress: QuizzState = QuizzState(
+    val exampleStateInProgress: DecisionTreeState = DecisionTreeState(
       path = "root",
       currentStep = Step(
         "a",
@@ -155,12 +155,12 @@ object ExamplesData extends LazyLogging {
         )
       )
     )
-    val exampleStateFinalSuccess: QuizzState = QuizzState(
+    val exampleStateFinalSuccess: DecisionTreeState = DecisionTreeState(
       path = "asdfsdf",
       currentStep = Step("a", "I co dalej?", List.empty, success = Some(true)),
       history = List()
     )
-    val exampleStateFinalFailure: QuizzState = QuizzState(
+    val exampleStateFinalFailure: DecisionTreeState = DecisionTreeState(
       path = "asdfsdf",
       currentStep = Step("a", "I co dalej?", List.empty, success = Some(false)),
       history = List()
@@ -170,15 +170,15 @@ object ExamplesData extends LazyLogging {
   private val exmpleSrouce = Source
     .fromInputStream(this.getClass.getClassLoader.getResourceAsStream("quizz.mup.json"))
     .mkString
-  private val errorOrQuizz: Either[String, Quizz] =
+  private val errorOrQuizz: Either[String, DecisionTree] =
     Parser.parseInput("example", exmpleSrouce).flatMap(_.toQuizz)
 
   logger.info(s"Loadded quizz: ${errorOrQuizz.map(_.show)}")
-  val quizzMindmup: Quizz = errorOrQuizz.toOption.get
+  val quizzMindmup: DecisionTree = errorOrQuizz.toOption.get
 
-  val quizzes: Map[String, Quizz] = List(
-    Quizz("q1", "Example quiz", quiz),
-    Quizz("q2", "Another quiz", quiz),
+  val quizzes: Map[String, DecisionTree] = List(
+    DecisionTree("q1", "Example quiz", quiz),
+    DecisionTree("q2", "Another quiz", quiz),
     quizzMindmup
   ).map(q => q.id -> q).toMap
 

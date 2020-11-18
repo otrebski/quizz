@@ -10,9 +10,9 @@ import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
 import quizz.data.MindmupStore
 import quizz.feedback.FeedbackSender
-import quizz.model.Quizz
+import quizz.model.DecisionTree
 import quizz.tracking.Tracking
-import quizz.web.Api.{AddQuizzResponse, FeedbackResponse, QuizzQuery, Quizzes}
+import quizz.web.Api.{AddQDecisionTreeResponse, FeedbackResponse, DecisionTreeQuery, DecisionTrees}
 import sttp.model.{Cookie, CookieValueWithMeta}
 
 import scala.language.higherKinds
@@ -31,13 +31,13 @@ object RouteProviders extends LazyLogging {
       otherDirectives = Map.empty
     )
 
-  implicit val idConvert: QuizzQuery => QuizzQuery = q => q
-  implicit val feedbackConvert: Api.FeedbackSend => QuizzQuery = fs =>
-    QuizzQuery(fs.quizzId, fs.path)
+  implicit val idConvert: DecisionTreeQuery => DecisionTreeQuery = q => q
+  implicit val feedbackConvert: Api.FeedbackSend => DecisionTreeQuery = fs =>
+    DecisionTreeQuery(fs.treeId, fs.path)
 
   def track[In, Out, Error, F[_]: Sync](tracking: Tracking[F], f: In => F[Either[Error, Out]])(
       requestAndCookie: (In, List[Cookie])
-  )(implicit convert: In => QuizzQuery): F[Either[Error, (Out, CookieValueWithMeta)]] = {
+  )(implicit convert: In => DecisionTreeQuery): F[Either[Error, (Out, CookieValueWithMeta)]] = {
     val (request, cookies) = requestAndCookie
     val cookie             = generateCookie(cookies.find(_.name == "session"))
     val quizzQuery         = convert.apply(request)
@@ -54,8 +54,8 @@ object RouteProviders extends LazyLogging {
   def routeWithPathProvider[F[_]: Sync](
       store: MindmupStore[F]
   )(
-      request: Api.QuizzQuery
-  ): F[Either[String, Api.QuizzState]] = {
+      request: Api.DecisionTreeQuery
+  ): F[Either[String, Api.DecisionTreeState]] = {
     import mindmup._
     for {
       q <-
@@ -68,9 +68,9 @@ object RouteProviders extends LazyLogging {
 
   def quizListProvider[F[_]: Sync](
       quizzStore: MindmupStore[F]
-  ): List[Cookie] => F[Either[Unit, Api.Quizzes]] = { _ =>
+  ): List[Cookie] => F[Either[Unit, Api.DecisionTrees]] = { _ =>
     import mindmup._
-    val r: F[Quizzes] = for {
+    val r: F[DecisionTrees] = for {
       ids <- quizzStore.listNames()
       errorOrQuizzList <-
         ids.toList
@@ -79,12 +79,12 @@ object RouteProviders extends LazyLogging {
               .load(id)
               .map(string => Parser.parseInput(id, string).flatMap(_.toQuizz))
               .map {
-                case Left(error)  => Left(Api.QuizzErrorInfoInfo(id, error))
-                case Right(value) => Right(Api.QuizzInfo(id, value.name))
+                case Left(error)  => Left(Api.DecisionTreeErrorInfo(id, error))
+                case Right(value) => Right(Api.DecisionTreeInfo(id, value.name))
               }
           )
       (errors, quizzes) = errorOrQuizzList.partitionMap(identity)
-    } yield Quizzes(quizzes, errors)
+    } yield DecisionTrees(quizzes, errors)
     r.redeem(
       error => {
         RouteProviders.logger.error("Error on request", error)
@@ -96,24 +96,24 @@ object RouteProviders extends LazyLogging {
 
   def addQuizzProvider[F[_]: Sync](
       store: MindmupStore[F]
-  )(request: Api.AddQuizz): F[Either[Unit, AddQuizzResponse]] = {
+  )(request: Api.AddDecisionTree): F[Either[Unit, AddQDecisionTreeResponse]] = {
     import mindmup._
     val id: Either[String, V3IdString.Mindmap] =
       Parser.parseInput(request.id, request.mindmupSource)
-    val newQuizzOrError: Either[String, Quizz] = id.flatMap(_.toQuizz).map(_.copy(id = request.id))
+    val newQuizzOrError: Either[String, DecisionTree] = id.flatMap(_.toQuizz).map(_.copy(id = request.id))
 
     newQuizzOrError match {
       case Left(error) => Sync[F].raiseError(new Exception(error))
       case Right(_) =>
         store
           .store(request.id, request.mindmupSource)
-          .map(_ => AddQuizzResponse("added").asRight[Unit])
+          .map(_ => AddQDecisionTreeResponse("added").asRight[Unit])
     }
   }
 
   def deleteQuizzProvider[F[_]: Sync](
       store: MindmupStore[F]
-  )(request: Api.DeleteQuizz): F[Either[Unit, Unit]] =
+  )(request: Api.DeleteDecisionTree): F[Either[Unit, Unit]] =
     store
       .delete(request.id)
       .map(_.asRight[Unit])
@@ -124,8 +124,8 @@ object RouteProviders extends LazyLogging {
   )(
       feedback: Api.FeedbackSend
   ): F[Either[String, FeedbackResponse]] = {
-    val request = Api.QuizzQuery(feedback.quizzId, feedback.path)
-    val quizzState: F[Either[String, Api.QuizzState]] = store
+    val request = Api.DecisionTreeQuery(feedback.treeId, feedback.path)
+    val quizzState: F[Either[String, Api.DecisionTreeState]] = store
       .load(request.id)
       .map(string =>
         Parser
@@ -159,7 +159,7 @@ object RouteProviders extends LazyLogging {
         s.map(ts =>
           Api
             .TrackingSession(
-              quizzId = ts.quizzId,
+              treeId = ts.quizzId,
               session = ts.session,
               date = ts.date,
               duration = ts.duration
@@ -174,7 +174,7 @@ object RouteProviders extends LazyLogging {
       tracking: Tracking[F]
   )(query: Api.TrackingSessionHistoryQuery): F[Either[String, Api.TrackingSessionHistory]] =
     tracking
-      .session(query.session, query.quizzId)
+      .session(query.session, query.treeId)
       .map { list =>
         val dates = list.map(_.date)
         val min   = dates.minOption.getOrElse(new Date(0))
@@ -182,7 +182,7 @@ object RouteProviders extends LazyLogging {
         val details = Api.TrackingSession(
           session = query.session,
           date = min,
-          quizzId = query.quizzId,
+          treeId = query.treeId,
           duration = max.getTime - min.getTime
         )
         val steps =

@@ -65,20 +65,20 @@ object WebApp extends IOApp with LazyLogging {
           routeEndpointStart.toRoute(
             track(tracking, routeWithPathProvider(store)(_))(_).unsafeToFuture()
           )
-        val routeList = listQuizzes.toRoute(quizListProvider(store).andThen(_.unsafeToFuture()))
+        val routeList = listTrees.toRoute(quizListProvider(store).andThen(_.unsafeToFuture()))
         val routeFeedback =
           feedback.toRoute(
             track(tracking, feedbackProvider[IO](store, feedbackSenders))(_).unsafeToFuture()
           )
-        val add           = addQuizz.toRoute(addQuizzProvider(store)(_).unsafeToFuture())
-        val delete        = deleteQuizz.toRoute(deleteQuizzProvider(store)(_).unsafeToFuture())
+        val add           = addTree.toRoute(addQuizzProvider(store)(_).unsafeToFuture())
+        val delete        = deleteTree.toRoute(deleteQuizzProvider(store)(_).unsafeToFuture())
         val validateRoute = validateEndpoint.toRoute(validate)
         val trackingSessionsRoute =
           trackingSessions.toRoute(trackingSessionsProvider(tracking).andThen(_.unsafeToFuture()))
         val trackingSessionRoute =
           trackingSession.toRoute(trackingSessionProvider(tracking)(_).unsafeToFuture())
         val static             = getFromResourceDirectory("gui")
-        val docsAsYaml: String = Endpoints.allEndpoints.toOpenAPI("Quizz", "?").toYaml
+        val docsAsYaml: String = Endpoints.allEndpoints.toOpenAPI("Decision trees", "?").toYaml
         val swagger            = new SwaggerAkka(docsAsYaml).routes
         import akka.http.scaladsl.model.StatusCodes._
         implicit val catchAll: RejectionHandler = RejectionHandler

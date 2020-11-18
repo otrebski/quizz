@@ -15,26 +15,24 @@ function App() {
         <h1><Link id="home" to={"/"}>Home</Link></h1>
         <div className="App">
           <Route path="/" exact render={() => Index} />
-          <Route path="/quizz/:id/path/:path" exact render={(query) => {
-            console.log("path with id /quizz/:id/path/:path", query)
+          <Route path="/tree/:id/path/:path" exact render={(query) => {
             return <Quizz
-                quizzId={query.match.params.id}
+                treeId={query.match.params.id}
                 path={query.match.params.path}
-                selectAction={(quizzId, path) => Api.sendReponse(quizzId, path)}
-                feedbackSendAction={(rate, comment, quizzId, path) => Api.sendFeedback(rate, comment, quizzId, path)}
+                selectAction={(treeId, path) => Api.sendReponse(treeId, path)}
+                feedbackSendAction={(rate, comment, treeId, path) => Api.sendFeedback(rate, comment, treeId, path)}
             />
           }
           } />
 
-          <Route path="/quizz/:id" exact render={(query) => {
-            console.log("path /quizz/:id", query)
+          <Route path="/tree/:id" exact render={(query) => {
             const match = query.match;
             return <Quizz
                 {...query}
-                quizzId={match.params.id}
+                treeId={match.params.id}
                 path=""
-                selectAction={(quizzId, path) => Api.sendReponse(quizzId, path)}
-                feedbackSendAction={(rate, comment, quizzId, path) => Api.sendFeedback(rate, comment, quizzId, path)}
+                selectAction={(treeId, path) => Api.sendReponse(treeId, path)}
+                feedbackSendAction={(rate, comment, treeId, path) => Api.sendFeedback(rate, comment, treeId, path)}
             />
           }
           }

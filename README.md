@@ -1,4 +1,4 @@
-# quizz #
+# Decision Tree #
 
 Welcome to quizz!
 

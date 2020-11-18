@@ -1,21 +1,21 @@
 
-### List of quizzes
+### List of trees
 GET http://localhost:8080/api/tree/
 
-### Starting point of quizz testowy
+### Starting point of tree testowy
 
 GET http://localhost:8080/api/tree/testowy/path/
-### Starting point of quizz q1
+### Starting point of tree q1
 
 GET http://localhost:8080/api/tree/testowy/path/root;1;2.5dff82e0db5911eaa61dadd3f94d4398
 
-### Quizz with answer electricity
+### Tree with answer electricity
 GET http://localhost:8080/api/tree/q1/path/root;electricity
 
-### Quizz with answer electricity and checkLocal
+### Tree with answer electricity and checkLocal
 GET http://localhost:8080/api/tree/q1/path/root;electricity;checkLocal
 
-### Quizz with answer electricity and checkLocal
+### Tree with answer electricity and checkLocal
 GET http://localhost:8080/api/tree/q1/path/root;electricity;checkLocal;buildingFuses;noPower
 
 ### Feedback
@@ -26,7 +26,7 @@ Accept: */*
 {
   "comment": "ddddd",
   "path": "a",
-  "quizzId": "q1",
+  "treeId": "q1",
   "rate": "-1"
 }
 

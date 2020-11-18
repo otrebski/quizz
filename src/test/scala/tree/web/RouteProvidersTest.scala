@@ -42,7 +42,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
 
   }
 
-  "quizListProvider" should "list empty trees" in {
+  "treeListProvider" should "list empty trees" in {
     val mindmups: IO[Either[Unit, DecisionTrees]] = for {
       store    <- MemoryMindmupStore[IO]
       mindmups <- RouteProviders.treeListProvider(store).apply(List.empty)
@@ -53,7 +53,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  "quizListProvider" should "list all trees" in {
+  "treeListProvider" should "list all trees" in {
     val mindmups = for {
       store    <- MemoryMindmupStore[IO]
       _        <- store.store("a", validMindmup)

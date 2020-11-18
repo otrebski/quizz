@@ -1,22 +1,22 @@
 
 ### List of quizzes
-GET http://localhost:8080/api/quiz/
+GET http://localhost:8080/api/tree/
 
 ### Starting point of quizz testowy
 
-GET http://localhost:8080/api/quiz/testowy/path/
+GET http://localhost:8080/api/tree/testowy/path/
 ### Starting point of quizz q1
 
-GET http://localhost:8080/api/quiz/testowy/path/root;1;2.5dff82e0db5911eaa61dadd3f94d4398
+GET http://localhost:8080/api/tree/testowy/path/root;1;2.5dff82e0db5911eaa61dadd3f94d4398
 
 ### Quizz with answer electricity
-GET http://localhost:8080/api/quiz/q1/path/root;electricity
+GET http://localhost:8080/api/tree/q1/path/root;electricity
 
 ### Quizz with answer electricity and checkLocal
-GET http://localhost:8080/api/quiz/q1/path/root;electricity;checkLocal
+GET http://localhost:8080/api/tree/q1/path/root;electricity;checkLocal
 
 ### Quizz with answer electricity and checkLocal
-GET http://localhost:8080/api/quiz/q1/path/root;electricity;checkLocal;buildingFuses;noPower
+GET http://localhost:8080/api/tree/q1/path/root;electricity;checkLocal;buildingFuses;noPower
 
 ### Feedback
 POST http://localhost:8080/api/feedback
@@ -31,7 +31,7 @@ Accept: */*
 }
 
 ### Add
-PUT http://localhost:8080/api/quiz/testowy
+PUT http://localhost:8080/api/tree/testowy
 Content-Type: application/json
 Accept: application/json
 
@@ -112,19 +112,19 @@ Accept: application/json
 
 
 ### Delete
-DELETE http://localhost:8080/api/quiz/t1
+DELETE http://localhost:8080/api/tree/t1
 Content-Type: application/json
 Accept: application/json
 
 ### validate - not mindmup
-POST http://localhost:8080/api/quizz/validate/mindmup
+POST http://localhost:8080/api/tree/validate/mindmup
 Content-Type: application/json
 
 []
 
 
 ### validate - correct mindmup
-POST http://localhost:8080/api/quizz/validate/mindmup
+POST http://localhost:8080/api/tree/validate/mindmup
 Content-Type: application/json
 Accept: application/json
 

@@ -16,13 +16,13 @@ public class Home extends FluentPage {
     @FindBy(id = "home")
     public FluentWebElement home;
 
-    public QuizzPage selectQuizz(String quizz) {
-        $(withId(quizz)).await().atMost(1000).until().displayed();
-        $(withId(quizz)).click();
-        return newInstance(QuizzPage.class);
+    public TreePage selectTree(String tree) {
+        $(withId(tree)).await().atMost(1000).until().displayed();
+        $(withId(tree)).click();
+        return newInstance(TreePage.class);
     }
 
-    public List<String> listQuizzes() {
+    public List<String> listTrees() {
         return $(withId("quizz-link")).$("a").texts();
     }
 

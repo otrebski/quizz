@@ -1,6 +1,6 @@
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import quizz.model.{Question, DecisionTreeStep, DecisionTree, SuccessStep}
+import tree.model.{Question, DecisionTreeStep, DecisionTree, SuccessStep}
 
 package object mindmup extends LazyLogging {
 
@@ -60,12 +60,12 @@ package object mindmup extends LazyLogging {
 
   implicit class MindmupStringOps(mindmap: V3IdString.Mindmap) {
 
-    def toQuizz: Either[String, DecisionTree] =
+    def toDecisionTree: Either[String, DecisionTree] =
       for {
         validateRootNodes  <- validateSingleRoot(mindmap)
         validateDuplicates <- validateDuplicateAnswer(validateRootNodes)
-        quizz              <- convertMindmup(validateDuplicates)
-        validated          <- validateEmptyAnswer(quizz)
+        tree              <- convertMindmup(validateDuplicates)
+        validated          <- validateEmptyAnswer(tree)
       } yield validated
 
     private def convertMindmup(m: V3IdString.Mindmap): Either[String, DecisionTree] = {
@@ -117,9 +117,9 @@ package object mindmup extends LazyLogging {
 
     }
 
-    private def validateEmptyAnswer(quizz: DecisionTree): Either[String, DecisionTree] = {
-      def detectEmpty(quizStep: DecisionTreeStep): List[String] =
-        quizStep match {
+    private def validateEmptyAnswer(tree: DecisionTree): Either[String, DecisionTree] = {
+      def detectEmpty(treeStep: DecisionTreeStep): List[String] =
+        treeStep match {
           case Question(id, text, answers) =>
             val empty = answers.keys.count(_.trim.isEmpty)
             val detectedEmpty =
@@ -130,8 +130,8 @@ package object mindmup extends LazyLogging {
             detectedEmpty ::: answers.values.flatMap(a => detectEmpty(a)).toList
           case _ => List.empty[String]
         }
-      detectEmpty(quizz.firstStep) match {
-        case Nil  => quizz.asRight
+      detectEmpty(tree.firstStep) match {
+        case Nil  => tree.asRight
         case list => list.mkString(". ").asLeft
       }
 

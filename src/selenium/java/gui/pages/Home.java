@@ -16,18 +16,18 @@ public class Home extends FluentPage {
     @FindBy(id = "home")
     public FluentWebElement home;
 
-    public QuizzPage selectQuizz(String quizz) {
-        $(withId(quizz)).await().atMost(1000).until().displayed();
-        $(withId(quizz)).click();
-        return newInstance(QuizzPage.class);
+    public TreePage selectTree(String tree) {
+        $(withId(tree)).await().atMost(1000).until().displayed();
+        $(withId(tree)).click();
+        return newInstance(TreePage.class);
     }
 
-    public List<String> listQuizzes() {
-        return $(withId("quizz-link")).$("a").texts();
+    public List<String> listTrees() {
+        return $(withId("tree-link")).$("a").texts();
     }
 
     public Home displayed() {
-        $(withId("quizz-list-header")).await().until().displayed();
+        $(withId("tree-list-header")).await().until().displayed();
         return this;
     }
 

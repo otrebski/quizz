@@ -1,4 +1,4 @@
-# Quizz GUI app
+# Decision Tree GUI app
 
 
 ## Available Scripts

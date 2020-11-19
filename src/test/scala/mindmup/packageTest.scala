@@ -5,16 +5,16 @@ import cats.syntax.option.{none, _}
 import mindmup.V3IdString.{Idea, Mindmap}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import quizz.model
-import quizz.model.{Question, SuccessStep}
+import tree.model
+import tree.model.{Question, SuccessStep}
 
 import scala.io.Source
 
 class packageTest extends AnyFlatSpec with Matchers {
 
-  private val quizz: Either[String, model.Quizz] = Parser
+  private val tree: Either[String, model.DecisionTree] = Parser
     .parseInput("test", Source.fromResource("mindmup/simple_tree.json").mkString)
-    .flatMap(_.toQuizz)
+    .flatMap(_.toDecisionTree)
 
   val mindmup: Mindmap = Mindmap(
     id = "root",
@@ -43,11 +43,11 @@ class packageTest extends AnyFlatSpec with Matchers {
       )
     )
   )
-  "package" should "convert mindmup to quizz" ignore {
+  "package" should "convert mindmup to tree" ignore {
 
-    val quizz = mindmup.toQuizz.getOrElse(throw new Exception("Mindmup not parsed"))
+    val tree = mindmup.toDecisionTree.getOrElse(throw new Exception("Mindmup not parsed"))
     val question: Question =
-      quizz.firstStep.asInstanceOf[Question].answers("root node").asInstanceOf[Question]
+      tree.firstStep.asInstanceOf[Question].answers("root node").asInstanceOf[Question]
     question.answers.foreach {
       case (k, v) => println(s"$k => $v")
     }
@@ -56,19 +56,19 @@ class packageTest extends AnyFlatSpec with Matchers {
   }
 
   "converted mindmup" should "have correct title" in {
-    quizz.map(_.name) shouldBe "Root node".asRight
+    tree.map(_.name) shouldBe "Root node".asRight
   }
 
   "converted mindmup" should "have correct root node" in {
-    quizz.map(_.firstStep.text) shouldBe "Root node".asRight
+    tree.map(_.firstStep.text) shouldBe "Root node".asRight
   }
 
   "converted mindmup" should "have correct first steps" in {
-    quizz.map(_.firstStep.asInstanceOf[Question].answers("Left").text) shouldBe "Left node".asRight
-    quizz.map(
+    tree.map(_.firstStep.asInstanceOf[Question].answers("Left").text) shouldBe "Left node".asRight
+    tree.map(
       _.firstStep.asInstanceOf[Question].answers("Right").text
     ) shouldBe "Right node".asRight
-    quizz.map(
+    tree.map(
       _.firstStep
         .asInstanceOf[Question]
         .answers("Right")
@@ -80,12 +80,12 @@ class packageTest extends AnyFlatSpec with Matchers {
   }
 
   "package" should "detect missing answer" in {
-    val error: Either[String, model.Quizz] = Parser
+    val error: Either[String, model.DecisionTree] = Parser
       .parseInput(
         "test",
         Source.fromResource("mindmup/invalid_mindmup_missing_answer.json").mkString
       )
-      .flatMap(_.toQuizz)
+      .flatMap(_.toDecisionTree)
 
     error shouldBe Left(
       """Node "Child 1" has answer without text. Node "Child 2" has answer without text"""
@@ -93,23 +93,23 @@ class packageTest extends AnyFlatSpec with Matchers {
   }
 
   "package" should "detect 2 root nodes" in {
-    val error: Either[String, model.Quizz] = Parser
+    val error: Either[String, model.DecisionTree] = Parser
       .parseInput(
         "test",
         Source.fromResource("mindmup/2roots.json").mkString
       )
-      .flatMap(_.toQuizz)
+      .flatMap(_.toDecisionTree)
 
     error shouldBe Left("""More than one root node""")
   }
 
   "package" should "detect 2 the same answers" in {
-    val error: Either[String, model.Quizz] = Parser
+    val error: Either[String, model.DecisionTree] = Parser
       .parseInput(
         "test",
         Source.fromResource("mindmup/duplicated_answers.json").mkString
       )
-      .flatMap(_.toQuizz)
+      .flatMap(_.toDecisionTree)
 
     error shouldBe Left(
       """In question "Left node" answer Left is duplicated. In question "Right node" answer Right is duplicated"""

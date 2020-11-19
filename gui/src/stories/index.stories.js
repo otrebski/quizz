@@ -4,11 +4,11 @@ import {storiesOf} from '@storybook/react';
 import {MemoryRouter} from "react-router-dom"; // our router
 import Step from '../components/Step'
 import HistoryStep from '../components/HistoryStep'
-import Quizz from '../components/Quizz'
+import Tree from '../components/Tree'
 
 import Feedback from '../components/Feedback';
 import 'bootstrap/dist/css/bootstrap.css';
-import Quizzes from "../components/Quizzes";
+import Trees from "../components/Trees";
 
 const answers = [
     {id: "id1", text: "Yes"},
@@ -21,7 +21,7 @@ const historyAnswers = [
     {id: "id3", text: "Maybe"}
 ]
 
-const quizzStateStarting = JSON.parse(`{
+const treeStateStarting = JSON.parse(`{
   "path": "",
   "currentStep": {
     "id": "buildingFuses",
@@ -42,7 +42,7 @@ const quizzStateStarting = JSON.parse(`{
   },
   "history": []
 }`)
-const quizzStateInProgress = JSON.parse(`{
+const treeStateInProgress = JSON.parse(`{
     "path": "electricity;checkLocal;buildingFuses",
     "currentStep": {
       "id": "buildingFuses",
@@ -119,7 +119,7 @@ const quizzStateInProgress = JSON.parse(`{
     ]
   }`)
 
-const quizzStateFinish = JSON.parse(`{
+const treeStateFinish = JSON.parse(`{
     "path": "electricity;checkLocal;buildingFuses",
     "currentStep": {
       "id": "buildingFuses",
@@ -185,20 +185,20 @@ const quizzStateFinish = JSON.parse(`{
     ]
   }`)
 
-const quizzes = JSON.parse(`{
-  "quizzes": [
-    { "id": "q1", "title": "Quizz 1" },
-    { "id": "q2", "title": "Quizz 2" }
+const trees = JSON.parse(`{
+  "trees": [
+    { "id": "q1", "title": "Tree 1" },
+    { "id": "q2", "title": "Tree 2" }
   ],
-  "errorQuizzes": []
+  "treesWithErrors": []
 }`)
 
-const quizzesWithErrors = JSON.parse(`{
-  "quizzes": [
-    { "id": "q1", "title": "Quizz 1" },
-    { "id": "q2", "title": "Quizz 2" }
+const treesWithErrors = JSON.parse(`{
+  "trees": [
+    { "id": "q1", "title": "Tree 1" },
+    { "id": "q2", "title": "Tree 2" }
   ],
-  "errorQuizzes": [
+  "treesWithErrors": [
     {"id": "q3", "error": "Invalid syntax ..."},
     {"id": "q4", "error": "Node(1) / ..."}
   ]
@@ -213,9 +213,9 @@ storiesOf('Main page', module)
     .addDecorator(story => (
         <MemoryRouter initialEntries={['/']}>{story()}</MemoryRouter>
     ))
-    .add("Quizzes loading error", () => <Quizzes loadAction={() => new Promise((res, rej) => rej(new Error("server error")))}/>)
-    .add("Quizzes loaded with errors", () => <Quizzes loadAction={() => new Promise((res) => res(quizzesWithErrors))}/>)
-    .add("Quizzes all loaded", () => <Quizzes loadAction={() => new Promise((res) => res(quizzes))}/>)
+    .add("Trees loading error", () => <Trees loadAction={() => new Promise((res, rej) => rej(new Error("server error")))}/>)
+    .add("Trees loaded with errors", () => <Trees loadAction={() => new Promise((res) => res(treesWithErrors))}/>)
+    .add("Trees all loaded", () => <Trees loadAction={() => new Promise((res) => res(trees))}/>)
 ;
 
 storiesOf("Step", module)
@@ -229,13 +229,13 @@ storiesOf("Step", module)
     .add("HistoryStep", () => <HistoryStep question="How do you feel today?" answers={historyAnswers} path={["a", "b"]}/>)
     .add("HistoryStep with markdown", () => <HistoryStep question="How do you *feel* **today?**" answers={historyAnswers} path={["a", "b"]}/>)
 
-storiesOf("Quizz", module)
+storiesOf("Tree", module)
     .addDecorator(story => (
         <MemoryRouter initialEntries={['/']}>{story()}</MemoryRouter>
     ))
-    .add("Quizz starting", () => <Quizz quizzId="q1" path={[""]} selectAction={(q, s) => new Promise((res) => res(quizzStateStarting))}/>)
-    .add("Quizz in progress", () => <Quizz quizzId="q1" path={["electricity;checkLocal"]} selectAction={(q, s) => new Promise((res) => res(quizzStateInProgress))}/>)
-    .add("Quizz finished", () => <Quizz quizzId="q1" quizzState={quizzStateFinish} selectAction={(q, s) => new Promise((res) => res(quizzStateFinish))}/>)
+    .add("Tree starting", () => <Tree treeId="q1" path={[""]} selectAction={(q, s) => new Promise((res) => res(treeStateStarting))}/>)
+    .add("Tree in progress", () => <Tree treeId="q1" path={["electricity;checkLocal"]} selectAction={(q, s) => new Promise((res) => res(treeStateInProgress))}/>)
+    .add("Tree finished", () => <Tree treeId="q1" treeState={treeStateFinish} selectAction={(q, s) => new Promise((res) => res(treeStateFinish))}/>)
 
 
 storiesOf('Other', module)

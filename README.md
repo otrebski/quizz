@@ -1,6 +1,6 @@
-# quizz #
+# Decision Tree #
 
-Welcome to quizz!
+Welcome to decision tree!
 
 ## Contribution policy ##
 

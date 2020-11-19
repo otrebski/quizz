@@ -1,6 +1,6 @@
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import quizz.model.{Question, QuizStep, Quizz, SuccessStep}
+import tree.model.{Question, DecisionTreeStep, DecisionTree, SuccessStep}
 
 package object mindmup extends LazyLogging {
 
@@ -60,16 +60,16 @@ package object mindmup extends LazyLogging {
 
   implicit class MindmupStringOps(mindmap: V3IdString.Mindmap) {
 
-    def toQuizz: Either[String, Quizz] =
+    def toDecisionTree: Either[String, DecisionTree] =
       for {
         validateRootNodes  <- validateSingleRoot(mindmap)
         validateDuplicates <- validateDuplicateAnswer(validateRootNodes)
-        quizz              <- convertMindmup(validateDuplicates)
-        validated          <- validateEmptyAnswer(quizz)
+        tree              <- convertMindmup(validateDuplicates)
+        validated          <- validateEmptyAnswer(tree)
       } yield validated
 
-    private def convertMindmup(m: V3IdString.Mindmap): Either[String, Quizz] = {
-      def toStep(idea: V3IdString.Idea): QuizStep = {
+    private def convertMindmup(m: V3IdString.Mindmap): Either[String, DecisionTree] = {
+      def toStep(idea: V3IdString.Idea): DecisionTreeStep = {
         val note = for {
           attr <- idea.attr
           note <- attr.note
@@ -82,7 +82,7 @@ package object mindmup extends LazyLogging {
         if (ideas.isEmpty)
           SuccessStep(id, title)
         else {
-          val stringToStep: Map[String, QuizStep] = ideas.values.map { v =>
+          val stringToStep: Map[String, DecisionTreeStep] = ideas.values.map { v =>
             val label = for {
               attr            <- v.attr
               parentConnector <- attr.parentConnector
@@ -99,9 +99,9 @@ package object mindmup extends LazyLogging {
         case Some(value) =>
           val maybeIdeas: Option[Map[String, V3IdString.Idea]] = value.ideas
           maybeIdeas match {
-            case None => "There is no nodes".asLeft[Quizz]
+            case None => "There is no nodes".asLeft[DecisionTree]
             case Some(ideas) =>
-              val answers: Map[String, QuizStep] = ideas.map {
+              val answers: Map[String, DecisionTreeStep] = ideas.map {
                 case (k, v) =>
                   val label: Option[String] = for {
                     attr   <- v.attr
@@ -111,15 +111,15 @@ package object mindmup extends LazyLogging {
                   label.getOrElse("") -> toStep(v)
               }
               val firstQuestion: Question = Question(m.id, m.title, answers)
-              Quizz(m.id, m.title, firstQuestion).asRight[String]
+              DecisionTree(m.id, m.title, firstQuestion).asRight[String]
           }
       }
 
     }
 
-    private def validateEmptyAnswer(quizz: Quizz): Either[String, Quizz] = {
-      def detectEmpty(quizStep: QuizStep): List[String] =
-        quizStep match {
+    private def validateEmptyAnswer(tree: DecisionTree): Either[String, DecisionTree] = {
+      def detectEmpty(treeStep: DecisionTreeStep): List[String] =
+        treeStep match {
           case Question(id, text, answers) =>
             val empty = answers.keys.count(_.trim.isEmpty)
             val detectedEmpty =
@@ -130,8 +130,8 @@ package object mindmup extends LazyLogging {
             detectedEmpty ::: answers.values.flatMap(a => detectEmpty(a)).toList
           case _ => List.empty[String]
         }
-      detectEmpty(quizz.firstStep) match {
-        case Nil  => quizz.asRight
+      detectEmpty(tree.firstStep) match {
+        case Nil  => tree.asRight
         case list => list.mkString(". ").asLeft
       }
 

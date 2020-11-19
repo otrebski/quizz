@@ -2,12 +2,12 @@
 // Projects
 // *****************************************************************************
 
-name := "quizz"
+name := "decisiontree"
 version := "0.2"
 
 lazy val SeleniumTest = config("selenium") extend Test
 
-lazy val quizz =
+lazy val decisiontree =
   project
     .in(file("."))
     .enablePlugins(JavaAppPackaging)
@@ -132,4 +132,4 @@ lazy val scalafmtSettings =
     scalafmtOnCompile := true
   )
 
-mainClass := Some("quizz.web.WebApp")
+mainClass := Some("tree.web.WebApp")

@@ -1,25 +1,25 @@
 const Api = {
 
-    getQuizes: () => {
-        const requestUrl = `/api/quiz/`;
+    getTrees: () => {
+        const requestUrl = `/api/tree/`;
         return fetch(requestUrl)
             .then(Api.checkStatus)
             .then(response => response.json())
     },
 
-    sendReponse: (quizz, path) => {
-        const requestUrl = `/api/quiz/` + quizz + '/path/' + path;    
+    sendResponse: (treeId, path) => {
+        const requestUrl = `/api/tree/` + treeId + '/path/' + path;
         return fetch(requestUrl)
             .then(Api.checkStatus)
             .then(response => response.json())
     },
 
-    sendFeedback: (rate, comment, quizzId, path) => {
+    sendFeedback: (rate, comment, treeId, path) => {
         // expression
         const body = {
             rate: rate,
             comment: comment,
-            quizzId: quizzId,
+            treeId: treeId,
             path: path
         };
         

@@ -2,8 +2,10 @@ import React from 'react';
 import './App.css';
 import Tree from "./components/Tree"
 import Api from "./Api"
-import { BrowserRouter as Router, Route , Link} from "react-router-dom";
+import { BrowserRouter as Router, Route} from "react-router-dom";
 import Trees from "./components/Trees";
+import Navbar from 'react-bootstrap/Navbar'
+import Nav from 'react-bootstrap/Nav'
 
 function App() {
 
@@ -11,8 +13,15 @@ function App() {
 
   return (
     <div>
+      <Navbar bg="dark" variant="dark" sticky="top">
+        <Navbar.Brand>🤷‍♂ Decision Tree 🤷‍♀️</Navbar.Brand>
+        <Nav>
+          <Nav.Link href="/">Home</Nav.Link>
+          <Nav.Link href="/docs">Swagger API</Nav.Link>
+        </Nav>
+      </Navbar>
+
       <Router forceRefresh={false} >
-        <h1><Link id="home" to={"/"}>Home</Link></h1>
         <div className="App">
           <Route path="/" exact render={() => Index} />
           <Route path="/tree/:id/path/:path" exact render={(query) => {

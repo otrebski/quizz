@@ -2,7 +2,7 @@ import React from 'react';
 import './App.css';
 import Tree from "./components/Tree"
 import Api from "./Api"
-import { BrowserRouter as Router, Route , Link} from "react-router-dom";
+import { BrowserRouter as Router, Route} from "react-router-dom";
 import Trees from "./components/Trees";
 import Navbar from 'react-bootstrap/Navbar'
 import Nav from 'react-bootstrap/Nav'
@@ -18,7 +18,6 @@ function App() {
         <Nav>
           <Nav.Link href="/">Home</Nav.Link>
           <Nav.Link href="/docs">Swagger API</Nav.Link>
-          {/*<Nav.Link href="https://github.com/otrebski/quizz">Source</Nav.Link>*/}
         </Nav>
       </Navbar>
 

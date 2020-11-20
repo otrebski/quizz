@@ -53,8 +53,32 @@ class Settings extends React.Component {
                 role="img" aria-label=":|">➕ Demo tree added</span></Button></div>
         }
         return (
-            <div>
+            <div align="left" style={{"margin-left": 20}}>
                 {component}
+                <h3>How to create own decision tree</h3>
+                <div>Application is using <a href="https://drive.mindmup.com/">Mindmup</a> format. Mindmup have to fulfill following requirements:</div>
+                <ul>
+                    <li>There is only one root node</li>
+                    <li>Every connection line has label</li>
+                </ul>
+                <div>Mindmup processing rules:</div>
+                <ul>
+                    <li>Node is a question, label on connection line is answer.</li>
+                    <li>Node text is merged with note attached to node</li>
+                    <li>Following markdown is support:</li>
+                    <ul>
+                        <li>Italic: <code>*word*</code></li>
+                        <li>Bold: <code>**word**</code></li>
+                        <li>Image: <code>![alt text](url)</code></li>
+                        <li>Link: <code>[text](url)</code></li>
+                        <li>List:<code> <br/>* line 1<br/>* line 2</code></li>
+                        <li>Code:<br/><code>~~~js<br/>
+                        console.log("it works!)<br/>
+                        ~~~</code> </li>
+                    </ul>
+                </ul>
+            <br/>
+            On picture below is a mindmup used as demo decision tree.
                 <Image src="/Demo.png"/>
             </div>
         );

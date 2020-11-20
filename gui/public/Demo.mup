@@ -1,0 +1,98 @@
+{
+  "formatVersion": 3,
+  "id": "root",
+  "ideas": {
+    "1": {
+      "title": "Issue with service X",
+      "id": 1,
+      "attr": {
+        "position": [
+          -232,
+          -236,
+          1
+        ]
+      },
+      "ideas": {
+        "1": {
+          "title": "Which **alert?**",
+          "id": "3.82d7.ffd6e842a-f910.2cd53981f",
+          "attr": {
+            "parentConnector": {
+              "label": "Alert from PagerDuty"
+            }
+          },
+          "ideas": {
+            "2": {
+              "title": "Restart Database [using this manual](www.google.com/?q=restarting+database+for+dummies)",
+              "id": "6.82d7.ffd6e842a-f910.2cd53981f",
+              "attr": {
+                "parentConnector": {
+                  "label": "Alert x"
+                },
+                "style": {
+                  "width": 84
+                }
+              }
+            },
+            "3": {
+              "title": "Production is on fire",
+              "id": "5.82d7.ffd6e842a-f910.2cd53981f",
+              "attr": {
+                "parentConnector": {
+                  "label": "Alert y"
+                },
+                "note": {
+                  "index": 4,
+                  "text": "![fire image](https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/School_burn.JPG/180px-School_burn.JPG)"
+                }
+              },
+              "ideas": {}
+            }
+          }
+        },
+        "11": {
+          "title": "What is the problem?",
+          "id": "4.82d7.ffd6e842a-f910.2cd53981f",
+          "attr": {
+            "parentConnector": {
+              "label": "Call from user"
+            },
+            "note": {
+              "index": 5,
+              "text": "Some paragraph with *important* and **important bold text**.\nSome list\n* task 1 [doc](www.google.com/?q=restarting+database+for+dummies)\n* task 2"
+            }
+          },
+          "ideas": {
+            "1": {
+              "title": "Run script",
+              "id": "8.82d7.ffd6e842a-f910.2cd53981f",
+              "attr": {
+                "parentConnector": {
+                  "label": "Problem A"
+                },
+                "note": {
+                  "index": 6,
+                  "text": "~~~js\nconsole.log('It works!')\n~~~"
+                }
+              }
+            },
+            "2": {
+              "title": "Escalate to team B",
+              "id": "9.82d7.ffd6e842a-f910.2cd53981f",
+              "attr": {
+                "parentConnector": {
+                  "label": "Problem B"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "title": "Issue with service X",
+  "attr": {
+    "theme": "topdownStandard"
+  },
+  "links": []
+}

@@ -1,6 +1,6 @@
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import tree.model.{Question, DecisionTreeStep, DecisionTree, SuccessStep}
+import tree.model.{ DecisionTree, DecisionTreeStep, Question, SuccessStep }
 
 package object mindmup extends LazyLogging {
 
@@ -64,7 +64,7 @@ package object mindmup extends LazyLogging {
       for {
         validateRootNodes  <- validateSingleRoot(mindmap)
         validateDuplicates <- validateDuplicateAnswer(validateRootNodes)
-        tree              <- convertMindmup(validateDuplicates)
+        tree               <- convertMindmup(validateDuplicates)
         validated          <- validateEmptyAnswer(tree)
       } yield validated
 

@@ -1,26 +1,9 @@
-/*
- * Copyright 2019 k.otrebski
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package tree.data
 
-import cats.syntax.show._
 import com.typesafe.scalalogging.LazyLogging
 import mindmup.Parser
-import tree.model.{FailureStep, Question, DecisionTree, SuccessStep}
-import tree.web.Api.{Answer, HistoryStep, DecisionTreeState, Step}
+import tree.model.{ DecisionTree, FailureStep, Question, SuccessStep }
+import tree.web.Api.{ Answer, DecisionTreeState, HistoryStep, Step }
 
 import scala.io.Source
 
@@ -167,19 +150,9 @@ object ExamplesData extends LazyLogging {
     )
   }
 
-  private val exampleSource = Source
-    .fromInputStream(this.getClass.getClassLoader.getResourceAsStream("tree.mup.json"))
-    .mkString
-  private val errorOrDecisionTree: Either[String, DecisionTree] =
-    Parser.parseInput("example", exampleSource).flatMap(_.toDecisionTree)
-
-  logger.info(s"Loaded trees: ${errorOrDecisionTree.map(_.show)}")
-  val treeMindmup: DecisionTree = errorOrDecisionTree.toOption.get
-
   val trees: Map[String, DecisionTree] = List(
     DecisionTree("q1", "Example tree", tree),
-    DecisionTree("q2", "Another tree", tree),
-    treeMindmup
+    DecisionTree("q2", "Another tree", tree)
   ).map(q => q.id -> q).toMap
 
 }

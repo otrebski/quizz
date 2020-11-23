@@ -3,10 +3,16 @@ package tree.data
 import better.files._
 import cats.effect.concurrent.Ref
 import cats.effect.{Async, ContextShift, Sync}
-import cats.{Applicative, FlatMap}
-import doobie.util.transactor.Transactor.Aux
+import cats.{Applicative, FlatMap, Functor}
+import doobie.util.transactor.Transactor.{Aux, connect}
 
 import scala.language.higherKinds
+
+object MindmupStore {
+
+  case class Mindmup(name: String, version: Int, content: String)
+
+}
 
 trait MindmupStore[F[_]] {
 
@@ -14,9 +20,13 @@ trait MindmupStore[F[_]] {
 
   def listNames(): F[Set[String]]
 
-  def load(name: String): F[String]
+  def versions(name: String): F[List[Int]]
 
-  def delete(name: String): F[Unit]
+  def latestVersion(name: String): F[Int]
+
+  def load(name: String, version: Int): F[MindmupStore.Mindmup]
+
+  def delete(name: String, version: Int): F[Unit]
 }
 
 object FileMindmupStore {
@@ -28,54 +38,77 @@ object FileMindmupStore {
     }
 }
 
-class FileMindmupStore[F[_]: Sync](dir: File) extends MindmupStore[F] {
+class FileMindmupStore[F[_]: Sync: Applicative](dir: File) extends MindmupStore[F] {
 
-  override def store(name: String, content: String): F[Unit] =
-    Sync[F].delay {
-      (dir / name).overwrite(content)
-    }
+  override def store(name: String, content: String): F[Unit] = {
+    val version: F[Int] = latestVersion(name)
+    Sync[F].flatMap(version)(v =>
+      Sync[F].delay((dir / name / (v + 1).toString).overwrite(content))
+    )
+  }
 
   override def listNames(): F[Set[String]] =
     Sync[F].delay {
       dir.list
-        .filter(_.isRegularFile)
+        .filter(_.isDirectory)
         .map(_.name)
         .toSet
     }
 
-  override def load(name: String): F[String] =
+  def versions(name: String): F[List[Int]] =
     Sync[F].delay {
-      (dir / name).contentAsString
+      (dir / name).list
+        .filter(_.isRegularFile)
+        .filter(_.name.matches("\\d+"))
+        .map(_.name.toInt)
+        .toList
     }
 
-  override def delete(name: String): F[Unit] =
+  override def load(name: String, version: Int): F[MindmupStore.Mindmup] =
     Sync[F].delay {
-      val toDelete = dir / name
+      MindmupStore.Mindmup(name, version, (dir / name / version.toString).contentAsString)
+    }
+
+  override def delete(name: String, version: Int): F[Unit] =
+    Sync[F].delay {
+      val toDelete = dir / name / version.toString
       toDelete.delete(swallowIOExceptions = false)
     }
+
+  override def latestVersion(name: String): F[Int] =
+    Applicative[F].map(versions(name))(list => list.maxOption.getOrElse(0))
 }
 
 object MemoryMindmupStore {
   def apply[F[_]]()(implicit ev: Sync[F]): F[MemoryMindmupStore[F]] = {
-    val ref: F[Ref[F, Map[String, String]]] =
-      Ref.of[F, Map[String, String]](Map.empty[String, String])
+    val ref = Ref.of[F, List[MindmupStore.Mindmup]](List.empty[MindmupStore.Mindmup])
     Applicative[F].map(ref)(r => new MemoryMindmupStore[F](r))
   }
 
 }
 
-class MemoryMindmupStore[F[_]: Sync](ref: Ref[F, Map[String, String]]) extends MindmupStore[F] {
-  override def store(name: String, content: String): F[Unit] =
-    ref.update(x => x.updated(name, content))
+class MemoryMindmupStore[F[_]: Sync](ref: Ref[F, List[MindmupStore.Mindmup]]) extends MindmupStore[F] {
+  override def store(name: String, content: String): F[Unit] = {
+    ref.update{ list =>
+      val version = list.map(_.version).maxOption.getOrElse(0) + 1
+      MindmupStore.Mindmup(name, version, content) :: list
+    }
+  }
 
   override def listNames(): F[Set[String]] =
-    FlatMap[F].flatMap(ref.get)(m => Applicative[F].pure(m.toList.map(_._1).toSet))
+    FlatMap[F].map(ref.get)(m => m.map(_.name).toSet)
 
-  override def load(name: String): F[String] =
-    FlatMap[F].flatMap(ref.get)(m => Applicative[F].pure(m(name)))
+  override def load(name: String, version: Int): F[MindmupStore.Mindmup] =
+    FlatMap[F].map(ref.get)(_.filter(m => m.name == name && m.version == version).head)
 
-  override def delete(name: String): F[Unit] =
-    FlatMap[F].flatMap(ref.update(v => v.removed(name)))(_ => Applicative[F].pure(()))
+  override def delete(name: String, version: Int): F[Unit] =
+    FlatMap[F].map(ref.update(_.filterNot(m => m.name == name && m.version == version)))(_ => Applicative[F].pure(()))
+
+  override def versions(name: String): F[List[Int]] = {
+    FlatMap[F].map(ref.get)(list => list.filter(m => m.name == name).map(_.version))
+  }
+
+  override def latestVersion(name: String): F[Int] = Functor[F].map(versions(name))(_.maxOption.getOrElse(0))
 }
 
 object DbMindMupStore {
@@ -87,7 +120,7 @@ object DbMindMupStore {
 
 class DbMindMupStore[F[_]: Async: ContextShift](xa: Aux[F, Unit]) extends MindmupStore[F] {
 
-  case class Mindmup(id: String, json: String)
+  case class Mindmup(version:Int, name: String, json: String)
 
   import doobie.quill.DoobieContext
   import io.getquill.Literal
@@ -98,32 +131,42 @@ class DbMindMupStore[F[_]: Async: ContextShift](xa: Aux[F, Unit]) extends Mindmu
   import doobie.implicits._
 
   override def store(name: String, json: String): F[Unit] = {
-    val q: dc.Quoted[dc.Insert[Mindmup]] = quote {
+    val q = quote {
       query[Mindmup]
-        .insert(lift(Mindmup(name, json)))
-        .onConflictUpdate(_.id)((t, e) => t.json -> e.json)
+        .insert(lift(Mindmup(0,name, json)))
+        .returningGenerated(_.version)
     }
     Applicative[F].map(run(q).transact(xa))(_ => ())
   }
 
   override def listNames(): F[Set[String]] = {
     val q = quote {
-      query[Mindmup].map(_.id)
+      query[Mindmup].map(_.name).distinct
     }
     Applicative[F].map(run(q).transact(xa))(_.toSet)
   }
 
-  override def load(name: String): F[String] = {
+  override def load(name: String, version: Int): F[MindmupStore.Mindmup] = {
     val q = quote {
-      query[Mindmup].map(x => x.json)
+      query[Mindmup].filter(m => m.name == lift(name) && m.version == lift(version))map(x => Mindmup(x.version, x.name, x.json))
     }
-    Applicative[F].map(run(q).transact(xa))(_.head)
-  }
+    Applicative[F]
+      .map(run(q).transact(xa))(c => MindmupStore.Mindmup(name, version, c.head.json))
 
-  override def delete(name: String): F[Unit] = {
+  }
+  override def delete(name: String, version: Int): F[Unit] = {
     val q = quote {
-      query[Mindmup].filter(_.id == lift(name)).delete
+      query[Mindmup].filter(m => m.name == lift(name) && m.version == lift(version)).delete
     }
     Applicative[F].map(run(q).transact(xa))(_ => ())
   }
+
+  override def versions(name: String): F[List[Int]] = {
+    val q: dc.Quoted[dc.Query[Index]] = quote {
+      query[Mindmup].filter(_.name == lift(name)).sortBy(_.version)(Ord.desc).map(_.version)
+    }
+    Functor[F].map(run(q).transact(xa))(l => l)
+  }
+
+  override def latestVersion(name: String): F[Index] = Functor[F].map(versions(name))(_.maxOption.getOrElse(0))
 }

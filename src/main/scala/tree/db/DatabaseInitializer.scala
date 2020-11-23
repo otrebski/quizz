@@ -42,7 +42,8 @@ object DatabaseInitializer {
     val createMindmup: doobie.ConnectionIO[Int] =
       sql"""CREATE TABLE IF NOT EXISTS mindmup
          |(
-         |    id   varchar(500) primary key,
+         |    version SERIAL PRIMARY KEY,
+         |    name   varchar(500),
          |    json varchar(100000)
          |)""".stripMargin.update.run
 

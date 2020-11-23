@@ -14,17 +14,28 @@ const Api = {
             .then(response => response.json())
     },
 
+    readDemoTree: () => {
+        const requestUrl = '/Demo.mup'
+        return fetch(requestUrl)
+            .then(Api.checkStatus)
+            .then(response => response.text())
+    },
+
+    addDecisionTree: (treeId, content) => {
+        const requestUrl = `/api/tree/${treeId}`
+        return fetch(requestUrl, {method: "PUT", body: content})
+    },
+
     sendFeedback: (rate, comment, treeId, path) => {
-        // expression
         const body = {
             rate: rate,
             comment: comment,
             treeId: treeId,
             path: path
         };
-        
+
         return fetch("/api/feedback", {
-            headers: {                
+            headers: {
                 'Content-Type': 'application/json'
             },
             method: "POST",

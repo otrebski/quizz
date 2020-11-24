@@ -26,9 +26,10 @@ package object model {
     def text: String
   }
 
-  case class SuccessStep(id: String, text: String)                              extends DecisionTreeStep
-  case class FailureStep(id: String, text: String)                              extends DecisionTreeStep
-  case class Question(id: String, text: String, answers: Map[String, DecisionTreeStep]) extends DecisionTreeStep
+  case class SuccessStep(id: String, text: String) extends DecisionTreeStep
+  case class FailureStep(id: String, text: String) extends DecisionTreeStep
+  case class Question(id: String, text: String, answers: Map[String, DecisionTreeStep])
+      extends DecisionTreeStep
 
   implicit val decisionTreeShowShow: Show[DecisionTree] = Show.show { q =>
     def stepToString(step: DecisionTreeStep, depth: Int = 0): String = {

@@ -25,9 +25,9 @@ public class SeleniumTest extends FluentTest {
 
     @After
     public void teardown() throws Exception {
-        List<String> ids = Api.listTrees();
-        for (String id : ids) {
-            Api.deleteTrees(id);
+        List<Api.TreeInfo> ids = Api.listTrees();
+        for (Api.TreeInfo treeInfo : ids) {
+            Api.deleteTrees(treeInfo.name, treeInfo.version);
         }
     }
 

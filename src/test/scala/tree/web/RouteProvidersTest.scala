@@ -54,15 +54,20 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
   }
 
   "treeListProvider" should "list all trees" in {
-    val mindmups = for {
+    val mindmups: IO[Either[Unit, DecisionTrees]] = for {
       store    <- MemoryMindmupStore[IO]
       _        <- store.store("a", validMindmup)
       _        <- store.store("b", validMindmup)
+      _        <- store.store("c", "invalid")
       mindmups <- RouteProviders.treeListProvider(store).apply(List.empty)
     } yield mindmups
     mindmups.unsafeRunSync() match {
-      case Right(q) =>
-        q shouldBe DecisionTrees(List(DecisionTreeInfo("a", "Starting point"), DecisionTreeInfo("b", "Starting point")))
+      case Right(decisionTrees) =>
+        decisionTrees.trees should contain theSameElementsAs List(
+          DecisionTreeInfo("a", "Starting point", 1),
+          DecisionTreeInfo("b", "Starting point", 1)
+        )
+        decisionTrees.treesWithErrors.size shouldBe 1
       case Left(error) => fail(error.toString)
     }
   }
@@ -114,16 +119,17 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
 
   "routeWithPathProvider" should " return error for wrong path" in {
     val io = for {
-      store  <- MemoryMindmupStore[IO]
-      _      <- store.store("a", validMindmup)
-      result <- RouteProviders.routeWithPathProvider(store)(Api.DecisionTreeQuery("a", "root;wrong path"))
+      store <- MemoryMindmupStore[IO]
+      _     <- store.store("a", validMindmup)
+      result <-
+        RouteProviders.routeWithPathProvider(store)(Api.DecisionTreeQuery("a", "root;wrong path"))
     } yield result
     io.map(_.map(_.currentStep.question)).unsafeRunSync() shouldBe "Wrong selection".asLeft
   }
 
   "feedbackProvider" should "send feedback" in {
     val feedbackSender = new LogFeedbackSender[IO]
-    val feedbackSend   = Api.FeedbackSend("a", "root;3.eeff.d297c2367-0c3d.6aa7f21a", 0, "comment")
+    val feedbackSend   = Api.FeedbackSend("a", 1, "root;3.eeff.d297c2367-0c3d.6aa7f21a", 0, "comment")
     val io = for {
       store  <- MemoryMindmupStore[IO]
       _      <- store.store("a", validMindmup)
@@ -169,12 +175,12 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
       r <- RouteProviders.trackingSessionProvider(t)(Api.TrackingSessionHistoryQuery("s1", "q1"))
     } yield r)
       .unsafeRunSync() shouldBe TrackingSessionHistory(
-          details = Api.TrackingSession("s1", new Date(0), "q1", 100 * 1000),
-          steps = List(
-            Api.TrackingStep("q1", "a", new Date(0), "s1", none[String]),
-            Api.TrackingStep("q1", "a;2", new Date(100 * 1000), "s1", none[String])
-          )
-        ).asRight
+      details = Api.TrackingSession("s1", new Date(0), "q1", 100 * 1000),
+      steps = List(
+        Api.TrackingStep("q1", "a", new Date(0), "s1", none[String]),
+        Api.TrackingStep("q1", "a;2", new Date(100 * 1000), "s1", none[String])
+      )
+    ).asRight
   }
 
 }

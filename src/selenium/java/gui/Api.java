@@ -32,26 +32,27 @@ public class Api {
         validateStatus(status);
     }
 
-    static void deleteTrees(String id) throws Exception {
-        deleteTrees(URL, id);
+    static void deleteTrees(String id, int version) throws Exception {
+        deleteTrees(URL, id, version);
     }
 
-    static void deleteTrees(String url, String id) throws Exception {
-        int status = Unirest.delete(url + "/api/tree/" + id).asBinary().getStatus();
+    static void deleteTrees(String url, String id, int version) throws Exception {
+        int status = Unirest.delete(url + "/api/tree/" + id + "/version/" + version).asBinary().getStatus();
         validateStatus(status);
     }
 
-    static List<String> listTrees() throws Exception {
+    static List<TreeInfo> listTrees() throws Exception {
         return listTrees(URL);
     }
 
-    static List<String> listTrees(String url) throws Exception {
-        List<String> result = new ArrayList<>();
+    static List<TreeInfo> listTrees(String url) throws Exception {
+        List<TreeInfo> result = new ArrayList<>();
         JsonNode body = Unirest.get(url + "/api/tree/").asJson().getBody();
         JSONArray trees = body.getObject().getJSONArray("trees");
         for (int i = 0; i < trees.length(); i++) {
             String id = trees.getJSONObject(i).getString("id");
-            result.add(id);
+            int version = trees.getJSONObject(i).getInt("version");
+            result.add(new TreeInfo(id, version));
         }
         return result;
     }
@@ -59,6 +60,16 @@ public class Api {
     private static void validateStatus(int status) throws Exception {
         if (status > 399) {
             throw new Exception("Not added, response code is " + status);
+        }
+    }
+
+    static class TreeInfo {
+        final String name;
+        final int version;
+
+        TreeInfo(String name, int version) {
+            this.name = name;
+            this.version = version;
         }
     }
 }

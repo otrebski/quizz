@@ -2,7 +2,7 @@ package mindmup
 
 import cats.syntax.either._
 import cats.syntax.option._
-import mindmup.V3IdString.{Idea, Mindmap}
+import mindmup.V3IdString.{ Idea, Mindmap }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

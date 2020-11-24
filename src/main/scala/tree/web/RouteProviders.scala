@@ -1,7 +1,7 @@
 package tree.web
 
 import java.time.Instant
-import java.util.{Date, UUID}
+import java.util.{ Date, UUID }
 
 import cats.Applicative
 import cats.effect.Sync
@@ -12,8 +12,8 @@ import tree.data.MindmupStore
 import tree.feedback.FeedbackSender
 import tree.model.DecisionTree
 import tree.tracking.Tracking
-import tree.web.Api.{AddQDecisionTreeResponse, FeedbackResponse, DecisionTreeQuery, DecisionTrees}
-import sttp.model.{Cookie, CookieValueWithMeta}
+import tree.web.Api.{ AddQDecisionTreeResponse, DecisionTreeQuery, DecisionTrees, FeedbackResponse }
+import sttp.model.{ Cookie, CookieValueWithMeta }
 
 import scala.language.higherKinds
 
@@ -40,7 +40,7 @@ object RouteProviders extends LazyLogging {
   )(implicit convert: In => DecisionTreeQuery): F[Either[Error, (Out, CookieValueWithMeta)]] = {
     val (request, cookies) = requestAndCookie
     val cookie             = generateCookie(cookies.find(_.name == "session"))
-    val treeQuery         = convert.apply(request)
+    val treeQuery          = convert.apply(request)
     val result = for {
       _ <-
         tracking
@@ -58,33 +58,35 @@ object RouteProviders extends LazyLogging {
   ): F[Either[String, Api.DecisionTreeState]] = {
     import mindmup._
     for {
+      latestVersion <- store.latestVersion(request.id)
       q <-
         store
-          .load(request.id)
-          .map(s => Parser.parseInput(request.id, s).flatMap(_.toDecisionTree))
+          .load(request.id, latestVersion)
+          .map(s => Parser.parseInput(request.id, s.content).flatMap(_.toDecisionTree))
       result = q.flatMap(trees => Logic.calculateState(request, Map(request.id -> trees)))
     } yield result
   }
 
   def treeListProvider[F[_]: Sync](
-                                    treeStore: MindmupStore[F]
+      treeStore: MindmupStore[F]
   ): List[Cookie] => F[Either[Unit, Api.DecisionTrees]] = { _ =>
     import mindmup._
-    val r: F[DecisionTrees] = for {
-      ids <- treeStore.listNames()
-      errorOrTreeList <-
-        ids.toList
-          .traverse(id =>
-            treeStore
-              .load(id)
-              .map(string => Parser.parseInput(id, string).flatMap(_.toDecisionTree))
-              .map {
-                case Left(error)  => Left(Api.DecisionTreeErrorInfo(id, error))
-                case Right(value) => Right(Api.DecisionTreeInfo(id, value.name))
-              }
-          )
+    val r = for {
+      names <- treeStore.listNames()
+      v     <- names.toList.traverse(name => treeStore.latestVersion(name).map(name -> _))
+      errorOrTreeList <- v.traverse {
+        case (name, version) =>
+          treeStore
+            .load(name, version)
+            .map(mindmup => Parser.parseInput(mindmup.name, mindmup.content))
+            .map {
+              case Left(error)  => Left(Api.DecisionTreeErrorInfo(name, error))
+              case Right(value) => Right(Api.DecisionTreeInfo(name, value.title, version))
+            }
+      }
       (errors, trees) = errorOrTreeList.partitionMap(identity)
     } yield DecisionTrees(trees, errors)
+
     r.redeem(
       error => {
         RouteProviders.logger.error("Error on request", error)
@@ -100,7 +102,8 @@ object RouteProviders extends LazyLogging {
     import mindmup._
     val id: Either[String, V3IdString.Mindmap] =
       Parser.parseInput(request.id, request.mindmupSource)
-    val newTreeOrError: Either[String, DecisionTree] = id.flatMap(_.toDecisionTree).map(_.copy(id = request.id))
+    val newTreeOrError: Either[String, DecisionTree] =
+      id.flatMap(_.toDecisionTree).map(_.copy(id = request.id))
 
     newTreeOrError match {
       case Left(error) => Sync[F].raiseError(new Exception(error))
@@ -115,7 +118,7 @@ object RouteProviders extends LazyLogging {
       store: MindmupStore[F]
   )(request: Api.DeleteDecisionTree): F[Either[Unit, Unit]] =
     store
-      .delete(request.id)
+      .delete(request.id, request.version)
       .map(_.asRight[Unit])
 
   def feedbackProvider[F[_]: Sync](
@@ -124,12 +127,12 @@ object RouteProviders extends LazyLogging {
   )(
       feedback: Api.FeedbackSend
   ): F[Either[String, FeedbackResponse]] = {
-    val request = Api.DecisionTreeQuery(feedback.treeId, feedback.path)
+    val request = Api.DecisionTreeQuery(feedback.treeId, feedback.path, feedback.version.some)
     val treeState: F[Either[String, Api.DecisionTreeState]] = store
-      .load(request.id)
-      .map(string =>
+      .load(request.id, request.version.getOrElse(0))
+      .map(mindmup =>
         Parser
-          .parseInput(request.id, string)
+          .parseInput(request.id, mindmup.content)
           .flatMap(_.toDecisionTree)
           .flatMap(tree => Logic.calculateState(request, Map(request.id -> tree)))
       )

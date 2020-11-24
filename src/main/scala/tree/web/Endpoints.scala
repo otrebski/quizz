@@ -6,12 +6,12 @@ import java.util.Date
 import io.circe.Decoder.Result
 import io.circe.generic.auto._
 import tree.web.Api.DeleteDecisionTree
-import sttp.model.{Cookie, CookieValueWithMeta}
+import sttp.model.{ Cookie, CookieValueWithMeta }
 import sttp.tapir.json.circe._
-import sttp.tapir.{path, setCookie, _}
+import sttp.tapir.{ path, setCookie, _ }
 
 object Endpoints {
-  import io.circe.{Json, _}
+  import io.circe.{ Json, _ }
   implicit val TimestampFormat: Encoder[Date] with Decoder[Date] =
     new Encoder[Date] with Decoder[Date] {
 
@@ -30,7 +30,7 @@ object Endpoints {
   ] = endpoint.get
     .in(
       ("api" / "tree" / path[String]("id") / "path" / path[String]("treePath"))
-        .mapTo(Api.DecisionTreeQuery)
+        .mapTo((id, path) => Api.DecisionTreeQuery(id, path, version = None))
     )
     .in(cookies)
     .errorOut(stringBody)
@@ -43,7 +43,11 @@ object Endpoints {
     (Api.DecisionTreeState, CookieValueWithMeta),
     Nothing
   ] = endpoint.get
-    .in(("api" / "tree" / path[String]("id") / "path").mapTo(id => Api.DecisionTreeQuery(id, "")))
+    .in(
+      ("api" / "tree" / path[String]("id") / "path").mapTo(id =>
+        Api.DecisionTreeQuery(id, "", None)
+      )
+    )
     .in(cookies)
     .errorOut(stringBody)
     .out(jsonBody[Api.DecisionTreeState])
@@ -54,17 +58,23 @@ object Endpoints {
     .in(cookies)
     .out(jsonBody[Api.DecisionTrees])
 
-  val addTree: Endpoint[Api.AddDecisionTree, Unit, Api.AddQDecisionTreeResponse, Nothing] = endpoint.put
-    .in("api" / "tree" / path[String](name = "id").description("Id of tree to add/replace"))
-    .in(stringBody("UTF-8"))
-    .mapIn(idAndContent => Api.AddDecisionTree(idAndContent._1, idAndContent._2))(a =>
-      (a.id, a.mindmupSource)
-    )
-    .out(jsonBody[Api.AddQDecisionTreeResponse])
+  val addTree: Endpoint[Api.AddDecisionTree, Unit, Api.AddQDecisionTreeResponse, Nothing] =
+    endpoint.put
+      .in("api" / "tree" / path[String](name = "id").description("Id of tree to add/replace"))
+      .in(stringBody("UTF-8"))
+      .mapIn(idAndContent => Api.AddDecisionTree(idAndContent._1, idAndContent._2))(a =>
+        (a.id, a.mindmupSource)
+      )
+      .out(jsonBody[Api.AddQDecisionTreeResponse])
 
   val deleteTree: Endpoint[DeleteDecisionTree, Unit, Unit, Nothing] = endpoint.delete
-    .in("api" / "tree" / path[String](name = "id").description("Id of tree to delete"))
-    .mapIn(id => DeleteDecisionTree(id))(_.id)
+    .in(
+      "api" / "tree" / path[String](name = "id")
+        .description("Id of tree to delete") / "version" / path[Int](name = "version")
+    )
+    .mapIn(idAndVersion => DeleteDecisionTree(idAndVersion._1, idAndVersion._2))(d =>
+      (d.id, d.version)
+    )
     .out(emptyOutput)
 
   val feedback: Endpoint[

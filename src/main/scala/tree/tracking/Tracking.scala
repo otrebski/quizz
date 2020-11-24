@@ -8,31 +8,31 @@ import better.files.Dsl.SymbolicOperations
 import better.files.File
 import cats.Applicative
 import cats.effect.concurrent.Ref
-import cats.effect.{Async, ContextShift, Sync}
-import cats.implicits.{catsSyntaxOptionId, none}
+import cats.effect.{ Async, ContextShift, Sync }
+import cats.implicits.{ catsSyntaxOptionId, none }
 import com.typesafe.scalalogging.LazyLogging
 import doobie.util.transactor.Transactor.Aux
 
 import scala.language.higherKinds
 
 case class TrackingStep(
-                         id: Long,
-                         treeId: String,
-                         path: String,
-                         date: Date,
-                         session: String,
-                         username: Option[String]
+    id: Long,
+    treeId: String,
+    path: String,
+    date: Date,
+    session: String,
+    username: Option[String]
 )
 
 case class TrackingSession(session: String, treeId: String, date: Date, duration: Long)
 
 trait Tracking[F[_]] {
   def step(
-            treeId: String,
-            path: String,
-            date: Instant,
-            session: String,
-            user: Option[String]
+      treeId: String,
+      path: String,
+      date: Instant,
+      session: String,
+      user: Option[String]
   ): F[Unit]
 
   def session(session: String, treeId: String): F[List[TrackingStep]]
@@ -49,11 +49,11 @@ class MemoryTracking[F[_]: Sync](ref: Ref[F, List[TrackingStep]])
     extends Tracking[F]
     with LazyLogging {
   override def step(
-                     treeId: String,
-                     path: String,
-                     date: Instant,
-                     session: String,
-                     user: Option[String]
+      treeId: String,
+      path: String,
+      date: Instant,
+      session: String,
+      user: Option[String]
   ): F[Unit] =
     ref.update(list => TrackingStep(0, treeId, path, Date.from(date), session, user) :: list)
 
@@ -91,11 +91,11 @@ class FileTracking[F[_]: Sync](dir: File) extends Tracking[F] {
   private val file = dir / FileTracking.fileName
 
   override def step(
-                     treeId: String,
-                     path: String,
-                     date: Instant,
-                     session: String,
-                     user: Option[String]
+      treeId: String,
+      path: String,
+      date: Instant,
+      session: String,
+      user: Option[String]
   ): F[Unit] =
     Sync[F].delay {
       val dateString = new SimpleDateFormat("yyyyMMdd HHmmss").format(Date.from(date))
@@ -158,11 +158,11 @@ class DbTracking[F[_]: Async: ContextShift](xa: Aux[F, Unit]) extends Tracking[F
   import dc._
 
   override def step(
-                     treeId: String,
-                     path: String,
-                     date: Instant,
-                     session: String,
-                     user: Option[String]
+      treeId: String,
+      path: String,
+      date: Instant,
+      session: String,
+      user: Option[String]
   ): F[Unit] = {
     val q = quote {
       query[TrackingStep]

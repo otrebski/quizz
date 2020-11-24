@@ -3,8 +3,8 @@ package tree.data
 import better.files._
 import cats.effect.concurrent.Ref
 import cats.effect.{ Async, ContextShift, Sync }
-import cats.{ Applicative, FlatMap, Functor, Monad }
-import doobie.util.transactor.Transactor.{ Aux, connect }
+import cats.{ Applicative, FlatMap, Functor }
+import doobie.util.transactor.Transactor.Aux
 
 import scala.language.higherKinds
 

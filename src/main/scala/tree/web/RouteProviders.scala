@@ -129,7 +129,7 @@ object RouteProviders extends LazyLogging {
   ): F[Either[String, FeedbackResponse]] = {
     val request = Api.DecisionTreeQuery(feedback.treeId, feedback.path)
 
-    def treeState(version:Int): F[Either[String, FeedbackResponse]] = {
+    def treeState(version: Int): F[Either[String, FeedbackResponse]] =
       store
         .load(request.id, version)
         .map(mindmup =>
@@ -138,18 +138,18 @@ object RouteProviders extends LazyLogging {
             .flatMap(_.toDecisionTree)
             .flatMap(tree => Logic.calculateState(request, Map(request.id -> tree)))
         )
-    }.flatMap {
-      case Right(treeState) =>
-        feedbackSenders
-          .traverse(_.send(feedback, treeState))
-          .map(_ => FeedbackResponse("OK").asRight[String])
-      case Left(error) => Sync[F].raiseError(new Exception(s"Can't process feedback: $error"))
+        .flatMap {
+          case Right(treeState) =>
+            feedbackSenders
+              .traverse(_.send(feedback, treeState))
+              .map(_ => FeedbackResponse("OK").asRight[String])
+          case Left(error) => Sync[F].raiseError(new Exception(s"Can't process feedback: $error"))
 
-    }
+        }
 
     for {
       version <- store.latestVersion(request.id)
-      state <- treeState(version)
+      state   <- treeState(version)
     } yield state
   }
 

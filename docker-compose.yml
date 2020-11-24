@@ -2,7 +2,7 @@ version: "2.4"
 
 services:
   quizz:
-    image: otrebski/quizz:latest
+    image: decision-tree:latest
     volumes:
       - '/tmp/mindmups/:/mindmups/'
     environment:
@@ -18,7 +18,7 @@ services:
     links:
       - db
     ports:
-      - 8080:80
+      - 8080:8080
 
   db:
     image: library/postgres:13

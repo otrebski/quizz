@@ -70,7 +70,7 @@ class Trees extends React.Component {
                 {error}
                 {trees}
                 {invalidTrees}
-                <Button variant="light" disabled={this.state.isLoading}
+                <Button id="reload" variant="light" disabled={this.state.isLoading}
                         onClick={!this.state.loading ? () => this.loadTrees(false) : null}>{this.state.loading ? 'Loading…' : 'Click to reload'}</Button>
             </div>
         );

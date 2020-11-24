@@ -2,6 +2,7 @@ package gui.pages;
 
 import org.fluentlenium.core.FluentPage;
 import org.fluentlenium.core.annotation.PageUrl;
+import org.fluentlenium.core.domain.FluentList;
 import org.fluentlenium.core.domain.FluentWebElement;
 import org.openqa.selenium.support.FindBy;
 
@@ -28,6 +29,13 @@ public class Home extends FluentPage {
 
     public Home displayed() {
         $(withId("tree-list-header")).await().until().displayed();
+        return this;
+    }
+
+    public Home reload(){
+        FluentList<FluentWebElement> reload = $(withId("reload"));
+        reload.await().until().clickable();
+        reload.click();
         return this;
     }
 

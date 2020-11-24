@@ -56,7 +56,7 @@ public class SeleniumTest extends FluentTest {
         Api.addTree("t2", simpleTree.replaceAll("Root node", "t2"));
         assertThat(goTo(homePage).listTrees()).contains("t1", "t2");
         Api.addTree("t3", simpleTree.replaceAll("Root node", "t3"));
-        assertThat(goTo(homePage).listTrees()).contains("t1", "t2", "t3");
+        assertThat(goTo(homePage).reload().listTrees()).contains("t1", "t2", "t3");
     }
 
 

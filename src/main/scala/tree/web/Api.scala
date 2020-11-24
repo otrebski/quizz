@@ -42,7 +42,7 @@ object Api {
       treesWithErrors: List[DecisionTreeErrorInfo] = List.empty
   )
 
-  case class FeedbackSend(treeId: String, version: Int, path: String, rate: Int, comment: String)
+  case class FeedbackSend(treeId: String, path: String, rate: Int, comment: String)
 
   case class FeedbackResponse(status: String)
 

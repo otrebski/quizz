@@ -32,6 +32,7 @@ class Feedback extends React.Component {
             <Form.Group controlId="exampleForm.ControlTextarea1">
                 <Form.Label>Enter comment and rate you experience</Form.Label>
                 <Form.Control
+                    id="feedback-text"
                     as="textarea"
                     rows="5"
                     className="inputText"
@@ -43,19 +44,19 @@ class Feedback extends React.Component {
                 />
             </Form.Group>
             <ButtonToolbar className="center">
-                <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("1")}><span
+                <Button id="feedback-rate+1" className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("1")}><span
                     role="img" aria-label=":)" className="emoji"> &#x1f44d;</span> </Button>
                 <span>&nbsp;</span>
-                <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("0")}><span
+                <Button id="feedback-rate0" className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("0")}><span
                     role="img" aria-label=":|" className="emoji"> &#x1f610; </span></Button>
                 <span>&nbsp;</span>
-                <Button className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("-1")}><span
+                <Button id="feedback-rate-1" className="center" variant="dark" size="lg" onClick={() => this.sendFeedback("-1")}><span
                     role="img" aria-label=":(" className="emoji"> &#x1f44e;</span> </Button>
             </ButtonToolbar>
         </Form>
 
         if (this.state.send) {
-            component = <Alert variant="info">
+            component = <Alert variant="info" id="feedback-send-confirmation">
                 <Alert.Heading>Thank you for your feedback</Alert.Heading>
                 Your feedback was:
                 <hr/>

@@ -34,6 +34,13 @@ public class TreePage extends FluentPage {
         return this;
     }
 
+    public TreePage sendFeedbackPositive(String feedback) {
+        $(withId("feedback-text")).fill().withText(feedback);
+        $(withId("feedback-rate+1")).click();
+        $(withId("feedback-send-confirmation")).await().atMost(tenSeconds).until().displayed();
+        return this;
+    }
+
     public Home goHome(){
         return goTo(home);
     }

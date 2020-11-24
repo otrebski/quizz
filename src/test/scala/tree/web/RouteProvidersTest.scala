@@ -129,7 +129,7 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
 
   "feedbackProvider" should "send feedback" in {
     val feedbackSender = new LogFeedbackSender[IO]
-    val feedbackSend   = Api.FeedbackSend("a", 1, "root;3.eeff.d297c2367-0c3d.6aa7f21a", 0, "comment")
+    val feedbackSend   = Api.FeedbackSend("a", "root;3.eeff.d297c2367-0c3d.6aa7f21a", 0, "comment")
     val io = for {
       store  <- MemoryMindmupStore[IO]
       _      <- store.store("a", validMindmup)

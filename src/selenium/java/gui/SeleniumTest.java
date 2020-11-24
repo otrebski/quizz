@@ -81,7 +81,18 @@ public class SeleniumTest extends FluentTest {
                 .validateIsFinal("Right Left Node");
     }
 
-    //TODO send feedback
+    @Test
+    public void sendFeedback() throws Exception {
+        Api.addTree(treeName, simpleTree);
+        goTo(homePage)
+                .selectTree(treeName)
+                .select("1st Right")
+                .select("2nd Right")
+                .validateIsFinal("Right Right Node")
+                .selectHistory("2nd Left")
+                .validateIsFinal("Right Left Node")
+                .sendFeedbackPositive("Great work!");
+    }
 
     @Override
     public String getWebDriver() {

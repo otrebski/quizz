@@ -127,22 +127,30 @@ object RouteProviders extends LazyLogging {
   )(
       feedback: Api.FeedbackSend
   ): F[Either[String, FeedbackResponse]] = {
-    val request = Api.DecisionTreeQuery(feedback.treeId, feedback.path, feedback.version.some)
-    val treeState: F[Either[String, Api.DecisionTreeState]] = store
-      .load(request.id, request.version.getOrElse(0))
-      .map(mindmup =>
-        Parser
-          .parseInput(request.id, mindmup.content)
-          .flatMap(_.toDecisionTree)
-          .flatMap(tree => Logic.calculateState(request, Map(request.id -> tree)))
-      )
-    treeState.flatMap {
+    val request = Api.DecisionTreeQuery(feedback.treeId, feedback.path)
+
+    def treeState(version:Int): F[Either[String, FeedbackResponse]] = {
+      store
+        .load(request.id, version)
+        .map(mindmup =>
+          Parser
+            .parseInput(request.id, mindmup.content)
+            .flatMap(_.toDecisionTree)
+            .flatMap(tree => Logic.calculateState(request, Map(request.id -> tree)))
+        )
+    }.flatMap {
       case Right(treeState) =>
         feedbackSenders
           .traverse(_.send(feedback, treeState))
-          .map(_ => FeedbackResponse("OK").asRight)
+          .map(_ => FeedbackResponse("OK").asRight[String])
       case Left(error) => Sync[F].raiseError(new Exception(s"Can't process feedback: $error"))
+
     }
+
+    for {
+      version <- store.latestVersion(request.id)
+      state <- treeState(version)
+    } yield state
   }
 
   def validateProvider[F[_]: Applicative]: String => F[Either[Unit, Api.ValidationResult]] = { s =>

@@ -13,7 +13,7 @@ class FileMindmupStoreTest extends AnyFlatSpec with Matchers {
       store <- FileMindmupStore[IO](dir)
       _     <- store.store("n", "content")
     } yield ()).unsafeRunSync()
-    (dir / "n").contentAsString shouldBe "content"
+    (dir / "n" / "1").contentAsString shouldBe "content"
   }
 
   "FileMindmupStore" should "update mindmup" in {
@@ -22,32 +22,36 @@ class FileMindmupStoreTest extends AnyFlatSpec with Matchers {
       store <- FileMindmupStore[IO](dir)
       _     <- store.store("n", "content")
     } yield ()).unsafeRunSync()
-    (dir / "n").contentAsString shouldBe "content"
+    (dir / "n" / "1").contentAsString shouldBe "content"
 
     (for {
       store <- FileMindmupStore[IO](dir)
       _     <- store.store("n", "something else")
     } yield ()).unsafeRunSync()
-    (dir / "n").contentAsString shouldBe "something else"
+    (dir / "n" / "1").contentAsString shouldBe "content"
+    (dir / "n" / "2").contentAsString shouldBe "something else"
   }
 
   "FileMindmupStore" should "delete mindmup" in {
-    val dir = File.newTemporaryDirectory()
-    (dir / "n").write("content")
-    (dir / "n").exists shouldBe true
+    val dir     = File.newTemporaryDirectory()
+    val mapFile = dir / "n" / "1"
+    mapFile.parent.createDirectoryIfNotExists()
+    mapFile.write("content")
+    mapFile.exists shouldBe true
 
     (for {
       store <- FileMindmupStore[IO](dir)
-      _     <- store.delete("n")
+      _     <- store.delete("n", 1)
     } yield ()).unsafeRunSync()
-    (dir / "n").exists shouldBe false
+    mapFile.exists shouldBe false
   }
 
   "FileMindmupStore" should "list all mindmups" in {
     val dir = File.newTemporaryDirectory()
-    (dir / "n1").write("content")
-    (dir / "n2").write("content")
-    (dir / "n3").write("content")
+    (1 to 3).foreach { i =>
+      (dir / s"n$i").createDirectoryIfNotExists()
+      ((dir / s"n$i") / "1").write(s"content$i")
+    }
 
     val names = (for {
       store <- FileMindmupStore[IO](dir)
@@ -59,17 +63,17 @@ class FileMindmupStoreTest extends AnyFlatSpec with Matchers {
 
   "FileMindmupStore" should "load mindmup" in {
     val dir = File.newTemporaryDirectory()
-    (dir / "n1").write("content")
-    (dir / "n2").write("content")
-    (dir / "n3").write("content")
+    (1 to 3).foreach { i =>
+      (dir / s"n$i").createDirectoryIfNotExists()
+      ((dir / s"n$i") / "1").write(s"content$i")
+    }
 
-    val store = FileMindmupStore[IO](dir)
     val content = (for {
       store   <- FileMindmupStore[IO](dir)
-      content <- store.load("n1")
+      content <- store.load("n1", 1)
     } yield content).unsafeRunSync()
 
-    content shouldBe "content"
+    content shouldBe MindmupStore.Mindmup("n1", 1, "content1")
   }
 
 }

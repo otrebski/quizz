@@ -3,28 +3,28 @@ package tree.web
 import cats.syntax.option._
 import tree.engine.DecisionTreeEngine
 import tree.model
-import tree.model.{FailureStep, Question, DecisionTree, SuccessStep}
+import tree.model.{ DecisionTree, FailureStep, Question, SuccessStep }
 import tree.web.Api.HistoryStep
 
 object Logic {
 
   def calculateState(
-                      request: Api.DecisionTreeQuery,
-                      trees: Map[String, DecisionTree] //TODO replace map with single Tree
+      request: Api.DecisionTreeQuery,
+      trees: Map[String, DecisionTree] //TODO replace map with single Tree
   ): Either[String, Api.DecisionTreeState] = {
 
     val maybeTree = trees.get(request.id)
 
     maybeTree match {
-      case None                                => Left("Tree not found")
+      case None                               => Left("Tree not found")
       case Some(tree) if request.path.isEmpty => calculateStateOnPathStart(tree.firstStep)
       case Some(tree)                         => calculateStateOnPath(request, tree)
     }
   }
 
   def calculateStateOnPath(
-                            request: Api.DecisionTreeQuery,
-                            tree: DecisionTree
+      request: Api.DecisionTreeQuery,
+      tree: DecisionTree
   ): Either[String, Api.DecisionTreeState] = {
     val path     = request.path
     val pathList = path.split(";").toList.reverse
@@ -108,7 +108,9 @@ object Logic {
 
   }
 
-  def calculateStateOnPathStart(tree: model.DecisionTreeStep): Either[String, Api.DecisionTreeState] =
+  def calculateStateOnPathStart(
+      tree: model.DecisionTreeStep
+  ): Either[String, Api.DecisionTreeState] =
     tree match {
       case q: Question =>
         val answers: List[Api.Answer] = q.answers.map(kv => Api.Answer(kv._2.id, kv._1)).toList

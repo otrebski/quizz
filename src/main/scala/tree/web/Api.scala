@@ -6,11 +6,15 @@ object Api {
 
   case class UserSession(session: String)
 
-  case class DecisionTreeQuery(id: String, path: String)
+  case class DecisionTreeQuery(id: String, path: String, version: Option[Int] = None)
 
   case class DecisionTreeId(id: String)
 
-  case class DecisionTreeState(path: String, currentStep: Step, history: List[HistoryStep] = List.empty)
+  case class DecisionTreeState(
+      path: String,
+      currentStep: Step,
+      history: List[HistoryStep] = List.empty
+  )
 
   case class Step(
       id: String,
@@ -29,13 +33,13 @@ object Api {
 
   case class Answer(id: String, text: String, selected: Option[Boolean] = None)
 
-  case class DecisionTreeInfo(id: String, title: String)
+  case class DecisionTreeInfo(id: String, title: String, version: Int)
 
   case class DecisionTreeErrorInfo(id: String, error: String)
 
   case class DecisionTrees(
-                            trees: List[DecisionTreeInfo] = List.empty,
-                            treesWithErrors: List[DecisionTreeErrorInfo] = List.empty
+      trees: List[DecisionTreeInfo] = List.empty,
+      treesWithErrors: List[DecisionTreeErrorInfo] = List.empty
   )
 
   case class FeedbackSend(treeId: String, path: String, rate: Int, comment: String)
@@ -44,7 +48,7 @@ object Api {
 
   case class AddDecisionTree(id: String, mindmupSource: String)
 
-  case class DeleteDecisionTree(id: String)
+  case class DeleteDecisionTree(id: String, version: Int)
 
   case class AddQDecisionTreeResponse(status: String)
 
@@ -59,11 +63,11 @@ object Api {
   case class TrackingSessionHistoryQuery(session: String, treeId: String)
 
   case class TrackingStep(
-                           treeId: String,
-                           path: String,
-                           date: Date,
-                           session: String,
-                           username: Option[String]
+      treeId: String,
+      path: String,
+      date: Date,
+      session: String,
+      username: Option[String]
   )
 
 }

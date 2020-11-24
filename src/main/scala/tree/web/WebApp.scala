@@ -18,26 +18,26 @@ package tree.web
 
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.`Content-Type`
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse}
+import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse }
 import akka.http.scaladsl.server.RejectionHandler
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{ ExitCode, IO, IOApp }
 import cats.implicits._
 import cats.instances.future.catsStdInstancesForFuture
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
-import tree.data.{DbMindMupStore, FileMindmupStore, MemoryMindmupStore, MindmupStore}
+import tree.data.{ DbMindMupStore, FileMindmupStore, MemoryMindmupStore, MindmupStore }
 import tree.db.DatabaseInitializer
-import tree.feedback.{FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender}
-import tree.tracking.{DbTracking, FileTracking, MemoryTracking, Tracking}
+import tree.feedback.{ FeedbackDBSender, FeedbackSender, LogFeedbackSender, SlackFeedbackSender }
+import tree.tracking.{ DbTracking, FileTracking, MemoryTracking, Tracking }
 import sttp.tapir.docs.openapi._
 import sttp.tapir.openapi.circe.yaml.RichOpenAPI
 import sttp.tapir.server.akkahttp._
 import sttp.tapir.swagger.akkahttp.SwaggerAkka
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.io.Source
-import scala.util.{Failure, Try}
+import scala.util.{ Failure, Try }
 
 object WebApp extends IOApp with LazyLogging {
 

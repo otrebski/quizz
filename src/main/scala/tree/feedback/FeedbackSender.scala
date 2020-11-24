@@ -1,13 +1,13 @@
 package tree.feedback
 
-import cats.effect.{Clock, IO, Sync}
+import cats.effect.{ Clock, IO, Sync }
 import cats.syntax.option._
 import com.typesafe.scalalogging.LazyLogging
 import doobie.quill.DoobieContext
 import doobie.util.transactor.Transactor.Aux
 import io.getquill.Literal
 import tree.db.Feedback
-import tree.web.Api.{FeedbackSend, DecisionTreeState}
+import tree.web.Api.{ DecisionTreeState, FeedbackSend }
 
 import scala.language.higherKinds
 

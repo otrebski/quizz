@@ -1,12 +1,12 @@
 package mindmup
 
 import cats.implicits.catsSyntaxEitherId
-import cats.syntax.option.{none, _}
-import mindmup.V3IdString.{Idea, Mindmap}
+import cats.syntax.option.{ none, _ }
+import mindmup.V3IdString.{ Idea, Mindmap }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import tree.model
-import tree.model.{Question, SuccessStep}
+import tree.model.{ Question, SuccessStep }
 
 import scala.io.Source
 

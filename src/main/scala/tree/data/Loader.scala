@@ -1,13 +1,13 @@
 package tree.data
 
-import java.io.{File, FileFilter}
+import java.io.{ File, FileFilter }
 
 import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
-import mindmup.{Parser, V3IdString}
+import mindmup.{ Parser, V3IdString }
 import tree.model.DecisionTree
 
-import scala.io.{BufferedSource, Source}
+import scala.io.{ BufferedSource, Source }
 
 object Loader extends LazyLogging {
 
@@ -20,8 +20,8 @@ object Loader extends LazyLogging {
 
     files.map(fromFile).foldLeft(List.empty[DecisionTree].asRight[String]) {
       case (Right(list), Right(tree)) => Right(tree :: list)
-      case (Left(error), _)            => Left(error)
-      case (_, Left(error))            => Left(error)
+      case (Left(error), _)           => Left(error)
+      case (_, Left(error))           => Left(error)
     }
   }
 

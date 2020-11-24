@@ -16,14 +16,20 @@
 
 package tree.engine
 
-import tree.model.{FailureStep, Question, DecisionTreeStep, SuccessStep}
+import tree.model.{ DecisionTreeStep, FailureStep, Question, SuccessStep }
 
 object DecisionTreeEngine {
 
   case class SelectionResult(current: DecisionTreeStep, selections: List[String])
 
-  def history(tree: DecisionTreeStep, selections: List[String]): Either[String, List[DecisionTreeStep]] = {
-    def next(current: DecisionTreeStep, path: List[String]): Either[String, List[DecisionTreeStep]] =
+  def history(
+      tree: DecisionTreeStep,
+      selections: List[String]
+  ): Either[String, List[DecisionTreeStep]] = {
+    def next(
+        current: DecisionTreeStep,
+        path: List[String]
+    ): Either[String, List[DecisionTreeStep]] =
       path match {
         case head :: tail =>
           current match {
@@ -45,9 +51,9 @@ object DecisionTreeEngine {
   }
 
   def process(
-               answerId: String,
-               tree: DecisionTreeStep,
-               selections: List[String]
+      answerId: String,
+      tree: DecisionTreeStep,
+      selections: List[String]
   ): Either[String, SelectionResult] = {
     def select(path: List[String], tree: DecisionTreeStep): Either[String, DecisionTreeStep] =
       path.headOption match {

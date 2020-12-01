@@ -56,18 +56,31 @@ object Api {
 
   case class TrackingSessions(sessions: List[TrackingSession])
 
-  case class TrackingSession(session: String, date: Date, treeId: String, duration: Long)
+  case class TrackingSession(
+      session: String,
+      date: Date,
+      treeId: String,
+      version: Int,
+      duration: Long
+  )
 
-  case class TrackingSessionHistory(details: TrackingSession, steps: List[TrackingStep])
+  case class TrackingSessionHistory(details: TrackingSession, steps: List[TrackingHistoryStep])
 
   case class TrackingSessionHistoryQuery(session: String, treeId: String)
 
   case class TrackingStep(
-      treeId: String,
       path: String,
       date: Date,
-      session: String,
-      username: Option[String]
+      step: TrackingHistoryStep
+  )
+
+  case class TrackingHistoryStepQuery(treeId: String, version: Int, path: String)
+  case class TrackingHistoryStep(
+      question: String,
+      date: Date,
+      duration: Long,
+      answers: List[Answer] = List.empty,
+      success: Option[Boolean] = None
   )
 
 }

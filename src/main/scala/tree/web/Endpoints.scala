@@ -16,10 +16,10 @@ object Endpoints {
     new Encoder[Date] with Decoder[Date] {
 
       override def apply(a: Date): Json =
-        Encoder.encodeString.apply(new SimpleDateFormat("yyyy-MM-dd HH:mm").format(a))
+        Encoder.encodeString.apply(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(a))
 
       override def apply(c: HCursor): Result[Date] =
-        Decoder.decodeString.map(s => new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(s)).apply(c)
+        Decoder.decodeString.map(s => new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(s)).apply(c)
     }
 
   val routeEndpoint: Endpoint[
@@ -116,6 +116,19 @@ object Endpoints {
       .errorOut(stringBody)
       .out(jsonBody[Api.TrackingSessionHistory])
 
+  val trackingHistoryStep
+      : Endpoint[Api.TrackingHistoryStepQuery, String, Api.TrackingHistoryStep, Nothing] =
+    endpoint.get
+      .in(
+        "api" / "tracking" / "step" /
+        "tree" / path[String](name = "tree id") /
+        "version" / path[Int]("tree version").description("tree version") /
+        "path" / path[String](name = "path").description("Path in tree")
+      )
+      .mapInTo(Api.TrackingHistoryStepQuery)
+      .errorOut(stringBody)
+      .out(jsonBody[Api.TrackingHistoryStep])
+
   val allEndpoints: Seq[Endpoint[_, _, _, _]] = Seq(
     routeEndpoint,
     routeEndpointStart,
@@ -125,7 +138,8 @@ object Endpoints {
     feedback,
     validateEndpoint,
     trackingSessions,
-    trackingSession
+    trackingSession,
+    trackingHistoryStep
   )
 
 }

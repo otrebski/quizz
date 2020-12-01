@@ -7,6 +7,8 @@ import {BrowserRouter as Router, Route} from "react-router-dom";
 import Trees from "./components/Trees";
 import Navbar from 'react-bootstrap/Navbar'
 import Nav from 'react-bootstrap/Nav'
+import Sessions from "./components/Sessions";
+import SessionComponent from "./components/SessionComponent";
 
 function App() {
 
@@ -49,6 +51,12 @@ function App() {
                         />
                     }
                     }
+                    />
+                    <Route path="/tracking/sessions" exact render={() => <Sessions loadAction={Api.getSessions}/>}/>
+                    <Route path="/tracking/session/:session/tree/:tree" exact render={(query) => {
+                        return <SessionComponent loadAction={Api.getSession} loadStep={Api.getHistoryStep} sessionId={query.match.params.session} treeId={query.match.params.tree}/>
+
+                    }}
                     />
                 </div>
 

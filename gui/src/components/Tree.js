@@ -23,7 +23,7 @@ class Tree extends React.Component {
             errorMessage: "",
             selectAction: props.selectAction
         };
-        this.loadState(this.props.treeId, this.props.path)
+        // this.loadState(this.props.treeId, this.props.path)
     }
 
     loadState = (treeId, path) => {
@@ -41,7 +41,6 @@ class Tree extends React.Component {
                 history: e.history,
                 loading: false
             });
-            console.log("State loaded: ", this.state)
             this.scrollToBottom()
             return e;
         })

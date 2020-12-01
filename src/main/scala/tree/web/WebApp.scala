@@ -59,16 +59,16 @@ object WebApp extends IOApp with LazyLogging {
       val validate: String => Future[Either[Unit, Api.ValidationResult]] = validateProvider[Future]
       IO {
         val route = routeEndpoint.toRoute(
-          track(tracking, routeWithPathProvider(store)(_))(_).unsafeToFuture()
+          track(tracking, store, routeWithPathProvider(store)(_))(_).unsafeToFuture()
         )
         val routeStart =
           routeEndpointStart.toRoute(
-            track(tracking, routeWithPathProvider(store)(_))(_).unsafeToFuture()
+            track(tracking, store, routeWithPathProvider(store)(_))(_).unsafeToFuture()
           )
         val routeList = listTrees.toRoute(treeListProvider(store).andThen(_.unsafeToFuture()))
         val routeFeedback =
           feedback.toRoute(
-            track(tracking, feedbackProvider[IO](store, feedbackSenders))(_).unsafeToFuture()
+            track(tracking, store, feedbackProvider[IO](store, feedbackSenders))(_).unsafeToFuture()
           )
         val add           = addTree.toRoute(addTreeProvider(store)(_).unsafeToFuture())
         val delete        = deleteTree.toRoute(deleteTreeProvider(store)(_).unsafeToFuture())
@@ -76,7 +76,9 @@ object WebApp extends IOApp with LazyLogging {
         val trackingSessionsRoute =
           trackingSessions.toRoute(trackingSessionsProvider(tracking).andThen(_.unsafeToFuture()))
         val trackingSessionRoute =
-          trackingSession.toRoute(trackingSessionProvider(tracking)(_).unsafeToFuture())
+          trackingSession.toRoute(trackingSessionProvider(tracking, store)(_).unsafeToFuture())
+        val trackingHistoryStepRoute =
+          trackingHistoryStep.toRoute(trackingHistoryStepProvider(store)(_).unsafeToFuture())
         val static             = getFromResourceDirectory("gui")
         val docsAsYaml: String = Endpoints.allEndpoints.toOpenAPI("Decision trees", "?").toYaml
         val swagger            = new SwaggerAkka(docsAsYaml).routes
@@ -108,6 +110,7 @@ object WebApp extends IOApp with LazyLogging {
           ~ add ~ delete ~ validateRoute
           ~ trackingSessionsRoute
           ~ trackingSessionRoute
+          ~ trackingHistoryStepRoute
           ~ swagger
           ~ static,
           interface = "0.0.0.0",

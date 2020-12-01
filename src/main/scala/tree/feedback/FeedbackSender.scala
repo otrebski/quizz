@@ -13,11 +13,11 @@ import scala.language.higherKinds
 
 trait FeedbackSender[F[_]] {
 
-  def send(feedback: FeedbackSend, treeState: DecisionTreeState): F[Unit]
+  def send(feedback: FeedbackSend, version: Int, treeState: DecisionTreeState): F[Unit]
 }
 
 class LogFeedbackSender[F[_]: Sync] extends FeedbackSender[F] with LazyLogging {
-  override def send(feedback: FeedbackSend, treeState: DecisionTreeState): F[Unit] =
+  override def send(feedback: FeedbackSend, version: Int, treeState: DecisionTreeState): F[Unit] =
     Sync[F].delay(logger.info(s"Have feedback: $feedback for $treeState"))
 }
 
@@ -82,7 +82,7 @@ object SlackFeedbackSender {
 
 class SlackFeedbackSender[F[_]: Sync](token: String) extends FeedbackSender[F] {
 
-  override def send(feedback: FeedbackSend, treeState: DecisionTreeState): F[Unit] =
+  override def send(feedback: FeedbackSend, version: Int, treeState: DecisionTreeState): F[Unit] =
     Sync[F].delay {
       import sttp.client.circe._
 
@@ -113,7 +113,11 @@ class FeedbackDBSender(xa: Aux[IO, Unit])(implicit clock: Clock[IO]) extends Fee
 
   import dc._
 
-  override def send(feedback: FeedbackSend, treeState: DecisionTreeState): IO[Unit] = {
+  override def send(
+      feedback: FeedbackSend,
+      version: Int,
+      treeState: DecisionTreeState
+  ): IO[Unit] = {
     import java.util.Date
 
     import doobie.implicits._
@@ -123,6 +127,7 @@ class FeedbackDBSender(xa: Aux[IO, Unit])(implicit clock: Clock[IO]) extends Fee
         id = 0,
         timestamp = new Date(now),
         treeId = feedback.treeId,
+        version = version,
         path = feedback.path,
         comment = feedback.comment,
         rate = feedback.rate

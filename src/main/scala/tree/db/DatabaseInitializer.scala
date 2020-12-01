@@ -34,6 +34,7 @@ object DatabaseInitializer {
             |    id        SERIAL PRIMARY KEY,
             |    timestamp timestamp     NOT NULL,
             |    treeId    varchar(300)  NOT NULL,
+            |    version   INT           NOT NULL,
             |    path      varchar(2000) NOT NULL,
             |    comment   varchar(5000) NOT NULL,
             |    rate      INT           NOT NULL

@@ -141,7 +141,7 @@ object RouteProviders extends LazyLogging {
         .flatMap {
           case Right(treeState) =>
             feedbackSenders
-              .traverse(_.send(feedback, treeState))
+              .traverse(_.send(feedback, version, treeState))
               .map(_ => FeedbackResponse("OK").asRight[String])
           case Left(error) => Sync[F].raiseError(new Exception(s"Can't process feedback: $error"))
 

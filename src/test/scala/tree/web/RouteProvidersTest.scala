@@ -141,11 +141,11 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
   "tracking sessions" should "list all sessions" in {
     val tracking = for {
       tracking <- MemoryTracking[IO]()
-      _        <- tracking.step("q1", "a", Instant.ofEpochSecond(0), "s1", none[String])
-      _        <- tracking.step("q1", "a;2", Instant.ofEpochSecond(100), "s1", none[String])
-      _        <- tracking.step("q2", "a", Instant.ofEpochSecond(0), "s2", none[String])
-      _        <- tracking.step("q2", "a;2", Instant.ofEpochSecond(0), "s2", none[String])
-      _        <- tracking.step("q2", "a;2;3", Instant.ofEpochSecond(200), "s2", none[String])
+      _        <- tracking.step("q1", 1, "a", Instant.ofEpochSecond(0), "s1", none[String])
+      _        <- tracking.step("q1", 1, "a;2", Instant.ofEpochSecond(100), "s1", none[String])
+      _        <- tracking.step("q2", 1, "a", Instant.ofEpochSecond(0), "s2", none[String])
+      _        <- tracking.step("q2", 1, "a;2", Instant.ofEpochSecond(0), "s2", none[String])
+      _        <- tracking.step("q2", 1, "a;2;3", Instant.ofEpochSecond(200), "s2", none[String])
     } yield tracking
 
     val x = for {
@@ -154,31 +154,29 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
     } yield r
 
     x.unsafeRunSync().map(_.sessions.toSet) shouldBe Set(
-      Api.TrackingSession("s1", new Date(0), "q1", 100 * 1000),
-      Api.TrackingSession("s2", new Date(0), "q2", 200 * 1000)
+      Api.TrackingSession("s1", new Date(0), "q1", 1, 100 * 1000),
+      Api.TrackingSession("s2", new Date(0), "q2", 1, 200 * 1000)
     ).asRight
 
   }
 
+  //FIXME
   "tracking session" should "list single session" in {
-    val tracking = for {
-      tracking <- MemoryTracking[IO]()
-      _        <- tracking.step("q1", "a", Instant.ofEpochSecond(0), "s1", none[String])
-      _        <- tracking.step("q1", "a;2", Instant.ofEpochSecond(100), "s1", none[String])
-      _        <- tracking.step("q2", "a", Instant.ofEpochSecond(0), "s2", none[String])
-      _        <- tracking.step("q2", "a;2", Instant.ofEpochSecond(0), "s2", none[String])
-      _        <- tracking.step("q2", "a;2;3", Instant.ofEpochSecond(200), "s2", none[String])
-    } yield tracking
-
     (for {
-      t <- tracking
-      r <- RouteProviders.trackingSessionProvider(t)(Api.TrackingSessionHistoryQuery("s1", "q1"))
+      tracking <- MemoryTracking[IO]()
+      store    <- MemoryMindmupStore[IO]
+      _        <- store.store("a", validMindmup) //TODO use bigger mindmup
+      _        <- tracking.step("q1", 1, "a", Instant.ofEpochSecond(0), "s1", none[String])
+      //TODO add more steps
+      r <- RouteProviders.trackingSessionProvider(tracking, store)(
+        Api.TrackingSessionHistoryQuery("s1", "q1")
+      )
     } yield r)
       .unsafeRunSync() shouldBe TrackingSessionHistory(
-      details = Api.TrackingSession("s1", new Date(0), "q1", 100 * 1000),
+      details = Api.TrackingSession("s1", new Date(0), "q1", 1, 100 * 1000),
       steps = List(
-        Api.TrackingStep("q1", "a", new Date(0), "s1", none[String]),
-        Api.TrackingStep("q1", "a;2", new Date(100 * 1000), "s1", none[String])
+        Api.TrackingHistoryStep("q1", new Date(), 0, List.empty, none[Boolean]),
+        Api.TrackingHistoryStep("q1", new Date(), 0, List.empty, none[Boolean])
       )
     ).asRight
   }

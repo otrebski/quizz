@@ -2,7 +2,6 @@ package tree.web
 
 import java.time.Instant
 import java.util.{ Date, UUID }
-
 import cats.Applicative
 import cats.effect.Sync
 import cats.implicits._
@@ -35,16 +34,21 @@ object RouteProviders extends LazyLogging {
   implicit val feedbackConvert: Api.FeedbackSend => DecisionTreeQuery = fs =>
     DecisionTreeQuery(fs.treeId, fs.path)
 
-  def track[In, Out, Error, F[_]: Sync](tracking: Tracking[F], f: In => F[Either[Error, Out]])(
+  def track[In, Out, Error, F[_]: Sync](
+      tracking: Tracking[F],
+      treeStore: MindmupStore[F],
+      f: In => F[Either[Error, Out]]
+  )(
       requestAndCookie: (In, List[Cookie])
   )(implicit convert: In => DecisionTreeQuery): F[Either[Error, (Out, CookieValueWithMeta)]] = {
     val (request, cookies) = requestAndCookie
     val cookie             = generateCookie(cookies.find(_.name == "session"))
     val treeQuery          = convert.apply(request)
     val result = for {
+      version <- treeStore.latestVersion(treeQuery.id)
       _ <-
         tracking
-          .step(treeQuery.id, treeQuery.path, Instant.now(), cookie.value, none[String])
+          .step(treeQuery.id, version, treeQuery.path, Instant.now(), cookie.value, none[String])
       r <- f.apply(request)
       withCookie = r.map(x => (x, cookie))
     } yield withCookie
@@ -171,6 +175,7 @@ object RouteProviders extends LazyLogging {
           Api
             .TrackingSession(
               treeId = ts.treeId,
+              version = ts.version,
               session = ts.session,
               date = ts.date,
               duration = ts.duration
@@ -182,23 +187,113 @@ object RouteProviders extends LazyLogging {
   }
 
   def trackingSessionProvider[F[_]: Sync](
-      tracking: Tracking[F]
-  )(query: Api.TrackingSessionHistoryQuery): F[Either[String, Api.TrackingSessionHistory]] =
-    tracking
-      .session(query.session, query.treeId)
-      .map { list =>
-        val dates = list.map(_.date)
-        val min   = dates.minOption.getOrElse(new Date(0))
-        val max   = dates.maxOption.getOrElse(new Date(0))
-        val details = Api.TrackingSession(
-          session = query.session,
-          date = min,
-          treeId = query.treeId,
-          duration = max.getTime - min.getTime
+      tracking: Tracking[F],
+      store: MindmupStore[F]
+  )(query: Api.TrackingSessionHistoryQuery): F[Either[String, Api.TrackingSessionHistory]] = {
+
+    def tree(name: String, version: Int): F[Either[String, DecisionTree]] =
+      store
+        .load(name, version)
+        .map(mindmupString =>
+          for {
+            mindmup <- Parser.parseInput(query.treeId, mindmupString.content)
+            tree    <- mindmup.toDecisionTree
+          } yield tree
         )
-        val steps =
-          list.map(ts => Api.TrackingStep(ts.treeId, ts.path, ts.date, ts.session, ts.username))
-        Api.TrackingSessionHistory(details, steps).asRight[String]
+    case class StateAt(date: Date, state: Api.DecisionTreeState)
+
+    val filterDuplicates = (list: List[StateAt]) =>
+      list match {
+        case StateAt(_, prev) :: StateAt(_, next) :: Nil => prev.path != next.path
+        case _                                           => true
       }
+
+    val mapStates = (list: List[StateAt]) => {
+      list match {
+        case StateAt(
+              prevDate,
+              Api.DecisionTreeState(prevPath, Api.Step(_, question, _, _), _)
+            ) :: StateAt(
+              next,
+              state
+            ) :: Nil =>
+          val duration     = next.getTime - prevDate.getTime
+          val prevDepth    = prevPath.count(_ == ';')
+          val currentDepth = state.path.count(_ == ';')
+          val answers =
+            if (prevDepth < currentDepth || (prevDepth == currentDepth && prevPath != state.path))
+              state.history.lastOption.map(_.answers).getOrElse(List.empty)
+            else
+              List.empty
+          Api.TrackingHistoryStep(
+            date = next,
+            question = question,
+            answers = answers,
+            duration = duration
+          )
+        case StateAt(date, state) :: Nil =>
+          Api.TrackingHistoryStep(state.currentStep.question, date, duration = 0)
+        case _ => Api.TrackingHistoryStep("Just to make compiler happy", new Date(), 0)
+      }
+    }
+
+    val trackingSessionHistory = for {
+      steps <- tracking.session(query.session, query.treeId) //List[TrackingSession]
+      dates   = steps.map(_.date)
+      version = steps.map(_.version).max
+      min     = dates.minOption.getOrElse(new Date(0))
+      max     = dates.maxOption.getOrElse(new Date(0))
+      details = Api.TrackingSession(
+        session = query.session,
+        date = min,
+        version = version,
+        treeId = query.treeId,
+        duration = max.getTime - min.getTime
+      )
+      treeOrError <- tree(query.treeId, version)
+      statesOrError = for {
+        tree <- treeOrError
+        states <-
+          steps
+            .map(step =>
+              Logic
+                .calculateState(
+                  DecisionTreeQuery(query.treeId, step.path, version.some),
+                  Map(query.treeId -> tree)
+                )
+                .map(s => StateAt(step.date, s))
+            )
+            .sequence
+      } yield states
+
+      historySteps = statesOrError.map(_.sliding(2).filter(filterDuplicates).toList.map(mapStates))
+      r = for {
+        hs <- historySteps
+      } yield Api.TrackingSessionHistory(details, hs)
+    } yield r
+    //TODO add text of last step
+    trackingSessionHistory
+  }
+
+  def trackingHistoryStepProvider[F[_]: Sync](store: MindmupStore[F])(
+      query: Api.TrackingHistoryStepQuery
+  ): F[Either[String, Api.TrackingHistoryStep]] =
+    store.load(query.treeId, query.version).map { mindmupString =>
+      for {
+        mindmup <- Parser.parseInput(query.treeId, mindmupString.content)
+        tree    <- mindmup.toDecisionTree
+        state <- Logic.calculateState(
+          DecisionTreeQuery(query.treeId, query.path, query.version.some),
+          Map(query.treeId -> tree)
+        )
+        step = state.history.last
+      } yield Api.TrackingHistoryStep(
+        question = step.question,
+        date = new Date(0),
+        duration = 0,
+        answers = step.answers,
+        success = step.success
+      )
+    }
 
 }

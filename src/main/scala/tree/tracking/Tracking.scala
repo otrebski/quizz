@@ -18,17 +18,25 @@ import scala.language.higherKinds
 case class TrackingStep(
     id: Long,
     treeId: String,
+    version: Int,
     path: String,
     date: Date,
     session: String,
     username: Option[String]
 )
 
-case class TrackingSession(session: String, treeId: String, date: Date, duration: Long)
+case class TrackingSession(
+    session: String,
+    treeId: String,
+    version: Int,
+    date: Date,
+    duration: Long
+)
 
 trait Tracking[F[_]] {
   def step(
       treeId: String,
+      version: Int,
       path: String,
       date: Instant,
       session: String,
@@ -50,12 +58,15 @@ class MemoryTracking[F[_]: Sync](ref: Ref[F, List[TrackingStep]])
     with LazyLogging {
   override def step(
       treeId: String,
+      version: Int,
       path: String,
       date: Instant,
       session: String,
       user: Option[String]
   ): F[Unit] =
-    ref.update(list => TrackingStep(0, treeId, path, Date.from(date), session, user) :: list)
+    ref.update(list =>
+      TrackingStep(0, treeId, version, path, Date.from(date), session, user) :: list
+    )
 
   override def session(session: String, treeId: String): F[List[TrackingStep]] =
     Applicative[F].map(ref.get) { list =>
@@ -70,8 +81,15 @@ class MemoryTracking[F[_]: Sync](ref: Ref[F, List[TrackingStep]])
         .groupBy(ts => (ts.session, ts.treeId))
         .map {
           case ((session, treeId), steps) =>
-            val dates = steps.map(_.date)
-            TrackingSession(session, treeId, dates.min, dates.max.getTime - dates.min.getTime)
+            val dates   = steps.map(_.date)
+            val version = steps.map(_.version).max
+            TrackingSession(
+              session,
+              treeId,
+              version,
+              dates.min,
+              dates.max.getTime - dates.min.getTime
+            )
         }
         .toList
     }
@@ -92,6 +110,7 @@ class FileTracking[F[_]: Sync](dir: File) extends Tracking[F] {
 
   override def step(
       treeId: String,
+      version: Int,
       path: String,
       date: Instant,
       session: String,
@@ -99,7 +118,7 @@ class FileTracking[F[_]: Sync](dir: File) extends Tracking[F] {
   ): F[Unit] =
     Sync[F].delay {
       val dateString = new SimpleDateFormat("yyyyMMdd HHmmss").format(Date.from(date))
-      file << s"$dateString, ${date.toEpochMilli}, $treeId, $path, $session, ${user.getOrElse("")}"
+      file << s"$dateString, ${date.toEpochMilli}, $treeId, $version, $path, $session, ${user.getOrElse("")}"
     }
 
   private val parseEntry: String => TrackingStep = line => {
@@ -107,10 +126,11 @@ class FileTracking[F[_]: Sync](dir: File) extends Tracking[F] {
     TrackingStep(
       id = 0,
       treeId = split(2),
-      path = split(3),
+      version = split(3).toInt,
+      path = split(4),
       date = new Date(split(1).toLong),
-      session = split(4),
-      username = if (split(5).isEmpty) none[String] else split(5).some
+      session = split(5),
+      username = if (split(6).isEmpty) none[String] else split(6).some
     )
   }
 
@@ -133,8 +153,15 @@ class FileTracking[F[_]: Sync](dir: File) extends Tracking[F] {
         .groupBy(ts => (ts.session, ts.treeId))
         .map {
           case ((session, treeId), steps) =>
-            val dates = steps.map(_.date)
-            TrackingSession(session, treeId, dates.min, dates.max.getTime - dates.min.getTime)
+            val dates   = steps.map(_.date)
+            val version = steps.map(_.version).max
+            TrackingSession(
+              session,
+              treeId,
+              version,
+              dates.min,
+              dates.max.getTime - dates.min.getTime
+            )
         }
         .toList
     }
@@ -159,6 +186,7 @@ class DbTracking[F[_]: Async: ContextShift](xa: Aux[F, Unit]) extends Tracking[F
 
   override def step(
       treeId: String,
+      version: Int,
       path: String,
       date: Instant,
       session: String,
@@ -166,7 +194,7 @@ class DbTracking[F[_]: Async: ContextShift](xa: Aux[F, Unit]) extends Tracking[F
   ): F[Unit] = {
     val q = quote {
       query[TrackingStep]
-        .insert(lift(TrackingStep(0, treeId, path, Date.from(date), session, user)))
+        .insert(lift(TrackingStep(0, treeId, version, path, Date.from(date), session, user)))
         .returningGenerated(_.id)
     }
     val value = run(q).transact(xa)
@@ -182,7 +210,7 @@ class DbTracking[F[_]: Async: ContextShift](xa: Aux[F, Unit]) extends Tracking[F
     run(q).transact(xa)
   }
   def listSessions(): F[List[TrackingSession]] = {
-    val q: dc.Quoted[dc.Query[(String, String, Option[Date], Option[Date])]] = quote {
+    val q = quote {
       query[TrackingStep]
         .groupBy(s => (s.session, s.treeId))
         .map {
@@ -190,6 +218,7 @@ class DbTracking[F[_]: Async: ContextShift](xa: Aux[F, Unit]) extends Tracking[F
             (
               k._1,
               k._2,
+              v.map(_.version).max,
               v.map(_.date).max,
               v.map(_.date).min
             )
@@ -201,10 +230,11 @@ class DbTracking[F[_]: Async: ContextShift](xa: Aux[F, Unit]) extends Tracking[F
     import cats.implicits._
     Applicative[F].map(q1) { l =>
       l.map {
-        case (session, treeId, max, min) =>
+        case (session, treeId, version, max, min) =>
           TrackingSession(
             session = session,
             treeId = treeId,
+            version = version.getOrElse(1),
             date = min.getOrElse(new Date(0)),
             duration = (max, min).tupled.map(t => t._1.getTime - t._2.getTime).getOrElse(0)
           )

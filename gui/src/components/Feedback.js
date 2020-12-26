@@ -17,12 +17,10 @@ class Feedback extends React.Component {
     }
 
     sendFeedback = (rating) => {
-        console.log("Feedback send, rating: ", rating)
         this.setState({
             send: true,
             feedbackRating: rating
         });
-        console.log("Current state ", this.state)
         this.props.sendAction(rating, this.state.feedbackText)
 
     }
@@ -38,7 +36,6 @@ class Feedback extends React.Component {
                     className="inputText"
                     placeholder="Put your comments here..."
                     onChange={e => {
-                        console.log("Setting state, feedback text: ", e.target.value)
                         this.setState({feedbackText: e.target.value})
                     }}
                 />

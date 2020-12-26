@@ -53,6 +53,7 @@ object DatabaseInitializer {
         | (
         |    id        SERIAL PRIMARY KEY,
         |    treeId    varchar(300)  NOT NULL,
+        |    version   INT           NOT NULL,
         |    path      varchar(2000) NOT NULL,
         |    date      timestamp     NOT NULL,
         |    session   varchar(5000) NOT NULL,

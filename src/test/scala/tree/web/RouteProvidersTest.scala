@@ -162,21 +162,25 @@ class RouteProvidersTest extends AnyFlatSpec with Matchers {
 
   //FIXME
   "tracking session" should "list single session" in {
-    (for {
+    val result: Either[String, TrackingSessionHistory] = (for {
       tracking <- MemoryTracking[IO]()
       store    <- MemoryMindmupStore[IO]
-      _        <- store.store("a", validMindmup) //TODO use bigger mindmup
-      _        <- tracking.step("q1", 1, "a", Instant.ofEpochSecond(0), "s1", none[String])
+      _        <- store.store("q1", validMindmup) //TODO use bigger mindmup
+      _        <- tracking.step("q1", 1, "root;3.eeff.d297c2367-0c3d.6aa7f21a", Instant.ofEpochSecond(1), "s1", none[String])
+      _        <- tracking.step("q1", 1, "root;2.eeff.d297c2367-0c3d.6aa7f21a", Instant.ofEpochSecond(3), "s1", none[String])
       //TODO add more steps
       r <- RouteProviders.trackingSessionProvider(tracking, store)(
         Api.TrackingSessionHistoryQuery("s1", "q1")
       )
-    } yield r)
-      .unsafeRunSync() shouldBe TrackingSessionHistory(
-      details = Api.TrackingSession("s1", new Date(0), "q1", 1, 100 * 1000),
+    } yield r).unsafeRunSync()
+
+    result shouldBe TrackingSessionHistory(
+      details = Api.TrackingSession("s1",new Date(1000),"q1",1,2000),
       steps = List(
-        Api.TrackingHistoryStep("q1", new Date(), 0, List.empty, none[Boolean]),
-        Api.TrackingHistoryStep("q1", new Date(), 0, List.empty, none[Boolean])
+        Api.TrackingHistoryStep("Node2", new Date(3000), 2000, List(
+          Answer("2.eeff.d297c2367-0c3d.6aa7f21a","A1",Some(true)),
+          Answer("3.eeff.d297c2367-0c3d.6aa7f21a","A2",Some(false))
+        ), none[Boolean]),
       )
     ).asRight
   }
